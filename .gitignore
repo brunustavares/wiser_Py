@@ -1,0 +1,12 @@
+bak/
+plataformaberta/auth_lib_mdl.php
+plataformaberta/*.bat
+wiseflow/DB/
+wiseflow/auth_lib_bdint.php
+wiseflow/rectify_assessor_type.php
+wiseflow/send*
+wiseflow/*.bat
+templates/wiserPy_CSVtemplate.xlsm
+*.bat
+SyncToy*
+wiserPy.md

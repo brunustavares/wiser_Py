@@ -1,0 +1,656 @@
+/**
+ * wiser.Py
+ * Python app for integrated data and indicators management
+ * related to the tests carried out in WISEflow and Moodle.
+ * (developed for UAb - Universidade Aberta)
+ *
+ * @package    wiser.Py
+ * @category   app
+ * @author     Bruno Tavares <brunustavares@gmail.com>
+ * @link       https://www.linkedin.com/in/brunomastavares/
+ * @copyright  Copyright (C) 2024-2025 Bruno Tavares
+ * @license    GNU General Public License v3 or later
+ *             https://www.gnu.org/licenses/gpl-3.0.html
+ * @version    2025082111
+ * @date       2024-02-20
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+ @import url('https://fonts.googleapis.com/css?family=Audiowide');
+ @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css');
+
+body {
+    font-family: "Audiowide", sans-serif;
+    font-size: 15px;
+    animation: fadein 0.5s;
+}
+
+body.fade {
+    opacity: 0;
+}
+
+/* transição suave entre páginas */
+@keyframes fadein {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* barra de navegação */
+.navbar {
+    margin-bottom: 0px;
+}
+
+.navbar-username {
+    margin-left: -30px;
+}
+
+/* configurações de letra do nome da app */
+nav .navbar-brand {
+    font-size: xx-large;
+}
+
+/* cores do nome da app */
+nav .navbar-brand .blue {
+    color: #537fbe;
+}
+
+nav .navbar-brand .yellow {
+    color: #f5b82e;
+}
+
+.nav-button {
+    display: block;
+    margin: auto;
+}
+
+.nav-button,
+.page-item.active .page-link,
+.dropdown-menu>.active>a {
+    background-color: #537fbe;
+    border-color: #537fbe;
+}
+
+.nav-button:disabled {
+    background-color: grey;
+    border-color: grey;
+}
+
+button#usr_graph,
+button#usr_bio {
+    width: 150px !important;
+}
+
+button#flw_inloco,
+button#flw_null_irreg,
+button#flw_null_bio,
+button#flw_warn,
+button#flw_default {
+    width: 210px !important;
+}
+
+.nav-button:hover,
+.pagination>.active>a,
+.pagination>.active>a:focus,
+.pagination>.active>a:hover,
+.pagination>.active>span,
+.pagination>.active>span:focus,
+.pagination>.active>span:hover,
+.dropdown-menu>.active>a:focus,
+.dropdown-menu>.active>a:hover {
+    background-color: #286090;
+    border-color: #286090;
+}
+
+.container-item {
+    display: inline-table;
+    padding-top: 15% !important;
+    transition: padding-top 0.5s ease;
+}
+
+#loaded {
+    padding-top: 0% !important;
+}
+
+.container-fluid {
+    
+    padding-right: var(--bs-gutter-x, .75rem);
+    padding-left: var(--bs-gutter-x, .75rem);
+    margin-right: auto;
+    margin-left: auto;
+}
+
+@media only screen and (max-width: 520px) {
+    .login-menu {
+        width: 80%;
+        margin: 15% auto auto auto;
+    }
+}
+
+@media only screen and (min-width: 600px) {
+    .login-menu {
+        width: 25%;
+        margin: -5% auto auto auto;
+    }
+}
+
+/* elementos do menu */
+.menu-table {
+    width: auto;
+    max-width: 80%;
+    margin: auto;
+    display: inline-flex;
+}
+
+.container-fluid>.navbar-collapse,
+.container-fluid>.navbar-header,
+.container>.navbar-collapse,
+.container>.navbar-header,
+.menu-table-body {
+   display: flex !important;
+}
+
+.menu-table-body {
+    background-color: transparent !important;
+    --bs-table-bg: transparent !important;
+    --bs-table-hover-bg: transparent !important;
+    --bs-table-striped-bg: transparent !important;
+}
+
+.menu-table>tbody>tr>th {
+    border-top: 0px;
+}
+
+.menu-button,
+.users-menu-button {
+    opacity: 50%;
+    box-shadow: 0;
+}
+
+.menu-button:hover,
+.users-menu-button:hover {
+    opacity: 100%;
+    scale:calc(1.02);
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+
+.menu-button,
+.users-menu-button,
+.menu-button:hover,
+.users-menu-button:hover {
+    transition: opacity 0.5s ease-in-out, scale 0.5s ease-in-out, box-shadow 0.5s ease-in-out;
+}
+
+.menu-label,
+.users-menu-label,
+.navbar-label,
+.result {
+    color: #034f84;
+}
+
+.menu-label,
+.navbar-label,
+.navbar-version
+.result {
+    font-size: 125%;
+}
+
+.result {
+    width: 50%;
+    margin: auto;
+}
+
+.navbar-version {
+    position: absolute;
+    top: 25px;
+    right: 46vw;
+    color: red;
+}
+
+.users-menu-label {
+    font-size: inherit;
+}
+
+.menu-label,
+.users-menu-label {
+    opacity: 0;
+}
+
+.menu-button:hover ~.menu-label,
+.users-menu-button:hover ~.users-menu-label {
+    opacity: 100%;
+    transition: opacity 1s ease-in-out;
+}
+
+/* objectos p/ input do utilizador */
+    .date-picker {
+        display: block;
+        margin: auto;
+        padding: .375rem .75rem;
+        border: 1px solid #ced4da;
+        border-radius: .25rem;
+    }
+
+    .form-select {
+        display: inline-flex;
+        margin-right: auto !important;
+        margin-left: auto !important;
+        font-size: inherit;
+    }
+
+    .form-control {
+        width: auto;
+        margin: auto;
+    }
+
+    /* select#endpoint {
+        width: 525px !important;
+        text-align: left !important;
+    } */
+
+    .dropdown.bootstrap-select {
+        width: 525px !important;
+        text-align: left !important;
+    }
+
+    #stats_detail,
+    .stats_detail {
+        width: 120px !important;
+        margin: auto !important;
+        text-align: left !important;
+    }
+
+    .full_report_key {
+        text-align: center;
+    }
+
+.nav-link,
+.input-field,
+.date-picker,
+.form-select,
+.mail-server,
+.mail-port,
+.mail-credentials {
+    text-align: center;
+}
+
+.mail-server {
+    width: 400px !important;
+}
+
+.mail-port {
+    width: 90px !important;
+}
+
+.mail-credentials {
+    width: 300px !important;
+}
+
+.mail-div {
+    width: 65%;
+    margin: auto;
+    border: 2px solid #034f84;
+    border-radius: 5px;
+    padding: 5px;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.25s ease-in-out;
+}
+
+.mail-table {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 20px;
+}
+
+.mail-notif-type {
+    margin-left: 0px !important;
+    min-width: 250px !important;
+    color: black;
+    background-color: lightgrey;
+}
+
+.mail-area {
+    width: 100%;
+    height: 200px;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    font-family: sans-serif;
+}
+
+#mailboxes,
+#subject {
+    width: 100%;
+}
+
+.emptyrow {
+    height: 10px;
+}
+
+/* cores p/ estados dos fluxos */
+    .advert {
+        background-color: yellow !important;
+    }
+
+    .anul_bio {
+        background-color: lightpink !important;
+    }
+    .anul_irreg {
+        background-color: darkorange !important;
+    }
+
+    .inloco {
+        background-color: lightgreen !important;
+    }
+
+.nav-link,
+.nav-back {
+    padding: 0;
+    border: none;
+    background: none;
+}
+
+.fa-icon,
+.fa-icon-disabled {
+    width: 20px;
+}
+
+.fa-icon {
+    fill: #034f84;
+}
+
+.fa-icon-disabled {
+    fill: grey;
+}
+
+.fa-icon_mandatory,
+.fa-icon_optional {
+    width: 15px;
+}
+
+.fa-icon_mandatory {
+    fill: darkred;
+}
+
+.fa-icon_optional {
+    fill: green;
+}
+
+a[data-target="#std_opt"],
+a[data-target="#flw_opt"] {
+    color: #337ab7 !important;
+}
+
+a[data-target="#std_opt"]:hover,
+a[data-target="#flw_opt"]:hover {
+    color: #286090 !important;
+    text-decoration-line: underline !important;
+    cursor: pointer;
+}
+
+.input-field,
+.date-picker,
+.form-select,
+button#new {
+    width: 225px !important;
+}
+
+input#csv,
+input#wf {
+    width: 250px;
+}
+
+input#extra_time {
+    text-align: center;
+}
+
+/* objectos p/ apresentação dos resultados */
+.graph {
+    position: relative;
+    top: 0px;
+}
+
+tbody, td, tfoot, th, thead, tr {
+    border-color: inherit !important;
+    border-style: solid !important;
+    vertical-align: middle !important;
+}
+
+table.dataTable thead>tr>th.sorting_asc:before,
+table.dataTable thead>tr>th.sorting_desc:after,
+table.dataTable thead>tr>td.sorting_asc:before,
+table.dataTable thead>tr>td.sorting_desc:after {
+    opacity: 1;
+}
+
+table.dataTable thead th,
+table.dataTable thead td,
+table.dataTable tfoot th,
+table.dataTable tfoot td {
+    text-align: center;
+}
+
+.results-table,
+.stats-table,
+.users-table,
+.log-table {
+    font-family: system-ui;
+}
+
+.stats-table,
+.users-table,
+.log-table {
+    width: 65%;
+    margin: auto;
+}
+
+.results-table-header {
+    --bs-table-bg: #034f84;
+    color: white
+}
+
+.users-menu-table {
+    width: 485px;
+    margin: auto;
+}
+
+.users-menu-table>tbody>tr>td {
+    vertical-align: top!important;
+}
+
+.users-table>thead:first-child>tr:first-child>th {
+    text-align: center;
+}
+
+.mb-3,
+div.dataTables_length,
+div.dataTables_filter,
+div.dataTables_info,
+div.dataTables_paginate,
+.dropdown-toggle .filter-option,
+h2 {
+    text-align: center !important;
+}
+
+.endpoints-table {
+    width: 775px;
+    margin: auto;
+}
+
+.endpoints-table>thead>tr>th {
+    text-align: center;
+}
+
+.endpoints-table>tbody>tr>th {
+    text-align: right;
+}
+
+.endpoints-table>thead>tr>th,
+.endpoints-table>tbody>tr>th>label,
+.form-check-label,
+.form-label {
+    font-weight: lighter;
+}
+
+.endpoints-table>thead>tr>th,
+.endpoints-table>tbody>tr>th>label {
+    margin-bottom: 0;
+}
+
+.endpoints-table>tbody>tr:nth-of-type(odd)>.terminal {
+    visibility: hidden;
+    line-height: 0px;
+}
+
+.endpoints-table>tbody>tr:nth-of-type(even)>.terminal {
+    background: black;
+    color: lawngreen;
+}
+
+.user_bio {
+    height: 350px;
+    border-style: solid !important;
+    border: 1px;
+    border-color: #034f84;
+    border-radius: 15px;
+}
+
+.save-msg-template,
+.pwd-reset-button,
+.user-delete-button {
+    border: none;
+    background: transparent;
+}
+
+.save-msg-template:disabled ~.fa-icon {
+    fill: grey;
+}
+
+/* objectos modal */
+.modal-header {
+    display: block;
+    text-align: left;
+}
+
+.modal-content {
+    top: 35vh;
+}
+
+.loading {
+    opacity: 0;
+    display: none;
+}
+
+.loading-content {
+    width: 250px;
+    margin: auto;
+    top: 40vh;
+    text-align: center;
+}
+
+/* elementos estéticos */
+.logo,
+.menu-button {
+    width: 90%;
+    max-width: 300px;
+}
+
+.logo,
+.menu-button,
+.error {
+    border-radius: 20px;
+}
+
+.users-menu-button {
+    width: 125px;
+    border-radius: 10px;
+}
+
+.wiser-footer {
+    position: fixed;
+    width: 98%;
+    top: 96vh;
+}
+
+.menu-table>tbody>tr>th>hr {
+    height: 1px;
+    margin-top: unset;
+    border: none;
+    color: #034f84;
+}
+
+h2 {
+    margin-top: 0px;
+    color: #034f84;
+}
+
+h4 {
+    text-align: center;
+}
+
+.mail-server,
+.mail-port,
+input#csv,
+input#wf,
+input#extra_time,
+.login-usr,
+.login-pwd,
+.login-rst {
+    display: inline;
+}
+
+.login-usr,
+.login-pwd,
+.login-rst {
+    position: relative;
+}
+
+.login-usr {
+    margin-left: -2px!important;
+}
+
+.login-pwd {
+    margin-left: 35px!important;
+}
+
+.login-rst {
+    left: -7px;
+}
+
+/* copyright */
+#div_cr {
+    position: relative;
+    font-size: 16px;
+    text-align: right;
+    z-index: 1;
+}
+
+a[title="desenvolvido por..."] {
+    color: #f0f0f0 !important;
+}
+
+a[title="desenvolvido por..."]:hover {
+    color: #a0a0a0 !important;
+    cursor: pointer;
+}
+
+a[title="desenvolvido por..."],
+a[title="desenvolvido por..."]:hover {
+    transition: color 0.5s ease-in-out;
+}

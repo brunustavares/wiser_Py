@@ -1,0 +1,268 @@
+<!--
+/**
+ * wiser.Py
+ * Python app for integrated data and indicators management
+ * related to the tests carried out in WISEflow and Moodle.
+ * (developed for UAb - Universidade Aberta)
+ *
+ * @package    wiser.Py
+ * @category   app
+ * @author     Bruno Tavares <brunustavares@gmail.com>
+ * @link       https://www.linkedin.com/in/brunomastavares/
+ * @copyright  Copyright (C) 2024-2025 Bruno Tavares
+ * @license    GNU General Public License v3 or later
+ *             https://www.gnu.org/licenses/gpl-3.0.html
+ * @version    2025082111
+ * @date       2024-02-20
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+-->
+
+{% extends "layout.html" %}
+
+{% block title %}
+    dados completos: WISEflow
+{% endblock %}
+
+{% block main %}
+    <div class="mb-3">
+        <div class="navigation">
+            <form action="/sys_menu" method="post">
+                <input type="hidden" id="show_data" name="show_data" value="full_report">
+                <button class="nav-back" type="submit">
+                    <svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+                        <path d="M9.4 278.6c-12.5-12.5-12.5-32.8 0-45.3l128-128c9.2-9.2 22.9-11.9 34.9-6.9s19.8 16.6 19.8 29.6l0 256c0 12.9-7.8 24.6-19.8 29.6s-25.7 2.2-34.9-6.9l-128-128z"/>
+                    </svg>
+                </button>
+
+                <a href="{{ url_for('menu') }}">
+                    <svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+                        <path d="M575.8 255.5c0 18-15 32.1-32 32.1h-32l.7 160.2c0 2.7-.2 5.4-.5 8.1V472c0 22.1-17.9 40-40 40H456c-1.1 0-2.2 0-3.3-.1c-1.4 .1-2.8 .1-4.2 .1H416 392c-22.1 0-40-17.9-40-40V448 384c0-17.7-14.3-32-32-32H256c-17.7 0-32 14.3-32 32v64 24c0 22.1-17.9 40-40 40H160 128.1c-1.5 0-3-.1-4.5-.2c-1.2 .1-2.4 .2-3.6 .2H104c-22.1 0-40-17.9-40-40V360c0-.9 0-1.9 .1-2.8V287.6H32c-18 0-32-14-32-32.1c0-9 3-17 10-24L266.4 8c7-7 15-8 22-8s15 2 21 7L564.8 231.5c8 7 12 15 11 24z"/>
+                    </svg>
+                </a>
+            </form>
+        </div>
+
+        <h2>
+            dados completos: WISEflow
+        </h2>
+
+        {% if download %}
+            <script type="text/javascript">
+                downloadFile("{{ file_url }}", "{{ file_name }}", "/wf_full_report");
+            </script>
+        {% endif %}
+
+        <form action="/wf_full_report" method="post" id="wf_full_report" onsubmit="showModal()">
+            <div class="mb-3">
+                <input class="date-picker" type="date" id="date" name="date" value="">
+            </div>
+
+            <div class="mb-3">
+                <select class="form-select" id="get_bio" name="get_bio">
+                    <option selected>biometria média</option>
+
+                    <hr>
+
+                    <option value="1"><90%</option>
+                    <option value="2"><80%</option>
+                    <option value="3"><70%</option>
+                    <option value="4"><60%</option>
+                    <option value="5"><50%</option>
+                    <option value="6"><40%</option>
+                    <option value="7"><30%</option>
+                    <option value="8"><20%</option>
+                    <option value="9"><10%</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <select class="form-select" id="get_status" name="get_status">
+                    <option selected>estado</option>
+
+                    <hr>
+
+                    <option>presenciais</option>
+                    <option>advertências</option>
+                    <option>anulações</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <select class="form-select" id="lect_year" name="lect_year">
+                    <option selected>ano lectivo</option>
+
+                    <hr>
+
+                    {% for row in lect_year_list %}
+                        <option>{{ row[0] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button class="btn btn-primary nav-button" type="submit">Obter dados</button>
+
+            <hr>
+
+            {% if report %}
+                <script type="text/javascript">
+                    set_loaded("unloaded")
+                </script>
+
+                <p class="full_report_key">{{ key }}</p>
+
+                <br>
+
+                <div class="table-responsive">
+                    <table class="table  table-striped table-hover table-borderless results-table" id="full_report_table">
+                        <thead class="table-primary results-table-header">
+                            <tr>
+                                <th>firstname</th>
+                                <th>lastname</th>
+                                <th>std_num</th>
+                                <th>NEE_+time</th>
+                                <th>NEE_status</th>
+                                <th>title</th>
+                                <th>subtitle</th>
+                                <th>flowid</th>
+                                <th>flow_type</th>
+                                <th>dtfrom</th>
+                                <th>dtto</th>
+                                <th>dtpart</th>
+                                <th>biomark</th>
+                                <th>grade</th>
+                                <th>dtgrd</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for row in report %}
+                                <tr {% if row[13] == "0" %} class="advert" \
+                                    {% elif row[13] == "2" %} class="anul_bio" \
+                                    {% elif row[13] == "3" %} class="anul_irreg" \
+                                    {% elif row[13] == "4" %} class="inloco"
+                                    {% endif %}>
+                                    <td>{{ row[0] }}</td>
+                                    <td>{{ row[1] }}</td>
+                                    <td><a data-toggle="modal" data-target="#std_opt" onclick="attach_std_flw_id('{{ row[2] }}', '{{ row[0] }} {{ row[1] }}')">{{ row[2] }}</a></td>
+                                    <td>{{ row[3] }}</td>
+                                    <td>{{ row[4] }}</td>
+                                    <td><a href="https://europe.wiseflow.net/manager/display.php?id={{ row[7] }}" target="_blank">{{ row[5] }}</a></td>
+                                    <td><a href="https://europe.wiseflow.net/manager/display.php?id={{ row[7] }}" target="_blank">{{ row[6] }}</a></td>
+                                    <td><a href="https://europe.wiseflow.net/manager/display.php?id={{ row[7] }}" target="_blank">{{ row[7] }}</a></td>
+                                    <td>{{ row[8] }}</td>
+                                    <td>{{ row[9] }}</td>
+                                    <td>{{ row[10] }}</td>
+                                    <td>{{ row[11] }}</td>
+                                    <td>{{ row[12] }}</td>
+                                    <td>{% if show_act %}
+                                            <a data-toggle="modal" data-target="#flw_opt" onclick="attach_std_flw_id('{{ row[2] }}', '{{ row[0] }} {{ row[1] }}', '{{ row[7] }}')">{{ row[14] }}</a>
+                                        {% else %}
+                                            {{ row[14] }}
+                                        {% endif %}</td>
+                                    <td>{{ row[15] }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    <h4><span class="inloco">presencial</span> | 
+                        <span class="advert">advertência</span> | 
+                        <span class="anul_bio">anulação p/ biometria</span> | 
+                        <span class="anul_irreg">anulação p/ realiz.irreg.</span>
+                    </h4>
+
+                    <hr>
+
+                    <h3 class="result">
+                        <button class="btn btn-primary nav-button" type="submit" id="export" name="export">Exportar dados</button>
+                    </h3>                    
+                </div>
+
+                <!-- modal para menu de opções no estudante -->
+                <div class="modal fade" id="std_opt" role="dialog">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                <h4 class="modal-title" id="modal-title-std_opt"></h4>
+                            </div>
+
+                            <div class="modal-body">
+                                <button class="btn btn-primary nav-button" type="button" id="usr_graph" name="usr_graph" onclick="get_user_info('usr_graph')" data-dismiss="modal">histórico</button>
+
+                                <br>
+
+                                {% if show_bio %}
+                                    <button class="btn btn-primary nav-button" type="button" id="usr_bio" name="usr_bio" onclick="get_user_info('usr_bio')" data-dismiss="modal">fotografia</button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- modal para menu de opções na prova -->
+                <div class="modal fade" id="flw_opt" role="dialog">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                <h4 class="modal-title" id="modal-title-flw_opt"></h4>
+                            </div>
+
+                            <div class="modal-body">
+                                <button class="btn btn-primary nav-button" type="button" id="flw_inloco" name="flw_inloco" data-toggle="modal" data-target="#notify" onclick="attach_flw_status('flw_inloco')" data-dismiss="modal">presencial</button>
+                                <br>
+                                <button class="btn btn-primary nav-button" type="button" id="flw_null_irreg" name="flw_null_irreg" data-toggle="modal" data-target="#notify" onclick="attach_flw_status('flw_null_irreg')" data-dismiss="modal">anulação p/ realiz.irreg.</button>
+                                <br>
+                                <button class="btn btn-primary nav-button" type="button" id="flw_null_bio" name="flw_null_bio" data-toggle="modal" data-target="#notify" onclick="attach_flw_status('flw_null_bio')" data-dismiss="modal">anulação p/ biometria</button>
+                                <br>
+                                <button class="btn btn-primary nav-button" type="button" id="flw_warn" name="flw_warn" data-toggle="modal" data-target="#notify" onclick="attach_flw_status('flw_warn')" data-dismiss="modal">advertência</button>
+                                <br>
+                                <button class="btn btn-primary nav-button" type="button" id="flw_default" name="flw_default" data-toggle="modal" data-target="#notify" onclick="attach_flw_status('flw_default')" data-dismiss="modal">regular</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- modal para confirmação de envio de notificações -->
+                <div class="modal fade" id="notify" role="dialog">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                <h4 class="modal-title">Confirmação</h4>
+                            </div>
+
+                            <div class="modal-body">
+                                <p id="student"></p>
+                            </div>
+
+                            <div class="modal-footer">
+                                <button class="btn btn-primary" type="button" id="yes" name="yes" onclick="set_std_flw_status(document.getElementById('yes').value, true)" data-dismiss="modal">Sim</button>
+                                <button class="btn btn-secondary" type="button" id="no" name="no" onclick="set_std_flw_status(document.getElementById('no').value, false)" data-dismiss="modal">Não</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            {% elif not search %}
+                <h3 class="result">
+                    (sem dados)
+                </h3>
+            {% endif %}
+        </form>
+    </div>
+{% endblock %}

@@ -1,0 +1,48 @@
+<!--
+/**
+ * wiser.Py
+ * Python app for integrated data and indicators management
+ * related to the tests carried out in WISEflow and Moodle.
+ * (developed for UAb - Universidade Aberta)
+ *
+ * @package    wiser.Py
+ * @category   app
+ * @author     Bruno Tavares <brunustavares@gmail.com>
+ * @link       https://www.linkedin.com/in/brunomastavares/
+ * @copyright  Copyright (C) 2024-2025 Bruno Tavares
+ * @license    GNU General Public License v3 or later
+ *             https://www.gnu.org/licenses/gpl-3.0.html
+ * @version    2025082111
+ * @date       2024-02-20
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+-->
+
+{% extends "layout.html" %}
+
+{% block title %}
+    erro
+{% endblock %}
+
+{% block main %}
+
+    <a href="{{ back }}" alt="voltar">
+        <img alt="{{ top }}"
+            class="border img-fluid error"
+            src="https://api.memegen.link/images/custom/{{ bottom | urlencode }}/{{ top | urlencode }}.jpg?background=https://mdlws.uab.pt/wiser_py/static/img/error.jpg&height=300&width=300"
+            title="{{ top }}">
+    </a>
+         
+{% endblock %}s

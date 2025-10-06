@@ -1,0 +1,224 @@
+<!--
+/**
+ * wiser.Py
+ * Python app for integrated data and indicators management
+ * related to the tests carried out in WISEflow and Moodle.
+ * (developed for UAb - Universidade Aberta)
+ *
+ * @package    wiser.Py
+ * @category   app
+ * @author     Bruno Tavares <brunustavares@gmail.com>
+ * @link       https://www.linkedin.com/in/brunomastavares/
+ * @copyright  Copyright (C) 2024-2025 Bruno Tavares
+ * @license    GNU General Public License v3 or later
+ *             https://www.gnu.org/licenses/gpl-3.0.html
+ * @version    2025082111
+ * @date       2024-02-20
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+-->
+
+{% extends "layout.html" %}
+
+{% block title %}
+    utilizadores
+{% endblock %}
+
+{% block main %}
+    <div class="navigation">
+        <a href="{{ url_for('menu') }}">
+            <svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+                <path d="M9.4 278.6c-12.5-12.5-12.5-32.8 0-45.3l128-128c9.2-9.2 22.9-11.9 34.9-6.9s19.8 16.6 19.8 29.6l0 256c0 12.9-7.8 24.6-19.8 29.6s-25.7 2.2-34.9-6.9l-128-128z"/>
+            </svg>
+        </a>
+
+        <a href="{{ url_for('menu') }}">
+            <svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+                <path d="M575.8 255.5c0 18-15 32.1-32 32.1h-32l.7 160.2c0 2.7-.2 5.4-.5 8.1V472c0 22.1-17.9 40-40 40H456c-1.1 0-2.2 0-3.3-.1c-1.4 .1-2.8 .1-4.2 .1H416 392c-22.1 0-40-17.9-40-40V448 384c0-17.7-14.3-32-32-32H256c-17.7 0-32 14.3-32 32v64 24c0 22.1-17.9 40-40 40H160 128.1c-1.5 0-3-.1-4.5-.2c-1.2 .1-2.4 .2-3.6 .2H104c-22.1 0-40-17.9-40-40V360c0-.9 0-1.9 .1-2.8V287.6H32c-18 0-32-14-32-32.1c0-9 3-17 10-24L266.4 8c7-7 15-8 22-8s15 2 21 7L564.8 231.5c8 7 12 15 11 24z"/>
+            </svg>
+        </a>
+        
+    </div>
+
+    <h2>
+        utilizadores
+    </h2>
+
+    <form action="/activity_log" id="activity_log" method="post">
+        <input type="hidden" id="sys_activity" name="sys_activity" value="sys_activity">
+    </form>
+
+    <form action="/mail_settings" id="mail_settings" method="post">
+        <input type="hidden" id="mail_conf" name="mail_conf" value="users">
+    </form>
+
+    <form action="/manage_users" id="manage_users" method="post" onsubmit="showModal()">
+        <table class="users-menu-table">
+            <tr>
+                <td>
+                    <div class="mb-3">
+                        <input autocomplete="off" class="form-control mx-auto w-auto input-field" id="username" name="username" placeholder="Username" type="text">
+                    </div>
+
+                    <div class="mb-3">
+                        <input autocomplete="off" class="form-control mx-auto w-auto input-field" id="mailbox" name="mailbox" placeholder="E-mail" type="email">
+                    </div>
+
+                    <button class="btn btn-primary nav-button" type="submit" id="new" name="new">Registar novo utilizador</button>
+                </td>
+
+                <td>
+                    <button class="nav-link" type="submit" form="activity_log">
+                        <img src="static/img/activity_log.jpg" class="users-menu-button" alt="registo de actividade">
+                        <br><br>
+                        <label class="users-menu-label">registo de actividade</label>
+                    </button>
+                </td>
+
+                <td>
+                    <button class="nav-link" type="submit" form="mail_settings">
+                        <img src="static/img/mail_settings.jpg" class="users-menu-button" alt="envio de password">
+                        <br><br>
+                        <label class="users-menu-label">envio de password</label>
+                    </button>
+                </td>
+            </tr>
+        </table>
+
+        <hr>
+
+        <div class="table-responsive">
+            <script type="text/javascript">
+                set_loaded("unloaded")
+            </script>
+
+            <table class="table table-striped table-hover users-table" id="manage_users_table">
+                <thead class="table-primary results-table-header">
+                    <tr>
+                        <th>username</th>
+                        <th>password<br>reset</th>
+                        <th>admin</th>
+                        <th>flow_man</th>
+                        <th>bio_man</th>
+                        <th>stats_man</th>
+                        <th>tools_usr</th>
+                        <th>SOS_usr</th>
+                        <th>primeiro<br>login</th>
+                        <th>último<br>login</th>
+                        <th>sessão<br>total</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for row in users %}
+                        <tr>
+                            <td>{{ row[1] }}</td>
+
+                            <td>
+                                {% if row[1] != "admin" and row[0] != userid %}
+                                    <button type="button" class="pwd-reset-button" data-toggle="modal" data-target="#go_conf" onclick="send_values('{{ row[1] }}', 'rst')">
+                                        <svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+                                            <path d="M174.7 45.1C192.2 17 223 0 256 0s63.8 17 81.3 45.1l38.6 61.7 27-15.6c8.4-4.9 18.9-4.2 26.6 1.7s11.1 15.9 8.6 25.3l-23.4 87.4c-3.4 12.8-16.6 20.4-29.4 17l-87.4-23.4c-9.4-2.5-16.3-10.4-17.6-20s3.4-19.1 11.8-23.9l28.4-16.4L283 79c-5.8-9.3-16-15-27-15s-21.2 5.7-27 15l-17.5 28c-9.2 14.8-28.6 19.5-43.6 10.5c-15.3-9.2-20.2-29.2-10.7-44.4l17.5-28zM429.5 251.9c15-9 34.4-4.3 43.6 10.5l24.4 39.1c9.4 15.1 14.4 32.4 14.6 50.2c.3 53.1-42.7 96.4-95.8 96.4L320 448v32c0 9.7-5.8 18.5-14.8 22.2s-19.3 1.7-26.2-5.2l-64-64c-9.4-9.4-9.4-24.6 0-33.9l64-64c6.9-6.9 17.2-8.9 26.2-5.2s14.8 12.5 14.8 22.2v32l96.2 0c17.6 0 31.9-14.4 31.8-32c0-5.9-1.7-11.7-4.8-16.7l-24.4-39.1c-9.5-15.2-4.7-35.2 10.7-44.4zm-364.6-31L36 204.2c-8.4-4.9-13.1-14.3-11.8-23.9s8.2-17.5 17.6-20l87.4-23.4c12.8-3.4 26 4.2 29.4 17L182 241.2c2.5 9.4-.9 19.3-8.6 25.3s-18.2 6.6-26.6 1.7l-26.5-15.3L68.8 335.3c-3.1 5-4.8 10.8-4.8 16.7c-.1 17.6 14.2 32 31.8 32l32.2 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-32.2 0C42.7 448-.3 404.8 0 351.6c.1-17.8 5.1-35.1 14.6-50.2l50.3-80.5z"/>
+                                        </svg>
+                                    </button>
+                                {% endif %}
+                            </td>
+
+                            <td><input type="checkbox" id="admin{{ row[0] }}" name="admin{{ row[0] }}"
+                                {% if row[2] == 1 %} checked {% endif %}
+                                {% if row[1] == "admin" or row[3] == 1 or row[4] == 1 or row[5] == 1 or row[6] == 1 or row[7] == 1 %} disabled {% endif %}
+                                {% if row[0] == userid %} disabled {% endif %}
+                                onchange="update_users('{{ row[0] }}')">
+                            </td>
+
+                            <td><input type="checkbox" id="flowman{{ row[0] }}" name="flowman{{ row[0] }}"
+                                {% if row[3] == 1 %} checked {% endif %}
+                                {% if row[2] == 1 %} disabled {% endif %}
+                                {% if row[0] == userid %} disabled {% endif %}
+                                onchange="update_users('{{ row[0] }}')">
+                            </td>
+
+                            <td><input type="checkbox" id="bioman{{ row[0] }}" name="bioman{{ row[0] }}"
+                                {% if row[4] == 1 %} checked {% endif %}
+                                {% if row[2] == 1 or row[3] == 1 %} disabled {% endif %}
+                                {% if row[0] == userid %} disabled {% endif %}
+                                onchange="update_users('{{ row[0] }}')">
+                            </td>
+
+                            <td><input type="checkbox" id="statsman{{ row[0] }}" name="statsman{{ row[0] }}"
+                                {% if row[5] == 1 %} checked {% endif %}
+                                {% if row[2] == 1 %} disabled {% endif %}
+                                {% if row[0] == userid %} disabled {% endif %}
+                                onchange="update_users('{{ row[0] }}')">
+                            </td>
+
+                            <td><input type="checkbox" id="toolsusr{{ row[0] }}" name="toolsusr{{ row[0] }}"
+                                {% if row[6] == 1 %} checked {% endif %}
+                                {% if row[2] == 1 %} disabled {% endif %}
+                                {% if row[0] == userid %} disabled {% endif %}
+                                onchange="update_users('{{ row[0] }}')">
+                            </td>
+
+                            <td><input type="checkbox" id="sosusr{{ row[0] }}" name="sosusr{{ row[0] }}"
+                                {% if row[7] == 1 %} checked {% endif %}
+                                {% if row[2] == 1 or row[6] == 0 %} disabled {% endif %}
+                                {% if row[0] == userid %} disabled {% endif %}
+                                onchange="update_users('{{ row[0] }}')">
+                            </td>
+
+                            <td>{{ row[8] }}</td>
+
+                            <td>{{ row[9] }}</td>
+
+                            <td>{{ row[10] }}</td>
+
+                            <td>
+                                {% if row[1] != "admin" and row[0] != userid %}
+                                    <button type="button" class="user-delete-button" data-toggle="modal" data-target="#go_conf" onclick="send_values('{{ row[1] }}', 'del')">
+                                        <svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. -->
+                                            <path d="M170.5 51.6L151.5 80h145l-19-28.4c-1.5-2.2-4-3.6-6.7-3.6H177.1c-2.7 0-5.2 1.3-6.7 3.6zm147-26.6L354.2 80H368h48 8c13.3 0 24 10.7 24 24s-10.7 24-24 24h-8V432c0 44.2-35.8 80-80 80H112c-44.2 0-80-35.8-80-80V128H24c-13.3 0-24-10.7-24-24S10.7 80 24 80h8H80 93.8l36.7-55.1C140.9 9.4 158.4 0 177.1 0h93.7c18.7 0 36.2 9.4 46.6 24.9zM80 128V432c0 17.7 14.3 32 32 32H336c17.7 0 32-14.3 32-32V128H80zm80 64V400c0 8.8-7.2 16-16 16s-16-7.2-16-16V192c0-8.8 7.2-16 16-16s16 7.2 16 16zm80 0V400c0 8.8-7.2 16-16 16s-16-7.2-16-16V192c0-8.8 7.2-16 16-16s16 7.2 16 16zm80 0V400c0 8.8-7.2 16-16 16s-16-7.2-16-16V192c0-8.8 7.2-16 16-16s16 7.2 16 16z" />
+                                        </svg>
+                                    </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- modal para confirmação de alterações -->
+        <div class="modal fade" id="go_conf" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                        <h4 class="modal-title">Confirmação</h4>
+                    </div>
+
+                    <div class="modal-body">
+                        <p id="user"></p>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" type="submit" id="go" name="go">Sim</button>
+                        <button class="btn btn-secondary" type="button" data-dismiss="modal">Não</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+{% endblock %}

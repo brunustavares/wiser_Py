@@ -1,0 +1,114 @@
+<!--
+/**
+ * wiser.Py
+ * Python app for integrated data and indicators management
+ * related to the tests carried out in WISEflow and Moodle.
+ * (developed for UAb - Universidade Aberta)
+ *
+ * @package    wiser.Py
+ * @category   app
+ * @author     Bruno Tavares <brunustavares@gmail.com>
+ * @link       https://www.linkedin.com/in/brunomastavares/
+ * @copyright  Copyright (C) 2024-2025 Bruno Tavares
+ * @license    GNU General Public License v3 or later
+ *             https://www.gnu.org/licenses/gpl-3.0.html
+ * @version    2025082111
+ * @date       2024-02-20
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+-->
+
+{% extends "layout.html" %}
+
+{% block title %}
+    reset sync
+{% endblock %}
+
+{% block main %}
+    <div class="navigation">
+        <a href="{{ url_for('sos') }}">
+            <svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+                <path d="M9.4 278.6c-12.5-12.5-12.5-32.8 0-45.3l128-128c9.2-9.2 22.9-11.9 34.9-6.9s19.8 16.6 19.8 29.6l0 256c0 12.9-7.8 24.6-19.8 29.6s-25.7 2.2-34.9-6.9l-128-128z"/>
+            </svg>
+        </a>
+
+        <a href="{{ url_for('menu') }}">
+            <svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+                <path d="M575.8 255.5c0 18-15 32.1-32 32.1h-32l.7 160.2c0 2.7-.2 5.4-.5 8.1V472c0 22.1-17.9 40-40 40H456c-1.1 0-2.2 0-3.3-.1c-1.4 .1-2.8 .1-4.2 .1H416 392c-22.1 0-40-17.9-40-40V448 384c0-17.7-14.3-32-32-32H256c-17.7 0-32 14.3-32 32v64 24c0 22.1-17.9 40-40 40H160 128.1c-1.5 0-3-.1-4.5-.2c-1.2 .1-2.4 .2-3.6 .2H104c-22.1 0-40-17.9-40-40V360c0-.9 0-1.9 .1-2.8V287.6H32c-18 0-32-14-32-32.1c0-9 3-17 10-24L266.4 8c7-7 15-8 22-8s15 2 21 7L564.8 231.5c8 7 12 15 11 24z"/>
+            </svg>
+        </a>
+    </div>
+
+    <h2>
+        BDInt->SiGES: sincronização de notas
+    </h2>
+
+    <form action="/reset_sync" method="post" id="reset_sync" onsubmit="showModal()">
+        <div class="mb-3" name="parameters" id="parameters">
+            <div class="mb-3" name="div_lect_year" id="div_lect_year">
+                <select class="form-select" id="lect_year" name="lect_year">
+                    <option value="ano_lectivo" selected>ano lectivo</option>
+
+                    <hr>
+
+                    {% for row in lect_year %}
+                        <option>{{ row[0] }}</option>
+                    {% endfor %}
+                </select>
+
+                <svg class="fa-icon_mandatory" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.-->
+                    <path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336l24 0 0-64-24 0c-13.3 0-24-10.7-24-24s10.7-24 24-24l48 0c13.3 0 24 10.7 24 24l0 88 8 0c13.3 0 24 10.7 24 24s-10.7 24-24 24l-80 0c-13.3 0-24-10.7-24-24s10.7-24 24-24zm40-208a32 32 0 1 1 0 64 32 32 0 1 1 0-64z"/>
+                    <title>obrigatório</title>
+                </svg>
+            </div>
+
+            <div class="mb-3" name="div_courses" id="div_courses">
+                <label for="lista_ucs" class="form-label">UCs (separadas por vírgula)</label>
+
+                <svg class="fa-icon_mandatory" id="icon_courses" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.-->
+                    <path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336l24 0 0-64-24 0c-13.3 0-24-10.7-24-24s10.7-24 24-24l48 0c13.3 0 24 10.7 24 24l0 88 8 0c13.3 0 24 10.7 24 24s-10.7 24-24 24l-80 0c-13.3 0-24-10.7-24-24s10.7-24 24-24zm40-208a32 32 0 1 1 0 64 32 32 0 1 1 0-64z"/>
+                    <title id="title_courses">obrigatório</title>
+                </svg>
+
+                <textarea class="form-control" id="lista_ucs" name="lista_ucs" rows="3" cols="48" placeholder="AAAAA, BBBBB, CCCCC, ..."></textarea>
+            </div>
+
+            <div class="mb-3" name="div_students" id="div_students">
+                <label for="lista_stds" class="form-label">estudantes (separados por vírgula)</label>
+
+                <svg class="fa-icon_optional" id="icon_students" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.-->
+                    <path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336l24 0 0-64-24 0c-13.3 0-24-10.7-24-24s10.7-24 24-24l48 0c13.3 0 24 10.7 24 24l0 88 8 0c13.3 0 24 10.7 24 24s-10.7 24-24 24l-80 0c-13.3 0-24-10.7-24-24s10.7-24 24-24zm40-208a32 32 0 1 1 0 64 32 32 0 1 1 0-64z"/>
+                    <title id="title_students">opcional</title>
+                </svg>
+
+                <textarea class="form-control" id="lista_stds" name="lista_stds" rows="3" cols="48" placeholder="AAAAAAA, BBBBBBB, CCCCCCC, ..."></textarea>
+            </div>
+        </div>
+
+        <button class="btn btn-primary nav-button" type="submit">reiniciar sincronização</button>
+
+        <hr>
+
+        {% if info %}
+            <script type="text/javascript">
+                set_loaded("unloaded")
+            </script>
+
+            <h3 class="result">
+                {{ info }}
+            </h3>
+        {% endif %}
+    </form>
+{% endblock %}
