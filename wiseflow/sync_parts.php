@@ -151,6 +151,8 @@ function get_subs_assessor($flowid, $role) {
         curl_setopt_array($curl, $curlopt);
 
         $response = curl_exec($curl);
+        // $errNo = curl_errno($curl);
+        // $err = curl_error($curl);
 
         $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
@@ -206,6 +208,8 @@ function set_subs_assessor($flowid, $roleid, $partid, $role) {
         curl_setopt_array($curl, $curlopt);
 
         $response = curl_exec($curl);
+        // $errNo = curl_errno($curl);
+        // $err = curl_error($curl);
 
         $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
@@ -271,9 +275,9 @@ $curlopt_base = set_curl_params(time());
         // remover participantes dos flows
         while ($row = mysqli_fetch_array($takeparts)) {
             $httpcode = 0;
-            while ($httpcode <> 200 // The participant was removed from the flow
-                && $httpcode <> 403 // Flow is archived or activated
-                && $httpcode <> 404 // Flow or participant not found
+            while ($httpcode <> 200 // participante removido
+                && $httpcode <> 403 // flow arquivado ou ativado
+                && $httpcode <> 404 // flow ou participante não encontrado
                 ) {
                 $partid  = $row['partid'];
                 $flowid  = $row['flowid'];
@@ -293,6 +297,8 @@ $curlopt_base = set_curl_params(time());
                 curl_setopt_array($curl, $curlopt);
 
                 $response = curl_exec($curl);
+                // $errNo = curl_errno($curl);
+                // $err = curl_error($curl);
 
                 $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
@@ -373,6 +379,8 @@ $curlopt_base = set_curl_params(time());
                 curl_setopt_array($curl, $curlopt);
 
                 $response = curl_exec($curl);
+                // $errNo = curl_errno($curl);
+                // $err = curl_error($curl);
 
                 $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
@@ -386,29 +394,59 @@ $curlopt_base = set_curl_params(time());
         }
 
         // obter participantes do flow
-        $httpcode = 0;
-        while ($httpcode <> 200) {
-            $url = $base_url . "flow/" . $flowid . "/participants"; # FIXME: offset
+        $url = $base_url . "flows/" . $flowid . "/participants";
 
-            $curlopt = array_replace(
-                                     $curlopt_base,
-                                     array(
-                                           CURLOPT_URL => $url,
-                                           CURLOPT_CUSTOMREQUEST => 'GET',
-                                          )
-                                    );
+        $flow_parts = [];
+        $offset = 0;
+        $limit = 100;
+        $repeat = true;
 
-            $curl = curl_init();
+        while ($repeat) {
+            $offseturl = $url . "?offset=" . (string)$offset . "&limit=" . (string)$limit;
 
-            curl_setopt_array($curl, $curlopt);
+            $httpcode = 0;
+            while ($httpcode <> 200) {
+                $curlopt = array_replace(
+                                         $curlopt_base,
+                                         array(
+                                               CURLOPT_URL => $offseturl,
+                                               CURLOPT_CUSTOMREQUEST => 'GET',
+                                              )
+                                        );
 
-            $response = curl_exec($curl);
+                $curl = curl_init();
 
-            $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+                curl_setopt_array($curl, $curlopt);
+
+                $response = curl_exec($curl);
+                // $errNo = curl_errno($curl);
+                // $err = curl_error($curl);
+
+                $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
+                if ($httpcode == 500) { $httpcode = 200; }
+                
+            }
+
+            $result = json_decode($response, true)['data'];
+
+            if (!empty($result)) {
+                $flow_parts = array_merge($flow_parts, $result);
+
+                if (count($result) >= $limit) {
+                    $offset += $limit;
+
+                } else {
+                    $repeat = false;
+
+                }
+
+            } else {
+                $repeat = false;
+
+            }
 
         }
-
-        $flow_parts = json_decode($response, true);
 
         curl_close($curl);
         unset($response);
@@ -428,19 +466,6 @@ $curlopt_base = set_curl_params(time());
 
         }
 
-        // foreach ($flow_parts['data'] as $part) {
-        //     // actualizar tabela de controlo com flowid
-        //     $updtqry = "UPDATE wiseflow.flows_assess
-        //                 SET partid = '" . $part['participantId'] . "',
-        //                     dtreg = \"" . date(FULLDATE) . "\"
-        //                 WHERE stdid = '" . $part['userId'] . "'
-        //                     AND flowid = '" . $flowid . "';";
-
-        //     mysqli_query($conBDInt, $updtqry)
-        //         or die("Ñ foi possível actualizar a tabela 'wiseflow.flows_assess': " . mysqli_error($conBDInt) . $nl);
-
-        // }
-
         printf("Foram registados " . mysqli_num_rows($newparts) . " participantes nos flows" . $nl);
 
     } else {
@@ -449,8 +474,7 @@ $curlopt_base = set_curl_params(time());
     }
 
 // actualização de estudantes c/ NEEs
-
-    // Inicializar conexão à PlataformAbERTA
+    // inicializar conexão à PlataformAbERTA
     $mdl_std_eval = connect2mdl('estudantes_NEEs');
 
     $curl_mdl = curl_init();
@@ -724,6 +748,8 @@ $curlopt_base = set_curl_params(time());
                 curl_setopt_array($curl, $curlopt);
 
                 $response = curl_exec($curl);
+                // $errNo = curl_errno($curl);
+                // $err = curl_error($curl);
 
                 $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
@@ -756,6 +782,8 @@ $curlopt_base = set_curl_params(time());
                     curl_setopt_array($curl, $curlopt);
         
                     $response = curl_exec($curl);
+                    // $errNo = curl_errno($curl);
+                    // $err = curl_error($curl);
 
                     $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
@@ -803,165 +831,6 @@ $curlopt_base = set_curl_params(time());
         printf("Sem notas p/ migrar" . $nl);
 
     }
-
-// // levantamento dos flows realizados no dia anterior, p/ carregamento de marcadores biométricos
-//     $slctqry = "SELECT stdid
-//                 FROM wiseflow.flows_assess
-//                 WHERE DATE(dtass) = DATE(NOW() - INTERVAL 1 DAY)
-//                     AND (fr_avgM IS NULL
-//                         OR fr_avgM = '')
-//                     AND stdid <> 0
-//                 GROUP BY stdid
-//                 ORDER BY RAND()
-//                 LIMIT 100;";
-
-//     $nobiostdts = mysqli_query($conBDInt, $slctqry)
-//                       or die("Ñ foi possível consultar a tabela 'wiseflow.flows_assess': " . mysqli_error($conBDInt) . $nl);
-
-//     $stds_bio = array();
-
-//     if (mysqli_num_rows($nobiostdts) > 0) {
-//         $bio = 0;
-
-//         while ($row = mysqli_fetch_array($nobiostdts)) {
-//             $stdid = $row['stdid'];
-
-//             $tmp = [];
-
-//             $offset = 0;
-//             $repeat = true;
-    
-//             while ($repeat) {
-//                 // obter amostras de correspondência facial
-//                 $httpcode = 0;
-//                 while ($httpcode <> 200) {
-//                     $url = $base_url . "users/" . $stdid . "/facial-recognition/matches?offset=" . $offset . "&limit=100";
-
-//                     $curlopt = array_replace($curlopt_base,
-//                                              array(
-//                                                    CURLOPT_URL => $url,
-//                                                    CURLOPT_CUSTOMREQUEST => 'GET',
-//                                                   )
-//                                             );
-        
-//                     $curl = curl_init();
-        
-//                     curl_setopt_array($curl, $curlopt);
-        
-//                     $response = curl_exec($curl);
-
-//                     $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-
-//                 }
-
-//                 $result = json_decode($response, true);
-
-//                 curl_close($curl);
-//                 unset($response);
-
-//                 if (isset($result['data'])
-//                     && count($result['data']) > 0) {
-//                     foreach($result['data'] as $rec) {
-//                         // construir array com dados-chave
-//                         array_push($tmp, array('flowid'=>$rec['flowId'], 'similarity'=>$rec['similarity']));
-
-//                     }
-
-//                     // caso o número de amostras seja superior a 100, repete o ciclo e recolhe mais amostras
-//                     if ((count($result['data']) + $offset) < $result['pagination']['total']) {
-//                         $offset += count($result['data']);
-
-//                     } else {
-//                         $repeat = false;
-
-//                     }
-
-//                 } else {
-//                     break;
-
-//                 }
-
-//             }
-
-//             if (!empty($tmp)) {
-//                 $result = array_reduce($tmp, function($carry, $item) {
-//                     // obter soma das taxas de correspondência facial
-//                     $carry[$item['flowid']] = isset($carry[$item['flowid']]) ?
-//                                               $carry[$item['flowid']] + $item['similarity'] :
-//                                               $item['similarity'];
-    
-//                     // obter soma do número de amostras
-//                     $carry[$item['flowid'] . "_samples"] = isset($carry[$item['flowid'] . "_samples"]) ?
-//                                                            $carry[$item['flowid'] . "_samples"] + 1 :
-//                                                            1;
-    
-//                     return $carry;
-    
-//                 }, []);
-    
-//                 // calcular taxa média, com base no número total de amostras
-//                 // e limpar array
-//                 foreach ($result as $flowid => $value) {
-//                     if (strpos($flowid, "_samples") !== false) { continue; }
-    
-//                     $result[$flowid] = round($value / $result[$flowid . "_samples"], 2);
-    
-//                     unset($result[$flowid . "_samples"]);
-    
-//                 }
-    
-//                 // carregar informação completa no array de estudantes
-//                 array_push($stds_bio, array('stdid'=>$stdid, 'flowdata'=>$result));
-//             }
-
-//         }
-
-//         if (!empty($stds_bio)) {
-//             foreach ($stds_bio as $std) {
-//                 $stdid = $std['stdid'];
-
-//                 foreach($std['flowdata'] as $flow=>$similarity) {
-//                     // actualizar tabela de controlo com marcadores biométricos
-//                     $updtqry = "UPDATE wiseflow.flows_assess
-//                                 SET fr_avgM = '" . $similarity . "'
-//                                 WHERE flowid = " . $flow . "
-//                                     AND stdid = " . $stdid . ";";
-
-//                     mysqli_query($conBDInt, $updtqry)
-//                         or die("Ñ foi possível actualizar a tabela 'wiseflow.flows_assess': " . mysqli_error($conBDInt) . $nl);
-    
-//                     $bio += mysqli_affected_rows($conBDInt);
-                    
-//                 }
-        
-//                 // actualizar tabela de controlo com dados nulos nos flows
-//                 // já decorridos e sem informação biométrica
-//                 $updtqry = "UPDATE wiseflow.flows_assess
-//                             SET fr_avgM = '-1'
-//                             WHERE stdid = " . $stdid . "
-//                                 AND DATE(dtass) < DATE(NOW())
-//                                 AND (fr_avgM IS NULL
-//                                     OR fr_avgM = '');";
-
-//                 mysqli_query($conBDInt, $updtqry)
-//                     or die("Ñ foi possível actualizar a tabela 'wiseflow.flows_assess': " . mysqli_error($conBDInt) . $nl);
-
-//             }
-    
-//         }
-
-//         if ($bio > 0) {
-//             printf("Foram carregados " . $bio . " marcadores biométricos" . $nl);
-
-//         } else {
-//             printf("Sem marcadores biométricos p/ carregar" . $nl);
-
-//         }
-
-//     } else {
-//         printf("Sem marcadores biométricos p/ carregar" . $nl);
-
-//     }
 
 // levantamento dos flows realizados nos últimos 3 dias, p/ atribuição de submissões aos avaliadores
     $slctqry = "SELECT flowid, subtitle
