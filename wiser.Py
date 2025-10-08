@@ -826,9 +826,9 @@ def extend_flow_time(flowid, xtra):
     except KeyError:
         session["wf_token"] = get_wf_token()
 
-    dates_url = wf_base_url + "flows/" + flowid + "/dates"
-    parts_url = wf_base_url + "flows/" + flowid + "/participants" # FIXME: offset
+    parts_url = wf_base_url + "flows/" + flowid + "/participants"
     subs_url = wf_base_url + "flow/" + flowid + "/submissions"
+    dates_url = wf_base_url + "flows/" + flowid + "/dates"
 
     headers = {
                'Accept': 'application/json',
@@ -837,9 +837,31 @@ def extend_flow_time(flowid, xtra):
               }
     payload = {}
 
-    dates = requests.request("GET", dates_url, headers=headers, data=payload).json().get('data')['participation']
-    parts = requests.request("GET", parts_url, headers=headers, data=payload).json().get('data')
+    parts = []
+    offset = 0
+    limit = 100
+    repeat = True
+
+    while repeat:
+        offseturl = parts_url + "?offset=" + str(offset) + "&limit=" + str(limit)
+
+        newparts = requests.request("GET", offseturl, headers=headers, data=payload).json().get('data')
+
+        if newparts:
+            parts += newparts
+
+            if len(newparts) >= limit:
+                offset += limit
+
+            else:
+                repeat = False
+
+        else:
+            repeat = False
+
     subs = requests.request("GET", subs_url, headers=headers, data=payload).json()
+
+    dates = requests.request("GET", dates_url, headers=headers, data=payload).json().get('data')['participation']
 
     dtfrom = int(dates['start'])
     dtto = int(dates['end']) + (int(xtra) * 60)
@@ -887,7 +909,7 @@ def remove_flow_parts(flowid):
     except KeyError:
         session["wf_token"] = get_wf_token()
 
-    url = wf_base_url + "flows/" + flowid + "/participants" # FIXME: offset
+    url = wf_base_url + "flows/" + flowid + "/participants"
 
     headers = {
                'Accept': 'application/json',
@@ -898,17 +920,13 @@ def remove_flow_parts(flowid):
 
     i = 0
     j = 0
-    k = 1
+    repeat = True
 
-    while k > 0:
+    while repeat:
         parts = requests.request("GET", url, headers=headers, data=payload).json().get('data')
 
         if parts:
             i = len(parts)
-            k = i
-
-            wf_db = connect_db()
-            wf_db_cursor = wf_db.cursor()
 
             for part in parts:
                 partid = part['participantId']
@@ -920,6 +938,9 @@ def remove_flow_parts(flowid):
                 if result.status_code == 200:
                     j += 1
 
+            wf_db = connect_db()
+            wf_db_cursor = wf_db.cursor()
+
             wf_db_cursor.execute("UPDATE wiseflow.flows_assess \
                                   SET partid = NULL, dtreg = NULL \
                                   WHERE flowid = %s;",
@@ -930,7 +951,7 @@ def remove_flow_parts(flowid):
             wf_db.close()
 
         else:
-            k = 0
+            repeat = False
 
     return i, j
 

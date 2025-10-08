@@ -30,7 +30,7 @@
 
 // identificação da versão
 window.onload = function () {
-    if (window.location.port === "5001") {
+    if (window.location.port === "5099") {
         document.getElementById("version-label").innerText = "versão de TESTE";
     }
 };
