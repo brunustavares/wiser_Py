@@ -545,8 +545,7 @@ def build_query(sys=None, lect_year=None, student=None, date=None, bio=None, sta
                      WHERE vw_pees.data_entrega IS NOT NULL "
                 
             if lect_year is not None:
-                query += " AND (DATE(vw_pees.data_entrega) >= '20" + lect_year[4:] + "-01-01' \
-                               AND DATE(vw_pees.data_entrega) <= '20" + lect_year[4:] + "-12-31') "
+                query += " AND SUBSTR(UC_codigo, 7, 2) = " + lect_year[2:4] + " "
 
             if student is not None:
                 query += " AND vw_pees.estudante_Num = %s "
