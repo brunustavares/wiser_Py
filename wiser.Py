@@ -11,7 +11,7 @@
 # @copyright  Copyright (C) 2024-2025 Bruno Tavares
 # @license    GNU General Public License v3 or later
 #             https://www.gnu.org/licenses/gpl-3.0.html
-# @version    2025082111
+# @version    2025102405
 # @date       2024-02-20
 #
 # This program is free software: you can redistribute it and/or modify
@@ -321,6 +321,7 @@ def build_query(sys=None, lect_year=None, student=None, date=None, bio=None, sta
             query = "SELECT DISTINCT flw_std.firstname, \
                                      flw_std.lastname, \
                                      flw_std.std_num, \
+                                     flw_std.stdid, \
                                      /* flw_std.email, */ \
                                      flw_std.xtrT AS 'NEE_time', \
                                      flw_std.status AS 'NEE_status', \
@@ -716,6 +717,64 @@ def manage_user_bio(userid, method, pic=None):
         pic.close()
     
     return requests.request(method, url, headers=headers, data=payload, files=files)
+
+
+# recolha dos eventos do estudante no fluxo
+def get_wf_events(stdid, flowid, dtfrom, dtto):
+    # renovar o token se não estiver definido ou tiver expirado
+    try:
+        if session["wf_token"]["expires_in"] >= (int(datetime.datetime.now().timestamp()) - 180):
+            session["wf_token"] = get_wf_token()
+    
+    except KeyError:
+        session["wf_token"] = get_wf_token()
+
+    url = wf_base_url + "participation-events"
+
+    headers = {
+               'Accept': 'application/json',
+               'Content-Type': 'application/json',
+               'Authorization': session["wf_token"]['token_type'] + ' ' + session["wf_token"]['access_token']
+              }
+
+    events = []
+    offset = 0
+    limit = 1000
+    repeat = True
+
+    while repeat:
+        payload = json.dumps({
+                              "flowId": int(flowid),
+                              "userId": int(stdid),
+                            #   "types": [
+                            #             "FACIAL_RECOGNITION",
+                            #             "PAPER_HANDED_IN"
+                            #   ],
+                              "timestamp": {
+                                            "from": int(dtfrom),
+                                            "to": int(dtto)
+                                           },
+                              "pagination": {
+                                             "limit": limit,
+                                             "offset": offset
+                                            }
+        })
+
+        newevents = requests.request("POST", url, headers=headers, data=payload).json().get('data')
+
+        if newevents:
+            events += newevents
+
+            if len(newevents) >= limit:
+                offset += limit
+
+            else:
+                repeat = False
+
+        else:
+            repeat = False
+
+    return events
 
 
 # remoção dos avaliadores no WISEflow, em caso de anulação
@@ -1333,6 +1392,8 @@ def sanitize(string):
 # configuração da aplicação
 app = Flask(__name__)
 
+BUILD = "2025102405"  # YYYYMMDDHH
+
 # SECRET_KEY
 app.secret_key = "RaK7ng8-UCKWZnW6"
 
@@ -1366,6 +1427,11 @@ def after_request(response):
     response.headers["Pragma"] = "no-cache"
 
     return response
+
+
+@app.context_processor
+def inject_build():
+    return dict(build=BUILD)
 
 
 # setup inicial
@@ -2819,11 +2885,11 @@ def wf_full_report():
         write_activity_log("list", "wf_report", session["key"], session["user_id"], session["T_usage"])
 
         if len(session["result"]) > 0:
-            show_bio = None
+            show_bio = False
             if is_bioman(session["user_id"]) or is_admin(session["user_id"]):
                 show_bio = True
 
-            show_act = None
+            show_act = False
             if is_flowman(session["user_id"]) or is_admin(session["user_id"]):
                 show_act = True
 
@@ -2978,42 +3044,101 @@ def user_report():
         if len(result) == 0:
             return error_msg("estudante não encontrado", 404, '/user_report')
 
-        # base do link directo para o flow de origem
-        flw_base_url = "https://europe.wiseflow.net/manager/display.php?id="
+        if request.form.get("report") == "report_all":
+            # base do link directo para o flow de origem
+            flw_base_url = "https://europe.wiseflow.net/manager/display.php?id="
 
-        # inicialização do gráfico
-        graph = go.Figure()
+            # inicialização do gráfico
+            graph = go.Figure()
 
-        # criação de um gráfico de barras com as informações do estudante
-        graph.add_trace(go.Bar(
-            x=[f'<a href="' + flw_base_url + str(row[7]) + '" target="_blank">' + str(row[6]) + '<br>(' + str(row[8]) + '<br>' +str(datetime.datetime.strptime(row[11], "%Y-%m-%d %H:%M:%S").date()) + ')</a>' for row in result],
-            y=[row[12] for row in result],
-            marker_color=['rgb(255,255,0)' if row[13] == '0' else 'rgb(255,182,193)' if row[13] == '2' else 'rgb(255,140,0)' if row[13] == '3' else 'rgb(144,238,144)' if row[13] == '4' else 'rgb(83,127,190)' for row in result]
+            # criação de um gráfico de barras com as informações do estudante
+            graph.add_trace(
+                go.Bar(
+                       x=[
+                          (
+                           f'<a href="' + flw_base_url + str(row[8]) + '" target="_blank">'
+                           + str(row[7])
+                           + '<br>('
+                           + str(row[9])
+                           + '<br>'
+                           + str(datetime.datetime.strptime(row[12], "%Y-%m-%d %H:%M:%S").date())
+                           + ')</a>'
+                          )
+                          for row in result
+                         ],
+                       y=[
+                          row[13]
+                          for row in result
+                         ],
+                       marker_color=[
+                                     'rgb(255,255,0)' if row[14] == '0'
+                                else 'rgb(255,182,193)' if row[14] == '2'
+                                else 'rgb(255,140,0)' if row[14] == '3'
+                                else 'rgb(144,238,144)' if row[14] == '4'
+                                else 'rgb(83,127,190)'
+                                     for row in result
+                                    ]
+                )
+            )
 
-        ))
+            # actualizar os dados do layout do gráfico
+            graph.update_layout(
+                title=str(result[0][2]) + " | " + str(result[0][0]) + " " + str(result[0][1]),
+                xaxis=dict(title='flows p/ data'),
+                yaxis=dict(title='média biométrica', dtick=5)
+            )
 
-        # actualizar os dados do layout do gráfico
-        graph.update_layout(
-            title=str(result[0][2]) + " | " + str(result[0][0]) + " " + str(result[0][1]),
-            xaxis=dict(title='flows p/ data'),
-            yaxis=dict(title='média biométrica', dtick=5)
-        )
+            # exibir o gráfico
+            # graph.show()
 
-        # exibir o gráfico
-        # graph.show()
+            # guardar o gráfico na sessão e num ficheiro temporário
+            session["tmp_graph_file"] = "tmp/usrID" + str(session["user_id"]) + "_output_file_name.html"
+            graph.write_html(session["tmp_graph_file"])
 
-        # guardar o gráfico na sessão e num ficheiro temporário
-        session["tmp_graph_file"] = "tmp/usrID" + str(session["user_id"]) + "_output_file_name.html"
-        graph.write_html(session["tmp_graph_file"])
+            write_activity_log("list", "graph", ("std_" + str(request.form.get("student"))), session["user_id"], session["T_usage"])
 
-        write_activity_log("list", "graph", ("std_" + str(request.form.get("student"))), session["user_id"], session["T_usage"])
+            return render_template(USER_GRAPH_TPLT, graph="https://mdlws.uab.pt/wiser_py/" + session["tmp_graph_file"])
 
-        return render_template(USER_GRAPH_TPLT, graph="https://mdlws.uab.pt/wiser_py/" + session["tmp_graph_file"])
+        elif request.form.get("report") == "report_single":
+            if not request.form.get("flowid"):
+                return error_msg("flowid necessário", 400, '/user_report')
 
-    write_activity_log("list", "graph", None, session["user_id"], session["T_usage"])
+            flowid = None
+            for row in result:
+                if str(row[8]) == str(request.form.get("flowid")):
+                    flowid = str(row[8])
+                    stdid = str(row[3])
+                    dtfrom = str(row[10])
+                    dtto = str(row[11])
+
+            if flowid is not None:
+                from_ts = int(datetime.datetime.strptime(dtfrom, "%Y-%m-%d %H:%M:%S").timestamp()) - 300
+                to_ts = int(datetime.datetime.strptime(dtto, "%Y-%m-%d %H:%M:%S").timestamp()) + 300
+
+                events = get_wf_events(stdid, flowid, from_ts, to_ts)
+
+                for event in events:
+                    event['timestamp'] = datetime.datetime.fromtimestamp(event['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
+                    event['flowId'] = str(row[7])
+                    event['userId'] = str(row[2])
+
+                csv_file = export_to_csv(events, (events[0].keys()), ("tmp/usrID" + str(session["user_id"]) + "_" + str(row[7]) + "-log.csv"), True)
+
+                write_activity_log("export", "FLOWmonitor", ("std_" + str(stdid) + " | flow_" + str(flowid)), session["user_id"], session["T_usage"])
+
+                return render_template(USER_REPORT_TPLT, download="True", file_url=csv_file["url"], file_name=csv_file["filename"])
+
+            else:
+                return error_msg("flowid não encontrado para o estudante", 404, '/user_report')
+
+    write_activity_log("list", "std_report", None, session["user_id"], session["T_usage"])
+
+    allow_export = False
+    if is_flowman(session["user_id"]) or is_sosusr(session["user_id"]) or is_admin(session["user_id"]):
+        allow_export = True
 
     # caso contrário, carregar página de pesquisa
-    return render_template(USER_REPORT_TPLT, search=True)
+    return render_template(USER_REPORT_TPLT, search=True, allow_export=allow_export)
 
 
 # gestão de dados biométricos
@@ -3396,7 +3521,6 @@ if __name__ == "__main__":
 
     write_activity_log("start", "app")
     purge_logs()
-
 
     # versão de teste
     

@@ -12,7 +12,7 @@
  * @copyright  Copyright (C) 2024-2025 Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2025082111
+ * @version    2025102405
  * @date       2024-02-20
  *
  * This program is free software: you can redistribute it and/or modify
@@ -205,9 +205,7 @@
 
                                 <br>
 
-                                {% if show_bio %}
-                                    <button class="btn btn-primary nav-button" type="button" id="usr_bio" name="usr_bio" onclick="get_user_info('usr_bio')" data-dismiss="modal">fotografia</button>
-                                {% endif %}
+                                <button class="btn btn-primary nav-button" type="button" id="usr_bio" name="usr_bio" onclick="get_user_info('usr_bio')" data-dismiss="modal" {% if not show_bio %} disabled {% endif %}>fotografia</button>
                             </div>
                         </div>
                     </div>

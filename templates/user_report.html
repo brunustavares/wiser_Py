@@ -12,7 +12,7 @@
  * @copyright  Copyright (C) 2024-2025 Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2025082111
+ * @version    2025102405
  * @date       2024-02-20
  *
  * This program is free software: you can redistribute it and/or modify
@@ -50,23 +50,41 @@
                     <path d="M575.8 255.5c0 18-15 32.1-32 32.1h-32l.7 160.2c0 2.7-.2 5.4-.5 8.1V472c0 22.1-17.9 40-40 40H456c-1.1 0-2.2 0-3.3-.1c-1.4 .1-2.8 .1-4.2 .1H416 392c-22.1 0-40-17.9-40-40V448 384c0-17.7-14.3-32-32-32H256c-17.7 0-32 14.3-32 32v64 24c0 22.1-17.9 40-40 40H160 128.1c-1.5 0-3-.1-4.5-.2c-1.2 .1-2.4 .2-3.6 .2H104c-22.1 0-40-17.9-40-40V360c0-.9 0-1.9 .1-2.8V287.6H32c-18 0-32-14-32-32.1c0-9 3-17 10-24L266.4 8c7-7 15-8 22-8s15 2 21 7L564.8 231.5c8 7 12 15 11 24z"/>
                 </svg>
             </a>
-            
         </div>
     
         <h2>
             histórico
         </h2>
 
-        <form action="/user_report" method="post" onsubmit="showModal()">
+        {% if download %}
+            <script type="text/javascript">
+                downloadFile("{{ file_url }}", "{{ file_name }}", "/user_report");
+            </script>
 
+        {% endif %}
+
+        <form action="/user_report" method="post" onsubmit="showModal()">
             <div class="mb-3">
                 <input autofocus class="form-control mx-auto w-auto input-field" id="student" name="student" placeholder="Número de Estudante" type="text">
             </div>
 
-            <button class="btn btn-primary nav-button" type="submit">Procurar</button>
+            <div class="mb-3 report_detail">
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" id="report_all" name="report" value="report_all" checked>
+                    <label class="form-check-label" for="report_all">visualização completa</label>
+                </div>
 
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" id="report_single" name="report" value="report_single" {% if not allow_export %} disabled {% endif %}>
+                    <label class="form-check-label" for="report_single">exportação singular</label>
+                </div>
+            </div>
+
+            <div class="mb-3" name="div_courses" id="div_courses" style="display: none;">
+                <input autofocus class="form-control mx-auto w-auto input-field" id="flowid" name="flowid" placeholder="ID do fluxo" type="text">
+            </div>
+
+            <button class="btn btn-primary nav-button" type="submit">Executar</button>
         </form>
-
     </div>
-         
-{% endblock %}s
+{% endblock %}

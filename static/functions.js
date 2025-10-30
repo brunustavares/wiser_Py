@@ -11,7 +11,7 @@
  * @copyright  Copyright (C) 2024-2025 Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2025082111
+ * @version    2025102405
  * @date       2024-02-20
  *
  * This program is free software: you can redistribute it and/or modify
@@ -528,6 +528,20 @@ document.addEventListener("DOMContentLoaded", function() {
             show_param("div_extra_time", true);
         } else {
             show_param("div_extra_time", false);
+        }
+    });
+});
+
+// gestão da disponibilidade do flowid no histórico
+document.addEventListener("DOMContentLoaded", function() {
+    document.getElementById("report_all").addEventListener("change", function() {
+        if (this.checked) {
+            show_param("div_courses", false);
+        }
+    });
+    document.getElementById("report_single").addEventListener("change", function() {
+        if (this.checked) {
+            show_param("div_courses", true);
         }
     });
 });

@@ -11,7 +11,7 @@
  * @copyright  Copyright (C) 2024-2025 Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2025082111
+ * @version    2025102405
  * @date       2024-02-20
  *
  * This program is free software: you can redistribute it and/or modify
@@ -270,10 +270,21 @@ button#flw_default {
     }
 
     #stats_detail,
-    .stats_detail {
-        width: 120px !important;
+    .stats_detail,
+    #report_detail,
+    .report_detail {
         margin: auto !important;
         text-align: left !important;
+    }
+
+    #stats_detail,
+    .stats_detail {
+        width: 120px !important;
+    }
+
+    #report_detail,
+    .report_detail {
+        width: 210px !important;
     }
 
     .full_report_key {
