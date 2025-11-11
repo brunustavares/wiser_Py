@@ -9,7 +9,7 @@
  * @category   app
  * @author     Bruno Tavares <brunustavares@gmail.com>
  * @link       https://www.linkedin.com/in/brunomastavares/
- * @copyright  Copyright (C) 2024-2025 Bruno Tavares
+ * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
  * @version    2025102405
@@ -149,30 +149,30 @@
 
                         <tbody>
                             {% for row in report %}
-                                <tr {% if row[13] == "0" %} class="advert" \
-                                    {% elif row[13] == "2" %} class="anul_bio" \
-                                    {% elif row[13] == "3" %} class="anul_irreg" \
-                                    {% elif row[13] == "4" %} class="inloco"
+                                <tr {% if row[14] == "0" %} class="advert" \
+                                    {% elif row[14] == "2" %} class="anul_bio" \
+                                    {% elif row[14] == "3" %} class="anul_irreg" \
+                                    {% elif row[14] == "4" %} class="inloco"
                                     {% endif %}>
                                     <td>{{ row[0] }}</td>
                                     <td>{{ row[1] }}</td>
                                     <td><a data-toggle="modal" data-target="#std_opt" onclick="attach_std_flw_id('{{ row[2] }}', '{{ row[0] }} {{ row[1] }}')">{{ row[2] }}</a></td>
-                                    <td>{{ row[3] }}</td>
                                     <td>{{ row[4] }}</td>
-                                    <td><a href="https://europe.wiseflow.net/manager/display.php?id={{ row[7] }}" target="_blank">{{ row[5] }}</a></td>
-                                    <td><a href="https://europe.wiseflow.net/manager/display.php?id={{ row[7] }}" target="_blank">{{ row[6] }}</a></td>
-                                    <td><a href="https://europe.wiseflow.net/manager/display.php?id={{ row[7] }}" target="_blank">{{ row[7] }}</a></td>
-                                    <td>{{ row[8] }}</td>
+                                    <td>{{ row[5] }}</td>
+                                    <td><a href="https://europe.wiseflow.net/manager/display.php?id={{ row[8] }}" target="_blank">{{ row[6] }}</a></td>
+                                    <td><a href="https://europe.wiseflow.net/manager/display.php?id={{ row[8] }}" target="_blank">{{ row[7] }}</a></td>
+                                    <td><a href="https://europe.wiseflow.net/manager/display.php?id={{ row[8] }}" target="_blank">{{ row[8] }}</a></td>
                                     <td>{{ row[9] }}</td>
                                     <td>{{ row[10] }}</td>
                                     <td>{{ row[11] }}</td>
                                     <td>{{ row[12] }}</td>
+                                    <td>{{ row[13] }}</td>
                                     <td>{% if show_act %}
-                                            <a data-toggle="modal" data-target="#flw_opt" onclick="attach_std_flw_id('{{ row[2] }}', '{{ row[0] }} {{ row[1] }}', '{{ row[7] }}')">{{ row[14] }}</a>
+                                            <a data-toggle="modal" data-target="#flw_opt" onclick="attach_std_flw_id('{{ row[2] }}', '{{ row[0] }} {{ row[1] }}', '{{ row[8] }}')">{{ row[15] }}</a>
                                         {% else %}
-                                            {{ row[14] }}
+                                            {{ row[15] }}
                                         {% endif %}</td>
-                                    <td>{{ row[15] }}</td>
+                                    <td>{{ row[16] }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>

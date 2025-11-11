@@ -7,7 +7,7 @@
  * @category   php_script
  * @author     Bruno Tavares <brunustavares@gmail.com>
  * @link       https://www.linkedin.com/in/brunomastavares/
- * @copyright  Copyright (C) 2023-2025 Bruno Tavares
+ * @copyright  Copyright (C) 2023-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
  * @version    2025020702
@@ -454,7 +454,7 @@ $curlopt_base = set_curl_params(time());
         foreach ($flow_parts as $part) {
             // actualizar tabela de controlo com flowid
             $updtqry = "UPDATE wiseflow.flows_assess
-                        SET partid = '" . $part['id'] . "',
+                        SET partid = '" . $part['participantId'] . "',
                             dtreg = \"" . date(FULLDATE) . "\"
                         WHERE stdid = '" . $part['user']['id'] . "'
                             AND flowid = '" . $flowid . "';";

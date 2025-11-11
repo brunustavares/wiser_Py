@@ -7,7 +7,7 @@
  * @category   php_config
  * @author     Bruno Tavares <brunustavares@gmail.com>
  * @link       https://www.linkedin.com/in/brunomastavares/
- * @copyright  Copyright (C) 2022-2025 Bruno Tavares
+ * @copyright  Copyright (C) 2022-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
  * @version    2025020702
@@ -26,6 +26,44 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
+
+// e-mail settings
+    /**
+     * configuração do serviço de e-mail
+     *
+     */
+    require 'C://php//php7//extras//PHPMailer//src//PHPMailer.php';
+    require 'C://php//php7//extras//PHPMailer//src//SMTP.php';
+    require 'C://php//php7//extras//PHPMailer//src//Exception.php';
+
+    use PHPMailer\PHPMailer\PHPMailer;
+    use PHPMailer\PHPMailer\SMTP;
+    use PHPMailer\PHPMailer\Exception;
+
+    $email = new PHPMailer(true);
+
+    $email->isSMTP();
+    $email->IsHTML(true);
+    $email->CharSet = 'UTF-8';
+
+    $email->Host = "<your_hidden_host>";
+    $email->Port = "<your_hidden_port>";
+    
+    $email->SMTPAuth = true;
+    $email->SMTPSecure = 'tls';
+    $email->SMTPOptions = array(
+                                'ssl' => array(
+                                                'verify_peer' => false,
+                                                'verify_peer_name' => false,
+                                                'allow_self_signed' => true
+                                                )
+    );
+    // $email->SMTPDebug = 2;
+    $email->Username = '<your_hidden_username>';
+    $email->Password = '<your_hidden_password>';
+
+    $email->setFrom('<your_hidden_from>', 'Sentinel_F');
+    $email->addEmbeddedImage('../static/img/Sentinel_F.jpg', 'sentinelfavatar', 'Sentinel_F.jpg');
 
 // WISEflow
     // parte do URL comum a todas as APIs

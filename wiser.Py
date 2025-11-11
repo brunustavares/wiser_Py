@@ -8,7 +8,7 @@
 # @category   app
 # @author     Bruno Tavares <brunustavares@gmail.com>
 # @link       https://www.linkedin.com/in/brunomastavares/
-# @copyright  Copyright (C) 2024-2025 Bruno Tavares
+# @copyright  Copyright (C) 2024-present Bruno Tavares
 # @license    GNU General Public License v3 or later
 #             https://www.gnu.org/licenses/gpl-3.0.html
 # @version    2025102405
@@ -2712,6 +2712,7 @@ def wf_full_report():
                                   WHERE flows_assess.flowid = %s \
                                       AND students.std_num = %s",
                                   (value, flowid, std_num, ))
+            
             wf_db.commit()
 
             if value == '2' or value == '3':

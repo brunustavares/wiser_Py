@@ -8,7 +8,7 @@
  * @category   app
  * @author     Bruno Tavares <brunustavares@gmail.com>
  * @link       https://www.linkedin.com/in/brunomastavares/
- * @copyright  Copyright (C) 2024-2025 Bruno Tavares
+ * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
  * @version    2025102405
@@ -177,6 +177,7 @@ function get_user_info(type) {
 
     if (type == "usr_graph") {
         params["student"] = std_num;
+        params["report"] = "report_all";
 
         post("user_report", params);
 
