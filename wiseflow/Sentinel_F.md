@@ -5,7 +5,7 @@
 # Sentinel_F
 `Sentinel_F` is a PHP script designed to monitor student behavior within the WISEflow platform. It operates by fetching participation events from the WISEflow API for ongoing exams (flows), storing them, and then analyzing them to detect anomalies or specific occurrences that require administrative or managerial attention.
 
-The script can be executed in two primary modes: `sentinel` for real-time monitoring and `report` for generating daily summaries.
+The script can be executed in two primary modes: `monitor` for real-time monitoring and `report` for generating daily summaries.
 
 It was originally developed for [Universidade Aberta (UAb)](https://portal.uab.pt/).
 
@@ -43,13 +43,13 @@ The script relies on several tables within the `wiseflow` database schema:
 
 The script is designed to be run from the command line, using a `-m` or `--mode` flag to specify the operation mode.
 
-### `sentinel` Mode
+### `monitor` Mode
 
 This is the primary monitoring mode. It should be run frequently (e.g., every 5-15 minutes) via a cron job or scheduled task while exams are active.
 
 **Command:**
 ```bash
-php sentinel_f.php -m sentinel
+php sentinel_f.php -m monitor
 ```
 
 **Workflow:**
@@ -63,14 +63,15 @@ php sentinel_f.php -m sentinel
 5.  **Detect and Notify New Event Types**:
     - The script queries for events that have a `type` not present in `wiseflow.sentinelf_event_types`.
     - If new types are found, they are automatically inserted into `sentinelf_event_types` with the `report` flag set to `1` (defaulting to being reportable).
-    - An email is sent to the administrator (defined by the `admin` setting) containing a table of these new events, so they can be reviewed.
+    - An email is sent to the administrator (defined by the `admin` setting) containing a table of these new events for review.
 6.  **Detect and Notify Relevant Events**:
-    - It queries for events that are marked as reportable (`evt_tp.report = 1`) and have not been reported yet (`evts.report IS NULL`).
-    - It specifically filters for events with certain JSON payloads (e.g., empty payloads `{}` which may signify a specific action).
-    - If such events are found, it constructs an HTML email with a table of these events and sends it to the management mailing lists (`manageTO` and `manageCC`).
-    - It then updates the `report` column for the sent events to prevent them from being sent again.
+    - It queries for events that are marked as reportable (`evt_tp.report = 1`), match a specific `payload` stored in `sentinelf_event_types`, and have not been reported yet (`evts.report IS NULL`).
+    - It also analyzes `CHARACTERS_TYPED` events to detect anomalous spikes in typing speed. It calculates the characters per second between consecutive events for a student and compares it against a threshold defined in `sentinelf_event_types`.
+    - If any of these relevant events are found, it constructs a single HTML email with a table of all such events and sends it to the management mailing lists (`manageTO` and `manageCC`).
+    - It then updates the `report` column for the sent events to prevent them from being reported again.
 7.  **Update Last Run Time**: After processing all flows, it updates the `lastrun` setting with the current timestamp.
-8.  **Purge Old Data**: Finally, it deletes all records from `sentinelf_events` that are older than 365 days.
+
+At the end of the `monitor` mode execution, if there are no active flows, it cleans up any temporary tables used for analysis.
 
 ### `report` Mode
 
@@ -86,8 +87,8 @@ php sentinel_f.php -m report
 1.  **Fetch Daily Reported Events**: The script queries the `wiseflow.sentinelf_events` table for all events that were marked for reporting on the current date.
 2.  **Generate Summary**: It groups the events by `type` and counts the occurrences of each.
 3.  **Send Report**: If any events were found, it constructs an HTML email with a summary table (Event Type and Count) and sends it to the report recipients defined in the `reportTO` setting.
-4.  **Purge Old Data**: It performs the same cleanup of events older than 365 days.
-
+4.  **Purge Old Data**: Finally, it deletes all records from `sentinelf_events` that are older than 365 days.
+ 
 ## How It Operates
 
 The script acts as a bridge between the WISEflow API and a local database, adding a layer of business logic for monitoring and alerting.
@@ -99,7 +100,7 @@ The script acts as a bridge between the WISEflow API and a local database, addin
 - **Dynamic Event Handling**: The system is designed to adapt to new event types introduced by WISEflow. Instead of failing, it catalogues them and alerts an administrator, ensuring the system can be updated without code changes.
 
 - **Separation of Concerns**:
-    - **`sentinel` mode** is for immediate operational awareness. It answers the question: "What is happening *right now* that I need to know about?"
+    - **`monitor` mode** is for immediate operational awareness. It answers the question: "What is happening *right now* that I need to know about?"
     - **`report` mode** is for managerial oversight. It answers the question: "What happened *today* that was noteworthy?"
 
 - **Configuration-driven**: The recipients of alerts and reports are managed via the `sentinelf_settings` table, allowing for easy updates without modifying the script's code.
@@ -110,7 +111,6 @@ The script's source code includes comments for future enhancements:
 
 1.  **Web-based Management Interface**: A management area (suggested to be in `wiser.Py`) to provide a user-friendly way to manage event types (e.g., toggling the `report` flag) and email recipients.
 2.  **Inactivity Detection**: Implement logic to send notifications if a student shows a prolonged period of inactivity during an exam.
-3.  **Typing Speed Analysis**: Implement logic to detect a sudden, anomalous spike in the number of characters typed by a student, which could indicate plagiarism or other issues.
 
 ## Licenses
 

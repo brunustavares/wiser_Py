@@ -132,15 +132,15 @@ function checkwftoken($start_time) {
 
 }
 
-// acesso à BDInt
-$conBDInt = connect2bdint();
-
 $mode = getopt("m:", ["mode:"]);
 
 if (!empty($mode)
     && (isset($mode['m'])
     || isset($mode['mode']))) {
     $mode = isset($mode['m']) ? $mode['m'] : $mode['mode'];
+
+    // acesso à BDInt
+    $conBDInt = connect2bdint();
 
     $slctqry = "SELECT value AS admin
                 FROM wiseflow.sentinelf_settings
@@ -153,7 +153,7 @@ if (!empty($mode)
 
     $admin = (string)mysqli_fetch_assoc($result)['admin'];
     
-    if ($mode == "sentinel") {
+    if ($mode == "monitor") {
         // obtenção dos parâmetros transversais do curl
         $curlopt_base = set_curl_params(time());
 
@@ -196,8 +196,10 @@ if (!empty($mode)
                               . $nl . $nl
                               . $slctqry);
 
-            $manageTO = array_map('trim', explode(';', mysqli_fetch_assoc($result)['manageTO']));
-            $manageCC = array_map('trim', explode(';', mysqli_fetch_assoc($result)['manageCC']));
+            $manage = mysqli_fetch_assoc($result);
+
+            $manageTO = array_map('trim', explode(';', $manage['manageTO']));
+            $manageCC = array_map('trim', explode(';', $manage['manageCC']));
 
             printf("A ler " . $total . " flows..." . $nl);
 
@@ -354,6 +356,8 @@ if (!empty($mode)
 
 
 
+            $events = [];
+
             // detectar eventos não catalogados, registá-los na BD e enviar notificação de administração
             $slctqry = "SELECT evts.flowid,
                                evts.stdid,
@@ -430,8 +434,8 @@ if (!empty($mode)
 
                 $html_table .= "</tbody></table>";
 
-                $isrtqry = "INSERT INTO wiseflow.sentinelf_event_types(type, report)
-                            SELECT evts.type, '1'
+                $isrtqry = "INSERT INTO wiseflow.sentinelf_event_types(type, payload, report)
+                            SELECT evts.type, evts.payload, '1'
                             FROM wiseflow.sentinelf_events evts
                                 LEFT JOIN wiseflow.sentinelf_event_types evt_tp ON evt_tp.type = evts.type
                             WHERE evts.timestamp >= NOW() - INTERVAL 30 MINUTE
@@ -442,6 +446,8 @@ if (!empty($mode)
                     or die("Ñ foi possível actualizar a tabela 'wiseflow.sentinelf_event_types': " . mysqli_error($conBDInt)
                           . $nl . $nl
                           . $isrtqry);
+
+                printf("Registados " . count($events) . " novos eventos não catalogados" . $nl);
 
                 $email->AddAddress($admin);
 
@@ -464,23 +470,28 @@ if (!empty($mode)
 
                 unset($events);
 
+            } else {
+                printf("Sem novos eventos para catalogar" . $nl);
+
             }
 
+            $events = [];
+
             // detectar eventos relevantes e enviar notificação de gestão
-            $slctqry = "SELECT evts.flowid,
+
+            // eventos elementares
+            $slctqry = "SELECT evts.id,
+                               evts.flowid,
                                evts.stdid,
                                evts.timestamp,
                                evts.type,
                                evts.payload
                         FROM wiseflow.sentinelf_events evts
-                            INNER JOIN wiseflow.sentinelf_event_types evt_tp ON evt_tp.type = evts.type
+                            INNER JOIN wiseflow.sentinelf_event_types evt_tp ON (evt_tp.type = evts.type AND evt_tp.payload = evts.payload)
                         WHERE evts.timestamp >= NOW() - INTERVAL 30 MINUTE
                             AND evt_tp.report = 1
-                            AND payload IN (
-                                            '{\"x\": {\"skipped\": 0}, \"cf\": 0, \"mi\": 0, \"nr\": false, \"sm\": 0, \"ts\": \"continuous\"}' ,
-                                            '{}'
-                                           )
-                            AND evts.report IS NULL;";
+                            AND evts.report IS NULL
+                        ORDER BY evts.timestamp ASC;";
 
             $new_events = mysqli_query($conBDInt, $slctqry)
                               or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_events': " . mysqli_error($conBDInt)
@@ -488,7 +499,148 @@ if (!empty($mode)
                                     . $slctqry);
 
             if (mysqli_num_rows($new_events) > 0) {
-                $events = mysqli_fetch_all($new_events, MYSQLI_ASSOC);
+                $events = array_merge($events, mysqli_fetch_all($new_events, MYSQLI_ASSOC));
+
+                printf("Identificados " . mysqli_num_rows($new_events) . " eventos elementares relevantes" . $nl);
+
+            } else {
+                printf("Sem eventos elementares relevantes" . $nl);
+
+            }
+
+            // aumento súbito de caracteres digitados
+            $sql = "CREATE TABLE IF NOT EXISTS wiseflow.sentinelf_tmp LIKE wiseflow.sentinelf_events;
+                    INSERT IGNORE INTO wiseflow.sentinelf_tmp
+                    SELECT *
+                    FROM wiseflow.sentinelf_events
+                    WHERE type = 'CHARACTERS_TYPED'
+                        AND timestamp >= NOW() - INTERVAL 30 MINUTE
+                        AND report IS NULL
+                    ORDER BY timestamp ASC;";
+
+            if (mysqli_multi_query($conBDInt, $sql)) {
+                do {
+                    if ($result = mysqli_store_result($conBDInt)) {
+                        mysqli_free_result($result);
+
+                    }
+
+                } while (mysqli_more_results($conBDInt) && mysqli_next_result($conBDInt));
+
+                $slctqry = "SELECT t.id,
+                                   t.flowid,
+                                   t.stdid,
+                                   t.timestamp,
+                                   t.type,
+                                   t.original_payload AS payload
+                            FROM (
+                                  -- cálculo de diff_chars, diff_seconds, e construção do payload JSON
+                                  SELECT id,
+                                         flowid,
+                                         stdid,
+                                         timestamp,
+                                         type,
+                                         payload AS original_payload,
+                                         JSON_QUOTE(
+                                                    CAST(
+                                                         JSON_OBJECT(
+                                                                     'chars_per_second',
+                                                                     FLOOR(diff_chars / diff_seconds)
+                                                                    ) AS CHAR
+                                                        )
+                                                   ) AS generated_payload
+                                  FROM (
+                                        SELECT id,
+                                               flowid,
+                                               stdid,
+                                               timestamp,
+                                               type,
+                                               payload,
+                                               -- diferença de caracteres digitados
+                                               CAST(
+                                                    JSON_UNQUOTE(
+                                                                 JSON_EXTRACT(
+                                                                              JSON_UNQUOTE(payload), '$.x.chars'
+                                                                             )
+                                                                ) AS SIGNED
+                                                  )
+                                               - LAG(
+                                                     CAST(
+                                                          JSON_UNQUOTE(
+                                                                       JSON_EXTRACT(
+                                                                                    JSON_UNQUOTE(payload), '$.x.chars'
+                                                                                   )
+                                                                      ) AS SIGNED
+                                                         )
+                                                    ) OVER (
+                                                            PARTITION BY stdid, flowid
+                                                            ORDER BY `timestamp`
+                                                           ) AS diff_chars,
+                                               -- difereça de tempo em segundos
+                                               TIMESTAMPDIFF(
+                                                             SECOND,
+                                                             LAG(`timestamp`) OVER (
+                                                                                    PARTITION BY stdid, flowid
+                                                                                    ORDER BY `timestamp`
+                                                                                   ),
+                                                             `timestamp`
+                                                            ) AS diff_seconds
+                                        FROM wiseflow.sentinelf_tmp
+                                        ORDER BY `timestamp`
+                                       ) AS `CHARACTERS_TYPED`
+                                  WHERE diff_seconds IS NOT NULL
+                                 ) AS t
+                                JOIN wiseflow.sentinelf_event_types AS e ON e.type = t.type
+                            -- apenas registos com número de chars_per_second superior ao referencial
+                            WHERE CAST(
+                                       JSON_UNQUOTE(
+                                                    JSON_EXTRACT(
+                                                                 JSON_UNQUOTE(t.generated_payload), '$.chars_per_second'
+                                                                )
+                                                   ) AS SIGNED
+                                      ) >
+                                  CAST(
+                                       JSON_UNQUOTE(
+                                                    JSON_EXTRACT(
+                                                                 JSON_UNQUOTE(e.payload), '$.chars_per_second'
+                                                                )
+                                                   ) AS SIGNED
+                                      )
+                            ORDER BY t.timestamp;";
+
+                $new_events = mysqli_query($conBDInt, $slctqry)
+                                  or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_tmp': " . mysqli_error($conBDInt)
+                                        . $nl . $nl
+                                        . $slctqry);
+
+            } else {
+                die("Ñ foi possível criar/actualizar a tabela 'wiseflow.sentinelf_tmp': " . mysqli_error($conBDInt)
+                   . $nl . $nl
+                   . $sql);
+
+            }
+
+            if (mysqli_num_rows($new_events) > 0) {
+                $events = array_merge($events, mysqli_fetch_all($new_events, MYSQLI_ASSOC));
+
+                printf("Identificados " . mysqli_num_rows($new_events) . " picos nos caracteres digitados" . $nl);
+
+            } else {
+                printf("Sem picos nos caracteres digitados" . $nl);
+
+            }
+
+
+
+            // TODO: enviar notificações em caso de detecção de inactividade prolongada
+
+
+
+            if (count($events) > 0) {
+                usort($events, function($a, $b) {
+                    return strtotime($a['timestamp']) <=> strtotime($b['timestamp']);
+
+                });
 
                 $html_table = '';
 
@@ -498,6 +650,7 @@ if (!empty($mode)
                                     <tr>
                                         <th>flow</th>
                                         <th>std_num</th>
+                                        <th>stdid</th>
                                         <th>timestamp</th>
                                         <th>type</th>
                                         <th>payload</th>
@@ -538,17 +691,15 @@ if (!empty($mode)
                                                . htmlspecialchars($event['flowid']) . "'>"
                                                . htmlspecialchars($event['subtitle']) . "</a></td>";
                     $html_table .= "<td>" . htmlspecialchars($event['std_num']) . "</td>";
+                    $html_table .= "<td>" . htmlspecialchars($event['stdid']) . "</td>";
                     $html_table .= "<td>" . htmlspecialchars($event['timestamp']) . "</td>";
                     $html_table .= "<td>" . htmlspecialchars($event['type']) . "</td>";
                     $html_table .= "<td><pre style='margin:0;'>" . htmlspecialchars($event['payload']) . "</pre></td>";
                     $html_table .= "</tr>";
 
                     $set_alert = "UPDATE wiseflow.sentinelf_events
-                                  SET report = 1
-                                  WHERE flowid = " . intval($event['flowid']) . "
-                                      AND stdid = " . intval($event['stdid']) . "
-                                      AND timestamp = '" . mysqli_real_escape_string($conBDInt, $event['timestamp']) . "'
-                                      AND type = '" . mysqli_real_escape_string($conBDInt, $event['type']) . "';";
+                                  SET report = 0
+                                  WHERE id = " . intval($event['id']) . ";";
 
                     mysqli_query($conBDInt, $set_alert)
                         or die("Ñ foi possível actualizar a tabela 'wiseflow.sentinelf_events': " . mysqli_error($conBDInt)
@@ -589,7 +740,8 @@ if (!empty($mode)
                 // registar hora da notificação
                 $set_alert = "UPDATE wiseflow.sentinelf_events
                               SET report = NOW()
-                              WHERE report = 1;";
+                              WHERE report IS NOT NULL
+                                  AND report = 0;";
 
                 mysqli_query($conBDInt, $set_alert)
                     or die("Ñ foi possível actualizar a tabela 'wiseflow.sentinelf_events': " . mysqli_error($conBDInt)
@@ -599,10 +751,6 @@ if (!empty($mode)
                 unset($events);
 
             }
-
-            // TODO: enviar notificações em caso de detecção de inatividade prolongada
-
-            // TODO: enviar notificações em caso de detecção de aumento súbito de caracteres digitados
 
             // registar hora de execução
             $set_lastrun = "UPDATE wiseflow.sentinelf_settings
@@ -614,7 +762,17 @@ if (!empty($mode)
                       . $nl . $nl
                       . $set_lastrun);
 
+            printf("Hora de execução actualizada" . $nl);
+
         } else {
+            // eliminar tabelas temporárias, depois de terminados os flows
+            $drop_tmp_tables = "DROP TABLE IF EXISTS wiseflow.sentinelf_tmp;";
+
+            mysqli_multi_query($conBDInt, $drop_tmp_tables)
+                or die("Ñ foi possível eliminar a tabela 'wiseflow.sentinelf_tmp': " . mysqli_error($conBDInt)
+                      . $nl . $nl
+                      . $drop_tmp_tables);
+
             printf("Sem flows em realização" . $nl);
 
         }
@@ -637,7 +795,8 @@ if (!empty($mode)
                     FROM wiseflow.sentinelf_events evts
                     WHERE report IS NOT NULL
                         AND DATE(report) = DATE(NOW())
-                    GROUP BY type;";
+                    GROUP BY type
+                    ORDER BY type ASC;";
 
         $report = mysqli_query($conBDInt, $slctqry)
                       or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_events': " . mysqli_error($conBDInt)
@@ -693,21 +852,21 @@ if (!empty($mode)
             unset($events);
 
         }
-    
+
+        // eliminar eventos obsoletos (mais de 1 ano)
+        $purge_old_events = "DELETE FROM wiseflow.sentinelf_events
+                             WHERE timestamp < NOW() - INTERVAL 365 DAY";
+
+        mysqli_query($conBDInt, $purge_old_events)
+            or die("Ñ foi possível actualizar a tabela 'wiseflow.sentinelf_events': " . mysqli_error($conBDInt)
+                  . $nl . $nl
+                  . $purge_old_events);
+
     } else {
         die("Chamada inválida!" . $nl);
         
     }
     
-    // eliminar eventos obsoletos (mais de 1 ano)
-    $purge_old_events = "DELETE FROM wiseflow.sentinelf_events
-                         WHERE timestamp < NOW() - INTERVAL 365 DAY";
-
-    mysqli_query($conBDInt, $purge_old_events)
-        or die("Ñ foi possível actualizar a tabela 'wiseflow.sentinelf_events': " . mysqli_error($conBDInt)
-              . $nl . $nl
-              . $purge_old_events);
-
     @mysqli_close($conBDInt);
 
     printf("Execução concluída" . $nl);
