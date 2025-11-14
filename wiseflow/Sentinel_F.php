@@ -508,13 +508,12 @@ if (!empty($mode)
 
             }
 
-            // aumento súbito de caracteres digitados
+            // eventos compostos
             $sql = "CREATE TABLE IF NOT EXISTS wiseflow.sentinelf_tmp LIKE wiseflow.sentinelf_events;
                     INSERT IGNORE INTO wiseflow.sentinelf_tmp
                     SELECT *
                     FROM wiseflow.sentinelf_events
-                    WHERE type = 'CHARACTERS_TYPED'
-                        AND timestamp >= NOW() - INTERVAL 30 MINUTE
+                    WHERE timestamp >= NOW() - INTERVAL 30 MINUTE
                         AND report IS NULL
                     ORDER BY timestamp ASC;";
 
@@ -527,6 +526,7 @@ if (!empty($mode)
 
                 } while (mysqli_more_results($conBDInt) && mysqli_next_result($conBDInt));
 
+                // aumento súbito de caracteres digitados
                 $slctqry = "SELECT t.id,
                                    t.flowid,
                                    t.stdid,
@@ -548,7 +548,8 @@ if (!empty($mode)
                                                                      FLOOR(diff_chars / diff_seconds)
                                                                     ) AS CHAR
                                                         )
-                                                   ) AS generated_payload
+                                                   ) AS generated_payload,
+										 report
                                   FROM (
                                         SELECT id,
                                                flowid,
@@ -584,8 +585,10 @@ if (!empty($mode)
                                                                                     ORDER BY `timestamp`
                                                                                    ),
                                                              `timestamp`
-                                                            ) AS diff_seconds
+                                                            ) AS diff_seconds,
+											   report
                                         FROM wiseflow.sentinelf_tmp
+                                        WHERE type = 'CHARACTERS_TYPED'
                                         ORDER BY `timestamp`
                                        ) AS `CHARACTERS_TYPED`
                                   WHERE diff_seconds IS NOT NULL
@@ -606,6 +609,7 @@ if (!empty($mode)
                                                                 )
                                                    ) AS SIGNED
                                       )
+                                AND t.report IS NULL
                             ORDER BY t.timestamp;";
 
                 $new_events = mysqli_query($conBDInt, $slctqry)
@@ -613,28 +617,90 @@ if (!empty($mode)
                                         . $nl . $nl
                                         . $slctqry);
 
+                if (mysqli_num_rows($new_events) > 0) {
+                    $events = array_merge($events, mysqli_fetch_all($new_events, MYSQLI_ASSOC));
+
+                    printf("Identificados " . mysqli_num_rows($new_events) . " picos nos caracteres digitados" . $nl);
+
+                } else {
+                    printf("Sem picos nos caracteres digitados" . $nl);
+
+                }
+
+                // detecção de inactividade prolongada
+                $slctqry = "WITH inactivity_calc AS (
+                                                     SELECT e.id,
+                                                            e.flowid,
+                                                            e.stdid,
+                                                            e.timestamp,
+                                                            e.type,
+                                                            e.payload AS original_payload,
+                                                            -- calcular inactividade em segundos desde o evento anterior do mesmo estudante
+                                                            COALESCE(
+                                                                     TIMESTAMPDIFF(
+                                                                                   SECOND,
+                                                                                   LAG(e.timestamp) OVER (PARTITION BY e.stdid ORDER BY e.timestamp),
+                                                                                   e.timestamp
+                                                                                  ),
+                                                                                  0
+                                                                    ) AS inactivity_seconds,
+                                                            -- gerar o payload correspondente
+                                                            CAST(
+                                                                 JSON_EXTRACT(
+                                                                              JSON_UNQUOTE(t.payload), '$.inactivity'
+                                                                             ) AS SIGNED
+                                                                ) AS reference_inactivity,
+                                                                CONCAT(
+                                                                       '\"{\\\"inactivity\\\": ',
+                                                                       COALESCE(
+                                                                                TIMESTAMPDIFF(
+                                                                                              SECOND,
+                                                                                              LAG(e.timestamp) OVER (PARTITION BY e.stdid ORDER BY e.timestamp),
+                                                                                              e.timestamp
+                                                                                             ),
+                                                                                             0
+                                                                               ),
+                                                                       '}\"'
+                                                                      ) AS generated_payload,
+                                                            e.report
+                                                     FROM wiseflow.sentinelf_tmp AS e
+                                                         INNER JOIN wiseflow.flows AS f ON f.flowid = e.flowid
+                                                         INNER JOIN wiseflow.flows_templates AS ft ON ft.id = f.template
+                                                         INNER JOIN wiseflow.sentinelf_event_types AS t ON t.type = 'INACTIVITY'
+                                                     WHERE ft.flowtype_name <> 'FLOWassign'
+                                                    )
+                            SELECT id,
+                                   flowid,
+                                   stdid,
+                                   timestamp,
+                                   'INACTIVITY' AS type,
+                                   generated_payload AS payload
+                            FROM inactivity_calc
+                            WHERE inactivity_seconds > reference_inactivity
+                                AND report IS NULL
+                            ORDER BY timestamp, stdid;";
+
+                $new_events = mysqli_query($conBDInt, $slctqry)
+                                  or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_tmp': " . mysqli_error($conBDInt)
+                                        . $nl . $nl
+                                        . $slctqry);
+
+                if (mysqli_num_rows($new_events) > 0) {
+                    $events = array_merge($events, mysqli_fetch_all($new_events, MYSQLI_ASSOC));
+
+                    printf("Identificadas " . mysqli_num_rows($new_events) . " inactividades prolongadas" . $nl);
+
+                } else {
+                    printf("Sem inactividades prolongadas" . $nl);
+
+                }
+
             } else {
                 die("Ñ foi possível criar/actualizar a tabela 'wiseflow.sentinelf_tmp': " . mysqli_error($conBDInt)
                    . $nl . $nl
                    . $sql);
 
             }
-
-            if (mysqli_num_rows($new_events) > 0) {
-                $events = array_merge($events, mysqli_fetch_all($new_events, MYSQLI_ASSOC));
-
-                printf("Identificados " . mysqli_num_rows($new_events) . " picos nos caracteres digitados" . $nl);
-
-            } else {
-                printf("Sem picos nos caracteres digitados" . $nl);
-
-            }
-
-
-
-            // TODO: enviar notificações em caso de detecção de inactividade prolongada
-
-
 
             if (count($events) > 0) {
                 usort($events, function($a, $b) {
@@ -699,10 +765,13 @@ if (!empty($mode)
 
                     $set_alert = "UPDATE wiseflow.sentinelf_events
                                   SET report = 0
+                                  WHERE id = " . intval($event['id']) . ";
+                                  UPDATE wiseflow.sentinelf_tmp
+                                  SET report = 0
                                   WHERE id = " . intval($event['id']) . ";";
 
-                    mysqli_query($conBDInt, $set_alert)
-                        or die("Ñ foi possível actualizar a tabela 'wiseflow.sentinelf_events': " . mysqli_error($conBDInt)
+                    mysqli_multi_query($conBDInt, $set_alert)
+                        or die("Ñ foi possível actualizar as tabelas 'wiseflow.sentinelf_events' e/ou 'wiseflow.sentinelf_tmp': " . mysqli_error($conBDInt)
                               . $nl . $nl
                               . $set_alert);
 
@@ -737,7 +806,7 @@ if (!empty($mode)
             
                 printf("Notificação de gestão enviada" . $nl);
 
-                // registar hora da notificação
+                // registar hora da notificação no evento
                 $set_alert = "UPDATE wiseflow.sentinelf_events
                               SET report = NOW()
                               WHERE report IS NOT NULL
@@ -752,7 +821,7 @@ if (!empty($mode)
 
             }
 
-            // registar hora de execução
+            // registar hora de execução do Sentinel_F
             $set_lastrun = "UPDATE wiseflow.sentinelf_settings
                             SET value = '" . $runtime . "'
                             WHERE setting = 'lastrun';";

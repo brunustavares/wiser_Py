@@ -66,7 +66,8 @@ php sentinel_f.php -m monitor
     - An email is sent to the administrator (defined by the `admin` setting) containing a table of these new events for review.
 6.  **Detect and Notify Relevant Events**:
     - It queries for events that are marked as reportable (`evt_tp.report = 1`), match a specific `payload` stored in `sentinelf_event_types`, and have not been reported yet (`evts.report IS NULL`).
-    - It also analyzes `CHARACTERS_TYPED` events to detect anomalous spikes in typing speed. It calculates the characters per second between consecutive events for a student and compares it against a threshold defined in `sentinelf_event_types`.
+    - **Typing Speed Analysis**: It also analyzes `CHARACTERS_TYPED` events to detect anomalous spikes in typing speed. It calculates the characters per second between consecutive events for a student and compares it against a threshold defined in `sentinelf_event_types`.
+    - **Inactivity Detection**: The script identifies prolonged periods of student inactivity. It calculates the time difference between the current execution and the student's last event. If this period exceeds a configurable threshold (defined in `sentinelf_event_types` for the `INACTIVITY` event type), an alert is generated.
     - If any of these relevant events are found, it constructs a single HTML email with a table of all such events and sends it to the management mailing lists (`manageTO` and `manageCC`).
     - It then updates the `report` column for the sent events to prevent them from being reported again.
 7.  **Update Last Run Time**: After processing all flows, it updates the `lastrun` setting with the current timestamp.
@@ -110,7 +111,6 @@ The script acts as a bridge between the WISEflow API and a local database, addin
 The script's source code includes comments for future enhancements:
 
 1.  **Web-based Management Interface**: A management area (suggested to be in `wiser.Py`) to provide a user-friendly way to manage event types (e.g., toggling the `report` flag) and email recipients.
-2.  **Inactivity Detection**: Implement logic to send notifications if a student shows a prolonged period of inactivity during an exam.
 
 ## Licenses
 
