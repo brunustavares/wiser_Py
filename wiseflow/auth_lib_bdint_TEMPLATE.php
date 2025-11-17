@@ -62,9 +62,6 @@
     $email->Username = '<your_hidden_username>';
     $email->Password = '<your_hidden_password>';
 
-    $email->setFrom('<your_hidden_from>', 'Sentinel_F');
-    $email->addEmbeddedImage('../static/img/Sentinel_F.jpg', 'sentinelfavatar', 'Sentinel_F.jpg');
-
 // WISEflow
     // parte do URL comum a todas as APIs
         GLOBAL $base_url;

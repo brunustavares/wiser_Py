@@ -460,12 +460,14 @@ table.dataTable tfoot td {
 .results-table,
 .stats-table,
 .users-table,
+.sentinelf_main_table,
 .log-table {
     font-family: system-ui;
 }
 
 .stats-table,
 .users-table,
+.sentinelf_main_table,
 .log-table {
     width: 65%;
     margin: auto;
@@ -476,16 +478,33 @@ table.dataTable tfoot td {
     color: white
 }
 
-.users-menu-table {
+.users-menu-table,
+.events-menu-table {
     width: 485px;
     margin: auto;
 }
 
-.users-menu-table>tbody>tr>td {
+.users-menu-table>tbody>tr>td,
+.events-menu-table>tbody>tr>td {
     vertical-align: top!important;
 }
 
-.users-table>thead:first-child>tr:first-child>th {
+.sentinelf_main_table-type {
+    width: 30%!important;
+}
+
+.sentinelf_main_table-payload {
+    width: 70%!important;
+}
+
+.sentinelf_main_table-input {
+    width: 100%!important;
+    border: none;
+    background: transparent;
+}
+
+.users-table>thead:first-child>tr:first-child>th,
+.sentinelf_main_table>thead:first-child>tr:first-child>th {
     text-align: center;
 }
 
@@ -544,6 +563,7 @@ h2 {
 
 .save-msg-template,
 .pwd-reset-button,
+.event-delete-button,
 .user-delete-button {
     border: none;
     background: transparent;

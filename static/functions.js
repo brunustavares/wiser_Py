@@ -11,7 +11,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2025102405
+ * @version    2025111411
  * @date       2024-02-20
  *
  * This program is free software: you can redistribute it and/or modify
@@ -103,6 +103,29 @@ $(document).ready(function() {
         "columnDefs": [
             { "orderable": false, "targets": [1, 2, 3, 4, 5, 6, 7, 11] }
         ],
+        language: {
+            // personalizar botões de paginação: usar símbolos em vez de texto
+            'paginate': {
+                'previous': '<span class="fa fa-chevron-left"></span>',
+                'next': '<span class="fa fa-chevron-right"></span>'
+            },
+            // personalizar número de elementos a serem exibidos
+            "lengthMenu": 'Mostrar <select class="form-control input-sm">'+
+            '<option value="10">10</option>'+
+            '<option value="20">20</option>'+
+            '<option value="30">30</option>'+
+            '<option value="40">40</option>'+
+            '<option value="50">50</option>'+
+            '<option value="-1">Todos</option>'+
+            '</select> resultados'
+        }
+    })
+
+    $('#sentinelf_main_table').DataTable({
+        // ordenação de colunas
+        ordering: false,
+        searching: false,
+        "order": [0,'asc'],
         language: {
             // personalizar botões de paginação: usar símbolos em vez de texto
             'paginate': {
@@ -334,6 +357,20 @@ function attach_flw_status(flw_status) {
     let suffix = "?";
 
     document.getElementById("student").innerHTML = prefix.concat(flowid).concat(status).concat(infix).concat(std_num).concat(suffix);
+}
+
+// confirmação de operações de eliminação de eventos
+function send_event_info(evt) {
+    let button = document.getElementById("go");
+
+    button.value = evt;
+
+    let preffix = "Apagar ";
+
+    let infix = preffix.concat("evento '");
+    let suffix = "'?";
+
+    document.getElementById("event").innerHTML = infix.concat(evt).concat(suffix);
 }
 
 // confirmação de operações de reinicialização de password e eliminação de utilizadores

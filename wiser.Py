@@ -11,7 +11,7 @@
 # @copyright  Copyright (C) 2024-present Bruno Tavares
 # @license    GNU General Public License v3 or later
 #             https://www.gnu.org/licenses/gpl-3.0.html
-# @version    2025102405
+# @version    2025111411
 # @date       2024-02-20
 #
 # This program is free software: you can redistribute it and/or modify
@@ -65,6 +65,10 @@ USER_BIO_TPLT = "user_bio.html"
 WF_STATS_TPLT = "wf_stats.html"
 MDL_STATS_TPLT = "mdl_stats.html"
 AIDA_TPLT = "aida.html"
+SENTINEL_F_TPLT = "sentinel_f.html"
+SENTINELF_EVENTS_TPLT = "sentinelf_events_2check.html"
+SENTINELF_LOG_TPLT = "sentinelf_log.html"
+SENTINELF_SETTINGS_TPLT = "sentinelf_settings.html"
 TOOLS_TPLT = "tools.html"
 CAL_TPLT = "calendar.html"
 WF_TPLT = "check_wf_file.html"
@@ -351,7 +355,7 @@ def build_query(sys=None, lect_year=None, student=None, date=None, bio=None, sta
                 query += " AND flw_std.std_num = %s "
 
             if date is not None:
-                query += " AND DATE(flw_ass.dtass) = %s "
+                query += " AND flw_ass.dtass BETWEEN %s AND %s "
 
             if bio is not None:
                 query += " AND ((flw_ass.fr_avgM * 1) < %s \
@@ -552,7 +556,7 @@ def build_query(sys=None, lect_year=None, student=None, date=None, bio=None, sta
                 query += " AND vw_pees.estudante_Num = %s "
 
             if date is not None:
-                query += " AND DATE(vw_pees.data_entrega) = %s "
+                query += " AND vw_pees.data_entrega BETWEEN %s AND %s " 
 
             query += "ORDER BY vw_pees.estudante_Num ASC, vw_pees.data_entrega ASC, vw_pees.UC_codigo ASC;"
 
@@ -1392,7 +1396,7 @@ def sanitize(string):
 # configuração da aplicação
 app = Flask(__name__)
 
-BUILD = "2025102405"  # YYYYMMDDHH
+BUILD = "2025111411"  # YYYYMMDDHH
 
 # SECRET_KEY
 app.secret_key = "RaK7ng8-UCKWZnW6"
@@ -1505,7 +1509,7 @@ def login():
 
         # verificar se o username existe
         wf_db_cursor.execute("SELECT * \
-                              FROM users \
+                              FROM wiseflow.users \
                               WHERE username = %s;",
                              (request.form.get("username"), ))
         user = wf_db_cursor.fetchall()
@@ -1669,6 +1673,249 @@ def is_sosusr(usrid):
     wf_db.close()
 
     return None if sosusr_flag == 0 else 1
+
+
+# menu Sentinel_F
+@app.route("/sentinel_f")
+@login_required
+def sentinel_f():
+    session["T_usage"] += (int(datetime.datetime.now().timestamp() - session["time"]))
+    session["time"] = int(datetime.datetime.now().timestamp())
+
+    # caso seja obrigatória a alteração da password, redireccionar para a página de alteração
+    if set_pwd(session["user_id"]):
+        return redirect("/change_pwd")
+
+    # caso o utilizador não tenha privilégios de admin, redireccionar para a página principal
+    if is_admin(session["user_id"]) is None:
+        return redirect("/")
+
+    write_activity_log("list", "Sentinel_F menu", None, session["user_id"], session["T_usage"])
+
+    # caso contrário, redireccionar para a página de selecção
+    return render_template(SENTINEL_F_TPLT, is_admin=is_admin(session["user_id"]))
+
+
+# menu de eventos Sentinel_F
+@app.route("/sentinelf_events_2check", methods=["GET", "POST"])
+@login_required
+def sentinelf_events_2check():
+    session["T_usage"] += (int(datetime.datetime.now().timestamp() - session["time"]))
+    session["time"] = int(datetime.datetime.now().timestamp())
+
+    # caso seja obrigatória a alteração da password, redireccionar para a página de alteração
+    if set_pwd(session["user_id"]):
+        return redirect("/change_pwd")
+
+    # caso o utilizador não tenha privilégios de admin, redireccionar para a página principal
+    if is_admin(session["user_id"]) is None:
+        return redirect("/")
+
+    def clean_results():
+        session["result"] = None
+
+    wf_db = connect_db()
+    wf_db_cursor = wf_db.cursor()
+
+    # se o utilizador chegar ao formulário via POST
+    if request.method == "POST":
+        # registar novo evento
+        if request.form.get("new") is not None:
+            # se o utilizador não submeter evento e payload, retornar mensagem de erro
+            if not request.form.get("evt_type") or \
+                not request.form.get("payload"):
+                return error_msg("tipo de evento e payload necessários", 400, '/sentinelf_events_2check')
+
+            evt_type = request.form.get("evt_type").upper()
+            payload = request.form.get("payload")
+            if payload == None or payload.strip() == "":
+                payload = None
+
+            # verificar se o binómio tipo de evento + payload já existe
+            wf_db_cursor.execute("SELECT * \
+                                  FROM wiseflow.sentinelf_event_types \
+                                  WHERE type = %s \
+                                      AND payload = %s;",
+                                 (evt_type, payload, ))
+            evt_pl = wf_db_cursor.fetchall()
+
+            if len(evt_pl) != 0:
+                # caso exista, retornar mensagem de erro
+                return error_msg("o binómio tipo de evento + payload já existe", 400, '/sentinelf_events_2check')
+
+            # adicionar o novo tipo de evento à base de dados
+            wf_db_cursor.execute("INSERT INTO sentinelf_event_types(type, payload, report) \
+                                  VALUES(%s, %s, %s);",
+                                 (evt_type, payload, 1, ))
+            wf_db.commit()
+
+            write_activity_log("create", "Sentinel_F event_type", evt_type, session["user_id"], session["T_usage"])
+
+            clean_results()
+
+        # eliminação de evento
+        elif request.form.get("del") is not None:
+            wf_db_cursor.execute("DELETE \
+                                  FROM sentinelf_event_types \
+                                  WHERE type = %s",
+                                 (request.form.get("del"), ))
+            wf_db.commit()
+
+            write_activity_log("delete", "Sentinel_F event_type", request.form.get("del"), session["user_id"], session["T_usage"])
+
+            clean_results()
+
+        # definição das configurações do evento
+        else:
+            for row in session["result"]:
+                row_id = row[0]
+                evt_type = request.form.get(f"type{row_id}")
+                payload = request.form.get(f"payload{row_id}")
+                if payload == None or payload.strip() == "":
+                    payload = None
+                report = 1 if f"report{row_id}" in request.form else 0
+
+                if evt_type is not None:
+                    wf_db_cursor.execute("UPDATE wiseflow.sentinelf_event_types \
+                                          SET type=%s, payload=%s, report=%s \
+                                          WHERE id=%s",
+                                         (evt_type, payload, report, row_id, ))
+                    wf_db.commit()
+
+            if wf_db_cursor.rowcount > 0:
+                write_activity_log("update", "Sentinel_F events", None, session["user_id"], session["T_usage"])
+
+            clean_results()
+
+    # caso contrário, redireccionar para a lista de eventos
+    wf_db_cursor.execute("SELECT * \
+                          FROM wiseflow.sentinelf_event_types \
+                          ORDER BY type, payload;")
+    session["result"] = wf_db_cursor.fetchall()
+
+    wf_db_cursor.close()
+    wf_db.close()
+
+    write_activity_log("list", "Sentinel_F events", None, session["user_id"], session["T_usage"])
+
+    return render_template(SENTINELF_EVENTS_TPLT, is_admin=is_admin(session["user_id"]), event_types=session["result"])
+
+
+# log Sentinel_F
+@app.route("/sentinelf_log", methods=["GET", "POST"])
+@login_required
+def sentinelf_log():
+    session["T_usage"] += (int(datetime.datetime.now().timestamp() - session["time"]))
+    session["time"] = int(datetime.datetime.now().timestamp())
+
+    # caso seja obrigatória a alteração da password, redireccionar para a página de alteração
+    if set_pwd(session["user_id"]):
+        return redirect("/change_pwd")
+
+    # caso o utilizador não tenha privilégios de admin, redireccionar para a página principal
+    if is_admin(session["user_id"]) is None:
+        return redirect("/")
+
+    # se o utilizador chegar ao formulário via POST
+    if request.method == "POST":
+        date = None
+        if request.form.get("date") != '':
+            date = request.form.get("date")
+            start = date + " 00:00:00"
+            end = date + " 23:59:59"
+            key = "data: " + date
+
+        else:
+            return error_msg("data necessária", 400, '/sentinelf_log')
+
+        wf_db = connect_db()
+        wf_db_cursor = wf_db.cursor()
+
+        wf_db_cursor.execute("SELECT flw.subtitle, \
+                                     flw.flowid, \
+                                     std.std_num, \
+                                     evts.timestamp, \
+                                     evts.type, \
+                                     evts.payload, \
+                                     evts.report \
+                              FROM wiseflow.sentinelf_events evts \
+                                  INNER JOIN wiseflow.flows flw ON flw.flowid = evts.flowid \
+                                  INNER JOIN wiseflow.students std ON std.stdid = evts.stdid \
+                              WHERE timestamp BETWEEN %s AND %s \
+                              ORDER BY evts.timestamp;",
+                             (start, end))
+        result = wf_db_cursor.fetchall()
+
+        wf_db_cursor.close()
+        wf_db.close()
+
+        write_activity_log("list", "Sentinel_F log", key, session["user_id"], session["T_usage"])
+
+        return render_template(SENTINELF_LOG_TPLT, is_admin=is_admin(session["user_id"]), log=result, key=key)
+
+    # caso contrário, redireccionar para a página de selecção
+    write_activity_log("list", "Sentinel_F log", None, session["user_id"], session["T_usage"])
+
+    return render_template(SENTINELF_LOG_TPLT, is_admin=is_admin(session["user_id"]), search="True")
+
+
+# menu de configurações Sentinel_F
+@app.route("/sentinelf_settings", methods=["GET", "POST"])
+@login_required
+def sentinelf_settings():
+    session["T_usage"] += (int(datetime.datetime.now().timestamp() - session["time"]))
+    session["time"] = int(datetime.datetime.now().timestamp())
+
+    # caso seja obrigatória a alteração da password, redireccionar para a página de alteração
+    if set_pwd(session["user_id"]):
+        return redirect("/change_pwd")
+
+    # caso o utilizador não tenha privilégios de admin, redireccionar para a página principal
+    if is_admin(session["user_id"]) is None:
+        return redirect("/")
+
+    def clean_results():
+        session["result"] = None
+
+    wf_db = connect_db()
+    wf_db_cursor = wf_db.cursor()
+
+    # se o utilizador chegar ao formulário via POST
+    if request.method == "POST":
+        # definição das configurações
+        for row in session["result"]:
+            row_id = row[0]
+            mailbox = request.form.get(f"mailbox{row_id}")
+
+            if mailbox is not None:
+                wf_db_cursor.execute("UPDATE wiseflow.sentinelf_settings \
+                                      SET value=%s \
+                                      WHERE id=%s",
+                                     (mailbox, row_id, ))
+                wf_db.commit()
+
+        if wf_db_cursor.rowcount > 0:
+            write_activity_log("update", "Sentinel_F settings", None, session["user_id"], session["T_usage"])
+
+        clean_results()
+
+    # caso contrário, redireccionar para a página de selecção
+    wf_db_cursor.execute("SELECT * \
+                          FROM wiseflow.sentinelf_settings \
+                          WHERE setting = 'lastrun';")
+    lastrun = wf_db_cursor.fetchone()[2]
+
+    wf_db_cursor.execute("SELECT * \
+                          FROM wiseflow.sentinelf_settings \
+                          WHERE setting <> 'lastrun';")
+    session["result"] = wf_db_cursor.fetchall()
+
+    wf_db_cursor.close()
+    wf_db.close()
+
+    write_activity_log("list", "Sentinel_F settings", None, session["user_id"], session["T_usage"])
+
+    return render_template(SENTINELF_SETTINGS_TPLT, is_admin=is_admin(session["user_id"]), settings=session["result"], lastrun=lastrun)
 
 
 # menu utilitários
@@ -2378,7 +2625,7 @@ def manage_users():
 
             # verificar se o username já existe
             wf_db_cursor.execute("SELECT * \
-                                  FROM users \
+                                  FROM wiseflow.users \
                                   WHERE username = %s;",
                                  (usr, ))
             user = wf_db_cursor.fetchall()
@@ -2389,7 +2636,7 @@ def manage_users():
 
             # verificar se o e-mail já existe
             wf_db_cursor.execute("SELECT * \
-                                  FROM users \
+                                  FROM wiseflow.users \
                                   WHERE email = %s;",
                                  (email, ))
             user = wf_db_cursor.fetchall()
@@ -2594,7 +2841,7 @@ def reset_pwd():
 
         # verificar se o username existe
         wf_db_cursor.execute("SELECT * \
-                              FROM users \
+                              FROM wiseflow.users \
                               WHERE username = %s;",
                              (usr, ))
         user = wf_db_cursor.fetchall()
@@ -2831,7 +3078,9 @@ def wf_full_report():
             date = None
             if request.form.get("date") != '':
                 date = request.form.get("date")
-                session["qryargs"] = (date, )
+                start = date + " 00:00:00"
+                end = date + " 23:59:59"
+                session["qryargs"] = (start, end, )
                 session["key"] = "data: " + date
 
             else:
@@ -2959,7 +3208,9 @@ def mdl_full_report():
             date = None
             if request.form.get("date") != '':
                 date = request.form.get("date")
-                session["qryargs"] = (date, )
+                start = date + " 00:00:00"
+                end = date + " 23:59:59"
+                session["qryargs"] = (start, end, )
                 session["key"] = "data: " + date
 
             else:

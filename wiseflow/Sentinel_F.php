@@ -152,6 +152,9 @@ if (!empty($mode)
                         . $slctqry);
 
     $admin = (string)mysqli_fetch_assoc($result)['admin'];
+
+    $email->setFrom('Sentinel_F@uab.pt', 'Sentinel_F');
+    $email->addEmbeddedImage('../static/img/Sentinel_F.jpg', 'sentinelfavatar', 'Sentinel_F.jpg');
     
     if ($mode == "monitor") {
         // obtenção dos parâmetros transversais do curl
@@ -350,11 +353,23 @@ if (!empty($mode)
 
             }
 
+            // criar tabela temporária, para suportar a análise com eficiência
+            $sql = "CREATE TABLE IF NOT EXISTS wiseflow.sentinelf_tmp LIKE wiseflow.sentinelf_events;
+                    INSERT IGNORE INTO wiseflow.sentinelf_tmp
+                    SELECT *
+                    FROM wiseflow.sentinelf_events
+                    WHERE timestamp >= NOW() - INTERVAL 30 MINUTE
+                        AND report IS NULL
+                    ORDER BY timestamp ASC;";
 
+            if (mysqli_multi_query($conBDInt, $sql)) {
+                do {
+                    if ($result = mysqli_store_result($conBDInt)) {
+                        mysqli_free_result($result);
 
-            // TODO: criar área de gestão no wiser.Py, para tabelas de eventos, tipos de evento, destinatários dos relatórios
+                    }
 
-
+                } while (mysqli_more_results($conBDInt) && mysqli_next_result($conBDInt));
 
             $events = [];
 
@@ -364,13 +379,13 @@ if (!empty($mode)
                                evts.timestamp,
                                evts.type,
                                evts.payload
-                        FROM wiseflow.sentinelf_events evts
+                        FROM wiseflow.sentinelf_tmp evts
                             LEFT JOIN wiseflow.sentinelf_event_types evt_tp ON evt_tp.type = evts.type
                         WHERE evts.timestamp >= NOW() - INTERVAL 30 MINUTE
                             AND evt_tp.id IS NULL;";
 
             $new_events = mysqli_query($conBDInt, $slctqry)
-                              or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_events': " . mysqli_error($conBDInt)
+                              or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_tmp': " . mysqli_error($conBDInt)
                                     . $nl . $nl
                                     . $slctqry);
 
@@ -436,7 +451,7 @@ if (!empty($mode)
 
                 $isrtqry = "INSERT INTO wiseflow.sentinelf_event_types(type, payload, report)
                             SELECT evts.type, evts.payload, '1'
-                            FROM wiseflow.sentinelf_events evts
+                            FROM wiseflow.sentinelf_tmp evts
                                 LEFT JOIN wiseflow.sentinelf_event_types evt_tp ON evt_tp.type = evts.type
                             WHERE evts.timestamp >= NOW() - INTERVAL 30 MINUTE
                                 AND evt_tp.id IS NULL
@@ -478,7 +493,6 @@ if (!empty($mode)
             $events = [];
 
             // detectar eventos relevantes e enviar notificação de gestão
-
             // eventos elementares
             $slctqry = "SELECT evts.id,
                                evts.flowid,
@@ -486,7 +500,7 @@ if (!empty($mode)
                                evts.timestamp,
                                evts.type,
                                evts.payload
-                        FROM wiseflow.sentinelf_events evts
+                        FROM wiseflow.sentinelf_tmp evts
                             INNER JOIN wiseflow.sentinelf_event_types evt_tp ON (evt_tp.type = evts.type AND evt_tp.payload = evts.payload)
                         WHERE evts.timestamp >= NOW() - INTERVAL 30 MINUTE
                             AND evt_tp.report = 1
@@ -494,7 +508,7 @@ if (!empty($mode)
                         ORDER BY evts.timestamp ASC;";
 
             $new_events = mysqli_query($conBDInt, $slctqry)
-                              or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_events': " . mysqli_error($conBDInt)
+                              or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_tmp': " . mysqli_error($conBDInt)
                                     . $nl . $nl
                                     . $slctqry);
 
@@ -509,30 +523,13 @@ if (!empty($mode)
             }
 
             // eventos compostos
-            $sql = "CREATE TABLE IF NOT EXISTS wiseflow.sentinelf_tmp LIKE wiseflow.sentinelf_events;
-                    INSERT IGNORE INTO wiseflow.sentinelf_tmp
-                    SELECT *
-                    FROM wiseflow.sentinelf_events
-                    WHERE timestamp >= NOW() - INTERVAL 30 MINUTE
-                        AND report IS NULL
-                    ORDER BY timestamp ASC;";
-
-            if (mysqli_multi_query($conBDInt, $sql)) {
-                do {
-                    if ($result = mysqli_store_result($conBDInt)) {
-                        mysqli_free_result($result);
-
-                    }
-
-                } while (mysqli_more_results($conBDInt) && mysqli_next_result($conBDInt));
-
                 // aumento súbito de caracteres digitados
                 $slctqry = "SELECT t.id,
                                    t.flowid,
                                    t.stdid,
                                    t.timestamp,
                                    t.type,
-                                   t.original_payload AS payload
+                                   t.generated_payload AS payload
                             FROM (
                                   -- cálculo de diff_chars, diff_seconds, e construção do payload JSON
                                   SELECT id,
@@ -549,7 +546,7 @@ if (!empty($mode)
                                                                     ) AS CHAR
                                                         )
                                                    ) AS generated_payload,
-										 report
+										 reported
                                   FROM (
                                         SELECT id,
                                                flowid,
@@ -586,7 +583,7 @@ if (!empty($mode)
                                                                                    ),
                                                              `timestamp`
                                                             ) AS diff_seconds,
-											   report
+											   report AS reported
                                         FROM wiseflow.sentinelf_tmp
                                         WHERE type = 'CHARACTERS_TYPED'
                                         ORDER BY `timestamp`
@@ -609,7 +606,8 @@ if (!empty($mode)
                                                                 )
                                                    ) AS SIGNED
                                       )
-                                AND t.report IS NULL
+                                AND e.report = 1
+                                AND t.reported IS NULL
                             ORDER BY t.timestamp;";
 
                 $new_events = mysqli_query($conBDInt, $slctqry)
@@ -661,8 +659,9 @@ if (!empty($mode)
                                                                                              0
                                                                                ),
                                                                        '}\"'
-                                                                      ) AS generated_payload,
-                                                            e.report
+                                                                      ) AS generated_payload
+                                                            t.report AS evt_report,
+                                                            e.report AS reported
                                                      FROM wiseflow.sentinelf_tmp AS e
                                                          INNER JOIN wiseflow.flows AS f ON f.flowid = e.flowid
                                                          INNER JOIN wiseflow.flows_templates AS ft ON ft.id = f.template
@@ -677,7 +676,8 @@ if (!empty($mode)
                                    generated_payload AS payload
                             FROM inactivity_calc
                             WHERE inactivity_seconds > reference_inactivity
-                                AND report IS NULL
+                                AND evt_report = 1
+                                AND reported IS NULL
                             ORDER BY timestamp, stdid;";
 
                 $new_events = mysqli_query($conBDInt, $slctqry)
@@ -763,15 +763,15 @@ if (!empty($mode)
                     $html_table .= "<td><pre style='margin:0;'>" . htmlspecialchars($event['payload']) . "</pre></td>";
                     $html_table .= "</tr>";
 
-                    $set_alert = "UPDATE wiseflow.sentinelf_events
+                    $set_alert = "UPDATE wiseflow.sentinelf_tmp
                                   SET report = 0
                                   WHERE id = " . intval($event['id']) . ";
-                                  UPDATE wiseflow.sentinelf_tmp
+                                  UPDATE wiseflow.sentinelf_events
                                   SET report = 0
                                   WHERE id = " . intval($event['id']) . ";";
 
                     mysqli_multi_query($conBDInt, $set_alert)
-                        or die("Ñ foi possível actualizar as tabelas 'wiseflow.sentinelf_events' e/ou 'wiseflow.sentinelf_tmp': " . mysqli_error($conBDInt)
+                        or die("Ñ foi possível actualizar as tabelas 'wiseflow.sentinelf_tmp' e/ou 'wiseflow.sentinelf_events': " . mysqli_error($conBDInt)
                               . $nl . $nl
                               . $set_alert);
 
@@ -834,13 +834,13 @@ if (!empty($mode)
             printf("Hora de execução actualizada" . $nl);
 
         } else {
-            // eliminar tabelas temporárias, depois de terminados os flows
-            $drop_tmp_tables = "DROP TABLE IF EXISTS wiseflow.sentinelf_tmp;";
+            // eliminar tabela temporária, depois de terminados os flows
+            $drop_tmp_table = "DROP TABLE IF EXISTS wiseflow.sentinelf_tmp;";
 
-            mysqli_multi_query($conBDInt, $drop_tmp_tables)
+            mysqli_multi_query($conBDInt, $drop_tmp_table)
                 or die("Ñ foi possível eliminar a tabela 'wiseflow.sentinelf_tmp': " . mysqli_error($conBDInt)
                       . $nl . $nl
-                      . $drop_tmp_tables);
+                      . $drop_tmp_table);
 
             printf("Sem flows em realização" . $nl);
 

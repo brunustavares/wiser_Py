@@ -1,0 +1,111 @@
+<!--
+/**
+ * wiser.Py
+ * Python app for integrated data and indicators management
+ * related to the tests carried out in WISEflow and Moodle.
+ * (developed for UAb - Universidade Aberta)
+ *
+ * @package    wiser.Py
+ * @category   app
+ * @author     Bruno Tavares <brunustavares@gmail.com>
+ * @link       https://www.linkedin.com/in/brunomastavares/
+ * @copyright  Copyright (C) 2024-present Bruno Tavares
+ * @license    GNU General Public License v3 or later
+ *             https://www.gnu.org/licenses/gpl-3.0.html
+ * @version    2025111411
+ * @date       2025-11-14
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+-->
+
+{% extends "layout.html" %}
+
+{% block title %}
+    Sentinel_F: log
+{% endblock %}
+
+{% block main %}
+    <div class="navigation">
+        <a href="{{ url_for('sentinel_f') }}">
+            <svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+                <path d="M9.4 278.6c-12.5-12.5-12.5-32.8 0-45.3l128-128c9.2-9.2 22.9-11.9 34.9-6.9s19.8 16.6 19.8 29.6l0 256c0 12.9-7.8 24.6-19.8 29.6s-25.7 2.2-34.9-6.9l-128-128z"/>
+            </svg>
+        </a>
+
+        <a href="{{ url_for('menu') }}">
+            <svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+                <path d="M575.8 255.5c0 18-15 32.1-32 32.1h-32l.7 160.2c0 2.7-.2 5.4-.5 8.1V472c0 22.1-17.9 40-40 40H456c-1.1 0-2.2 0-3.3-.1c-1.4 .1-2.8 .1-4.2 .1H416 392c-22.1 0-40-17.9-40-40V448 384c0-17.7-14.3-32-32-32H256c-17.7 0-32 14.3-32 32v64 24c0 22.1-17.9 40-40 40H160 128.1c-1.5 0-3-.1-4.5-.2c-1.2 .1-2.4 .2-3.6 .2H104c-22.1 0-40-17.9-40-40V360c0-.9 0-1.9 .1-2.8V287.6H32c-18 0-32-14-32-32.1c0-9 3-17 10-24L266.4 8c7-7 15-8 22-8s15 2 21 7L564.8 231.5c8 7 12 15 11 24z"/>
+            </svg>
+        </a>
+    </div>
+
+    <h2>
+        Sentinel_F: log
+    </h2>
+
+    <form action="/sentinelf_log" id="full_report" method="post" onsubmit="showModal()">
+        <div class="mb-3">
+            <input class="date-picker" type="date" id="date" name="date" value="">
+        </div>
+
+        <button class="btn btn-primary nav-button" type="submit">Obter dados</button>
+
+        <hr>
+
+        {% if log %}
+            <script type="text/javascript">
+                set_loaded("unloaded")
+            </script>
+
+            <p class="full_report_key">{{ key }}</p>
+
+            <br>
+
+            <div class="table-responsive">
+                <table class="table  table-striped table-hover table-borderless results-table" id="full_report_table">
+                    <thead class="table-primary results-table-header">
+                        <tr>
+                            <th>subtitle</th>
+                            <th>std_num</th>
+                            <th>timestamp</th>
+                            <th>type</th>
+                            <th>payload</th>
+                            <th>report</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for row in log %}
+                            <tr>
+                                <td><a href="https://europe.wiseflow.net/manager/display.php?id={{ row[1] }}" target="_blank">{{ row[0] }}</a></td>
+                                <td>{{ row[2] }}</td>
+                                <td>{{ row[3] }}</td>
+                                <td>{{ row[4] }}</td>
+                                <td>{{ row[5] }}</td>
+                                <td>{{ row[6] }}</td>
+                            </tr>
+
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        {% elif not search %}
+            <h3 class="result">
+                (sem dados)
+            </h3>
+        {% endif %}
+    </form>
+{% endblock %}

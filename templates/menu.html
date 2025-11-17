@@ -12,7 +12,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2025082111
+ * @version    2025111411
  * @date       2024-02-20
  *
  * This program is free software: you can redistribute it and/or modify
@@ -51,6 +51,20 @@
                                     <label class="menu-label">dados completos</label>
                                 </button>
                             </form>
+
+                            {% if admin %}
+                                <hr>
+
+                                <script type="text/javascript">
+                                    set_admin_layout();
+                                </script>
+
+                                <a class="nav-link" href="{{ url_for('sentinel_f') }}">
+                                    <img src="static/img/Sentinel_F.jpg" class="menu-button" alt="Sentinel_F">
+                                    <br><br>
+                                    <!-- <label class="menu-label">Sentinel_F</label> -->
+                                </a>
+                            {% endif %}
                         </th>
 
                         <th>

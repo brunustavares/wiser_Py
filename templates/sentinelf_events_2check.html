@@ -1,0 +1,141 @@
+<!--
+/**
+ * wiser.Py
+ * Python app for integrated data and indicators management
+ * related to the tests carried out in WISEflow and Moodle.
+ * (developed for UAb - Universidade Aberta)
+ *
+ * @package    wiser.Py
+ * @category   app
+ * @author     Bruno Tavares <brunustavares@gmail.com>
+ * @link       https://www.linkedin.com/in/brunomastavares/
+ * @copyright  Copyright (C) 2024-present Bruno Tavares
+ * @license    GNU General Public License v3 or later
+ *             https://www.gnu.org/licenses/gpl-3.0.html
+ * @version    2025111411
+ * @date       2025-11-14
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+-->
+
+{% extends "layout.html" %}
+
+{% block title %}
+    Sentinel_F: monitorização
+{% endblock %}
+
+{% block main %}
+    <div class="navigation">
+        <a href="{{ url_for('sentinel_f') }}">
+            <svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+                <path d="M9.4 278.6c-12.5-12.5-12.5-32.8 0-45.3l128-128c9.2-9.2 22.9-11.9 34.9-6.9s19.8 16.6 19.8 29.6l0 256c0 12.9-7.8 24.6-19.8 29.6s-25.7 2.2-34.9-6.9l-128-128z"/>
+            </svg>
+        </a>
+
+        <a href="{{ url_for('menu') }}">
+            <svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+                <path d="M575.8 255.5c0 18-15 32.1-32 32.1h-32l.7 160.2c0 2.7-.2 5.4-.5 8.1V472c0 22.1-17.9 40-40 40H456c-1.1 0-2.2 0-3.3-.1c-1.4 .1-2.8 .1-4.2 .1H416 392c-22.1 0-40-17.9-40-40V448 384c0-17.7-14.3-32-32-32H256c-17.7 0-32 14.3-32 32v64 24c0 22.1-17.9 40-40 40H160 128.1c-1.5 0-3-.1-4.5-.2c-1.2 .1-2.4 .2-3.6 .2H104c-22.1 0-40-17.9-40-40V360c0-.9 0-1.9 .1-2.8V287.6H32c-18 0-32-14-32-32.1c0-9 3-17 10-24L266.4 8c7-7 15-8 22-8s15 2 21 7L564.8 231.5c8 7 12 15 11 24z"/>
+            </svg>
+        </a>
+        
+    </div>
+
+    <h2>
+        Sentinel_F: monitorização
+    </h2>
+
+    <form action="/sentinelf_events_2check" id="events_2check" method="post" onsubmit="showModal()">
+        <table class="events-menu-table">
+            <tr>
+                <td>
+                    <div class="mb-3">
+                        <input autocomplete="off" class="form-control mx-auto w-auto input-field" id="evt_type" name="evt_type" placeholder="Tipo de evento" type="text">
+                    </div>
+
+                    <div class="mb-3">
+                        <input autocomplete="off" class="form-control mx-auto w-auto input-field" id="payload" name="payload" placeholder="Payload" type="text">
+                    </div>
+
+                    <button class="btn btn-primary nav-button" type="submit" id="new" name="new">Registar novo evento</button>
+                </td>
+            </tr>
+        </table>
+
+        <hr>
+
+        <div class="table-responsive">
+            <script type="text/javascript">
+                set_loaded("unloaded")
+            </script>
+
+            <table class="table table-striped table-hover sentinelf_main_table" id="sentinelf_main_table">
+                <thead class="table-primary results-table-header">
+                    <tr>
+                        <th>type</th>
+                        <th>payload</th>
+                        <th>report</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for row in event_types %}
+                        <tr>
+                            <td class="sentinelf_main_table-type" ><input class="sentinelf_main_table-input" type="text" id="type{{ row[0] }}" name="type{{ row[0] }}" value="{{ row[1] }}"></td>
+                            
+                            <td class="sentinelf_main_table-payload" ><input class="sentinelf_main_table-input" type="text" id="payload{{ row[0] }}" name="payload{{ row[0] }}" {% if row[2] != None %} value="{{ row[2] }}" {% else %} value="" {% endif %}></td>
+
+                            <td><input type="checkbox" id="report{{ row[0] }}" name="report{{ row[0] }}"
+                                {% if row[3] == 1 %} checked {% endif %}>
+                            </td>
+
+                            <td>
+                                <button type="button" class="event-delete-button" data-toggle="modal" data-target="#go_conf" onclick="send_event_info('{{ row[1] }}')">
+                                    <svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. -->
+                                        <path d="M170.5 51.6L151.5 80h145l-19-28.4c-1.5-2.2-4-3.6-6.7-3.6H177.1c-2.7 0-5.2 1.3-6.7 3.6zm147-26.6L354.2 80H368h48 8c13.3 0 24 10.7 24 24s-10.7 24-24 24h-8V432c0 44.2-35.8 80-80 80H112c-44.2 0-80-35.8-80-80V128H24c-13.3 0-24-10.7-24-24S10.7 80 24 80h8H80 93.8l36.7-55.1C140.9 9.4 158.4 0 177.1 0h93.7c18.7 0 36.2 9.4 46.6 24.9zM80 128V432c0 17.7 14.3 32 32 32H336c17.7 0 32-14.3 32-32V128H80zm80 64V400c0 8.8-7.2 16-16 16s-16-7.2-16-16V192c0-8.8 7.2-16 16-16s16 7.2 16 16zm80 0V400c0 8.8-7.2 16-16 16s-16-7.2-16-16V192c0-8.8 7.2-16 16-16s16 7.2 16 16zm80 0V400c0 8.8-7.2 16-16 16s-16-7.2-16-16V192c0-8.8 7.2-16 16-16s16 7.2 16 16z" />
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <button class="btn btn-primary" type="submit" id="save" name="save">Gravar</button>
+                
+        </div>
+
+        <!-- modal para confirmação de eliminação -->
+        <div class="modal fade" id="go_conf" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                        <h4 class="modal-title">Confirmação</h4>
+                    </div>
+
+                    <div class="modal-body">
+                        <p id="event"></p>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" type="submit" id="go" name="del">Sim</button>
+                        <button class="btn btn-secondary" type="button" data-dismiss="modal">Não</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+{% endblock %}

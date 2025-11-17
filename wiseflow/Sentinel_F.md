@@ -106,12 +106,6 @@ The script acts as a bridge between the WISEflow API and a local database, addin
 
 - **Configuration-driven**: The recipients of alerts and reports are managed via the `sentinelf_settings` table, allowing for easy updates without modifying the script's code.
 
-## Future Development (TODOs)
-
-The script's source code includes comments for future enhancements:
-
-1.  **Web-based Management Interface**: A management area (suggested to be in `wiser.Py`) to provide a user-friendly way to manage event types (e.g., toggling the `report` flag) and email recipients.
-
 ## Licenses
 
 **Author**: Bruno Tavares  
