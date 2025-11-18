@@ -65,6 +65,11 @@ The application orchestrates several PHP scripts to perform detailed synchroniza
     *   Purge all participants from a specific flow, for example, in case of a cancellation or major error.
 *   **Grade Sync Reset (SOS Module)**: Manually reset the synchronization status of grades for specific courses and students, forcing a new sync attempt to the SiGES academic system.
 *   **Biometric Data Management**: View and manage student reference photos used for biometric identity verification in WISEflow.
+*   **Event Monitoring (Sentinel_F Module)**:
+    *   Configure and manage specific WISEflow participation event types to monitor (e.g., `FACIAL_RECOGNITION`, `PAPER_HANDED_IN`).
+    *   View logs of monitored events for specific dates, showing the flow, student, and event details.
+    *   Manage settings for the Sentinel_F module, including recipient mailboxes for notifications.
+    *   This feature appears to be for administrators to closely track critical events within assessment flows.
 *   **Email Notifications**:
     *   Configure SMTP server settings for sending automated emails.
     *   Manage email templates for various notifications (e.g., assessment cancellations, warnings).
