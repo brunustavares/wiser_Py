@@ -1767,6 +1767,8 @@ def sentinelf_events_2check():
 
         # definição das configurações do evento
         else:
+            i = 0
+
             for row in session["result"]:
                 row_id = row[0]
                 evt_type = request.form.get(f"type{row_id}")
@@ -1782,7 +1784,9 @@ def sentinelf_events_2check():
                                          (evt_type, payload, report, row_id, ))
                     wf_db.commit()
 
-            if wf_db_cursor.rowcount > 0:
+                    i += wf_db_cursor.rowcount
+
+            if i > 0:
                 write_activity_log("update", "Sentinel_F events", None, session["user_id"], session["T_usage"])
 
             clean_results()
@@ -2238,6 +2242,7 @@ def sos():
                           )
 
 
+# TODO: criar módulo para desbloqueio unitário no SiGES
 # módulo reset sync BDInt->SiGES
 @app.route("/reset_sync", methods=["GET", "POST"])
 @login_required
