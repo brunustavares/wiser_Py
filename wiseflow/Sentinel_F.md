@@ -18,6 +18,8 @@ It was originally developed for [Universidade Aberta (UAb)](https://portal.uab.p
 - **Administrative Alerts**: Sends email notifications to administrators when new event types are discovered, allowing for their review and classification.
 - **Relevant Event Reporting**: Identifies and reports on specific, pre-defined "relevant" events to management, providing timely alerts on critical student activities.
 - **Daily Summaries**: Generates and emails a daily summary report of all relevant events detected.
+- **Typing Speed Anomaly Detection**: Monitors `CHARACTERS_TYPED` events to identify sudden, unusual increases in typing speed, which could indicate suspicious activity.
+- **Prolonged Inactivity Detection**: Detects and reports instances where students exhibit prolonged periods of inactivity during a flow, based on event timestamps.
 - **Database Maintenance**: Automatically purges event data older than one year to keep the database size manageable.
 
 ## Dependencies
@@ -25,9 +27,10 @@ It was originally developed for [Universidade Aberta (UAb)](https://portal.uab.p
 - **`auth_lib_bdint.php`**: This file is crucial as it contains all the necessary configurations for:
     - Database connections (`connect2bdint`).
     - WISEflow API credentials and token management functions (`getwftoken`, `encrypt_token`, `decrypt_token`).
-    - PHPMailer library and email server (SMTP) settings.
+    - PHPMailer library and email server (SMTP) settings, including the sender email (`Sentinel_F@uab.pt`).
 - **PHP**: A PHP environment with the `mysqli` and `curl` extensions enabled.
 - **Database**: A MySQL or MariaDB database with the `wiseflow` schema as referenced in the queries.
+    - Ensure the `wiseflow` database and its tables (`sentinelf_settings`, `flows`, `sentinelf_events`, `sentinelf_event_types`, `students`) exist and are accessible.
 
 ## Database Schema
 
@@ -35,7 +38,7 @@ The script relies on several tables within the `wiseflow` database schema:
 
 - `sentinelf_settings`: Stores configuration values for the script's operation, such as administrator email, management email lists (`manageTO`, `manageCC`), and the timestamp of the last execution (`lastrun`).
 - `flows`: Contains information about the WISEflow flows, including their IDs, start times (`dtfrom`), and end times (`dtto`).
-- `sentinelf_events`: The main table where all fetched student participation events are logged. It includes the flow ID, student ID, timestamp, event type, and the full JSON payload of the event.
+- `sentinelf_events`: The main table where all fetched student participation events are logged. It includes the flow ID, student ID, timestamp, event type, the full JSON payload of the event, and a `report` column to track if an event has been reported.
 - `sentinelf_event_types`: Acts as a catalogue for event types. It determines whether an event type should be included in management reports (`report` column).
 - `students`: A table mapping WISEflow student IDs (`stdid`) to their student numbers (`std_num`).
 
@@ -86,6 +89,7 @@ php sentinel_f.php -m report
 **Workflow:**
 
 1.  **Fetch Daily Reported Events**: The script queries the `wiseflow.sentinelf_events` table for all events that were marked for reporting on the current date.
+    - It also queries for flows that ended today but had no participation (`dtass IS NULL`).
 2.  **Generate Summary**: It groups the events by `type` and counts the occurrences of each.
 3.  **Send Report**: If any events were found, it constructs an HTML email with a summary table (Event Type and Count) and sends it to the report recipients defined in the `reportTO` setting.
 4.  **Purge Old Data**: Finally, it deletes all records from `sentinelf_events` that are older than 365 days.
@@ -95,6 +99,8 @@ php sentinel_f.php -m report
 The script acts as a bridge between the WISEflow API and a local database, adding a layer of business logic for monitoring and alerting.
 
 - **Stateless Authentication**: The API token is stored on the filesystem (`auth.tkn`), allowing different script executions to share the same session, minimizing the number of authentication requests. The token is encrypted for security.
+
+- **Dynamic Event Analysis**: The script includes specific SQL logic to detect complex patterns like sudden typing speed increases and prolonged inactivity, which are crucial for monitoring student engagement and potential issues.
 
 - **Incremental Fetching**: By storing a `lastrun` timestamp, the script avoids re-processing the entire event history for a flow on every run. This makes the monitoring process efficient and scalable.
 
