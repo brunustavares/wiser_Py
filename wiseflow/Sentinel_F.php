@@ -876,13 +876,15 @@ if (!empty($mode)
                             . $slctqry);
 
         // fluxos sem participação
-        $slctqry = "SELECT flw.subtitle,
-                           'sem participação' AS status
+        $slctqry = "SELECT flw.flowid,
+                           flw.subtitle,
+                           flw.title
                     FROM wiseflow.flows flw
                         INNER JOIN wiseflow.flows_assess flwass ON flwass.flowid = flw.flowid
-                    WHERE DATE(dtfrom) = DATE(NOW())
-                        AND dtto < NOW()
+                    WHERE dtfrom >= CURDATE()
+                        AND dtto < CURDATE() + INTERVAL 1 DAY
                         AND dtass IS NULL
+                    GROUP BY flowid
                     ORDER BY subtitle;";
 
         $empty = mysqli_query($conBDInt, $slctqry)
@@ -897,27 +899,27 @@ if (!empty($mode)
             $html_table .= "<table border='1' cellspacing='0' cellpadding='6' style='border-collapse: collapse; font-family: Arial, sans-serif;'>";
 
             $events = [];
-            $break = "";
 
             if (mysqli_num_rows($report) > 0) {
                 $events = mysqli_fetch_all($report, MYSQLI_ASSOC);
 
                 $html_table .= "<thead style='background-color:#f0f0f0;'>
                                     <tr>
-                                        <th>type</th>
-                                        <th>N</th>
+                                        <th colspan='2'>eventos reportados</th>
+                                    </tr>
+                                    <tr>
+                                        <th>tipo</th>
+                                        <th>número de ocorrências</th>
                                     </tr>
                                 </thead><tbody>";
 
                 foreach ($events as $event) {
                     $html_table .= "<tr>";
                     $html_table .= "<td>" . htmlspecialchars($event['type']) . "</td>";
-                    $html_table .= "<td>" . htmlspecialchars($event['N']) . "</td>";
+                    $html_table .= "<td style='text-align:center;'>" . htmlspecialchars($event['N']) . "</td>";
                     $html_table .= "</tr>";
 
                 }
-
-                $break = "<br><hr><br>";
 
             }
             
@@ -926,18 +928,24 @@ if (!empty($mode)
             if (mysqli_num_rows($empty) > 0) {
                 $events = mysqli_fetch_all($empty, MYSQLI_ASSOC);
 
-                $html_table .= $break
-                             . "<thead style='background-color:#f0f0f0;'>
+                $html_table .= "<thead style='background-color:#f0f0f0;'>
                                     <tr>
-                                        <th>flow</th>
-                                        <th>status</th>
+                                        <th colspan='2'>fluxos S/ participação</th>
+                                    </tr>
+                                    <tr>
+                                        <th>subtítulo</th>
+                                        <th>título</th>
                                     </tr>
                                 </thead><tbody>";
 
                 foreach ($events as $event) {
                     $html_table .= "<tr>";
-                    $html_table .= "<td>" . htmlspecialchars($event['subtitle']) . "</td>";
-                    $html_table .= "<td>" . htmlspecialchars($event['status']) . "</td>";
+                    $html_table .= "<td><a href='https://europe.wiseflow.net/manager/display.php?id="
+                                               . htmlspecialchars($event['flowid']) . "'>"
+                                               . htmlspecialchars($event['subtitle']) . "</a></td>";
+                    $html_table .= "<td><a href='https://europe.wiseflow.net/manager/display.php?id="
+                                               . htmlspecialchars($event['flowid']) . "'>"
+                                               . htmlspecialchars($event['title']) . "</a></td>";
                     $html_table .= "</tr>";
 
                 }
@@ -951,7 +959,7 @@ if (!empty($mode)
                 
             }
 
-            $email->Subject = date("Y/M_d") . ': eventos relevantes detectados';
+            $email->Subject = date("Y/M_d") . ': eventos relevantes';
 
             $email->Body = '<div style="font-family: Arial, sans-serif; color: #222;">
                                 <div style="display:flex; align-items:center; gap:12px;">

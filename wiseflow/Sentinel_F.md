@@ -17,9 +17,9 @@ It was originally developed for [Universidade Aberta (UAb)](https://portal.uab.p
 - **New Event Discovery**: Automatically detects and catalogues new, previously unseen event types from the API.
 - **Administrative Alerts**: Sends email notifications to administrators when new event types are discovered, allowing for their review and classification.
 - **Relevant Event Reporting**: Identifies and reports on specific, pre-defined "relevant" events to management, providing timely alerts on critical student activities.
-- **Daily Summaries**: Generates and emails a daily summary report of all relevant events detected.
 - **Typing Speed Anomaly Detection**: Monitors `CHARACTERS_TYPED` events to identify sudden, unusual increases in typing speed, which could indicate suspicious activity.
 - **Prolonged Inactivity Detection**: Detects and reports instances where students exhibit prolonged periods of inactivity during a flow, based on event timestamps.
+- **Daily Summaries**: Generates and emails a daily summary report of all relevant events detected.
 - **Database Maintenance**: Automatically purges event data older than one year to keep the database size manageable.
 
 ## Dependencies
