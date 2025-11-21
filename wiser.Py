@@ -1805,12 +1805,75 @@ def sentinelf_events_2check():
     return render_template(SENTINELF_EVENTS_TPLT, is_admin=is_admin(session["user_id"]), event_types=session["result"])
 
 
-# log Sentinel_F
+# reports log Sentinel_F
+@app.route("/sentinelf_reported", methods=["GET", "POST"])
+@login_required
+def sentinelf_reported():
+    session["T_usage"] += (int(datetime.datetime.now().timestamp() - session["time"]))
+    session["time"] = int(datetime.datetime.now().timestamp())
+    info = "reported"
+
+    # caso seja obrigatória a alteração da password, redireccionar para a página de alteração
+    if set_pwd(session["user_id"]):
+        return redirect("/change_pwd")
+
+    # caso o utilizador não tenha privilégios de admin, redireccionar para a página principal
+    if is_admin(session["user_id"]) is None:
+        return redirect("/")
+
+    # se o utilizador chegar ao formulário via POST
+    if request.method == "POST":
+        date = None
+        if request.form.get("date") != '':
+            date = request.form.get("date")
+            start = date + " 00:00:00"
+            end = date + " 23:59:59"
+            criteria = "WHERE timestamp BETWEEN '"   + start + "' AND '" + end + "'"
+            key = "data: " + date
+
+        else:
+            criteria = ""
+            key = "data: todas"
+
+        query = "SELECT flw.subtitle, \
+                        flw.flowid, \
+                        std.std_num, \
+                        evts.timestamp, \
+                        evts.type, \
+                        evts.payload, \
+                        evts.report \
+                 FROM wiseflow.sentinelf_reported evts \
+                     INNER JOIN wiseflow.flows flw ON flw.flowid = evts.flowid \
+                     INNER JOIN wiseflow.students std ON std.stdid = evts.stdid " \
+               + criteria + " \
+                 ORDER BY evts.timestamp ASC;"
+
+        wf_db = connect_db()
+        wf_db_cursor = wf_db.cursor()
+
+        wf_db_cursor.execute(query)
+        result = wf_db_cursor.fetchall()
+
+        wf_db_cursor.close()
+        wf_db.close()
+
+        write_activity_log("list", "Sentinel_F reported", key, session["user_id"], session["T_usage"])
+
+        return render_template(SENTINELF_LOG_TPLT, is_admin=is_admin(session["user_id"]), info=info, log=result, key=key)
+
+    # caso contrário, redireccionar para a página de selecção
+    write_activity_log("list", "Sentinel_F reported", None, session["user_id"], session["T_usage"])
+
+    return render_template(SENTINELF_LOG_TPLT, is_admin=is_admin(session["user_id"]), info=info, search="True")
+
+
+# full log Sentinel_F
 @app.route("/sentinelf_log", methods=["GET", "POST"])
 @login_required
 def sentinelf_log():
     session["T_usage"] += (int(datetime.datetime.now().timestamp() - session["time"]))
     session["time"] = int(datetime.datetime.now().timestamp())
+    info = "full"
 
     # caso seja obrigatória a alteração da password, redireccionar para a página de alteração
     if set_pwd(session["user_id"]):
@@ -1832,22 +1895,23 @@ def sentinelf_log():
         else:
             return error_msg("data necessária", 400, '/sentinelf_log')
 
+        query = "SELECT flw.subtitle, \
+                        flw.flowid, \
+                        std.std_num, \
+                        evts.timestamp, \
+                        evts.type, \
+                        evts.payload, \
+                        evts.report \
+                 FROM wiseflow.sentinelf_events evts \
+                     INNER JOIN wiseflow.flows flw ON flw.flowid = evts.flowid \
+                     INNER JOIN wiseflow.students std ON std.stdid = evts.stdid \
+                 WHERE timestamp BETWEEN '"   + start + "' AND '" + end + "' \
+                 ORDER BY evts.timestamp ASC;"
+
         wf_db = connect_db()
         wf_db_cursor = wf_db.cursor()
 
-        wf_db_cursor.execute("SELECT flw.subtitle, \
-                                     flw.flowid, \
-                                     std.std_num, \
-                                     evts.timestamp, \
-                                     evts.type, \
-                                     evts.payload, \
-                                     evts.report \
-                              FROM wiseflow.sentinelf_events evts \
-                                  INNER JOIN wiseflow.flows flw ON flw.flowid = evts.flowid \
-                                  INNER JOIN wiseflow.students std ON std.stdid = evts.stdid \
-                              WHERE timestamp BETWEEN %s AND %s \
-                              ORDER BY evts.timestamp;",
-                             (start, end))
+        wf_db_cursor.execute(query)
         result = wf_db_cursor.fetchall()
 
         wf_db_cursor.close()
@@ -1855,12 +1919,12 @@ def sentinelf_log():
 
         write_activity_log("list", "Sentinel_F log", key, session["user_id"], session["T_usage"])
 
-        return render_template(SENTINELF_LOG_TPLT, is_admin=is_admin(session["user_id"]), log=result, key=key)
+        return render_template(SENTINELF_LOG_TPLT, is_admin=is_admin(session["user_id"]), info=info, log=result, key=key)
 
     # caso contrário, redireccionar para a página de selecção
     write_activity_log("list", "Sentinel_F log", None, session["user_id"], session["T_usage"])
 
-    return render_template(SENTINELF_LOG_TPLT, is_admin=is_admin(session["user_id"]), search="True")
+    return render_template(SENTINELF_LOG_TPLT, is_admin=is_admin(session["user_id"]), info=info, search="True")
 
 
 # menu de configurações Sentinel_F

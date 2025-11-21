@@ -132,6 +132,33 @@ function checkwftoken($start_time) {
 
 }
 
+/**
+ * Valida formato JSON do payload e escapa se necessário
+ *
+ * @return string payload formatado
+ */
+function normalizeJsonString($payload) {
+    $payload = trim($payload);
+
+    if ((substr($payload, 0, 1) === '"' && substr($payload, -1) === '"') ||
+        (substr($payload, 0, 1) === "'" && substr($payload, -1) === "'")) {
+        $payload = substr($payload, 1, -1);
+
+    }
+
+    $temp = str_replace('\\"', '"', $payload);
+    $decoded = json_decode($temp, true);
+
+    if ($decoded === null) { return null; }
+
+    $encoded = json_encode($decoded, JSON_UNESCAPED_SLASHES);
+
+    $escaped = addslashes($encoded);
+
+    return '"' . $escaped . '"';
+
+}
+
 $mode = getopt("m:", ["mode:"]);
 
 if (!empty($mode)
@@ -449,7 +476,7 @@ if (!empty($mode)
 
                     $html_table .= "</tbody></table>";
 
-                    $isrtqry = "INSERT INTO wiseflow.sentinelf_event_types(type, payload, report)
+                    $isrtqry = "INSERT IGNORE INTO wiseflow.sentinelf_event_types(type, payload, report)
                                 SELECT evts.type, evts.payload, '1'
                                 FROM wiseflow.sentinelf_tmp evts
                                     LEFT JOIN wiseflow.sentinelf_event_types evt_tp ON evt_tp.type = evts.type
@@ -760,8 +787,23 @@ if (!empty($mode)
                     $html_table .= "<td>" . htmlspecialchars($event['stdid']) . "</td>";
                     $html_table .= "<td>" . htmlspecialchars($event['timestamp']) . "</td>";
                     $html_table .= "<td>" . htmlspecialchars($event['type']) . "</td>";
-                    $html_table .= "<td><pre style='margin:0;'>" . htmlspecialchars($event['payload']) . "</pre></td>";
+                    $html_table .= "<td><pre style='margin:0;'>" . htmlspecialchars(normalizeJsonString($event['payload'])) . "</pre></td>";
                     $html_table .= "</tr>";
+
+                    $isrtqry = "INSERT INTO wiseflow.sentinelf_reported(flowid, stdid, timestamp, type, payload, report)
+                                VALUES (
+                                        " . intval($event['flowid']) . ",
+                                        " . intval($event['stdid']) . ",
+                                        '" . mysqli_real_escape_string($conBDInt, $event['timestamp']) . "',
+                                        '" . mysqli_real_escape_string($conBDInt, $event['type']) . "',
+                                        '" . mysqli_real_escape_string($conBDInt, normalizeJsonString($event['payload'])) . "',
+                                        0
+                                       );";
+
+                    mysqli_query($conBDInt, $isrtqry)
+                        or die("Ñ foi possível actualizar a tabela 'wiseflow.sentinelf_reported': " . mysqli_error($conBDInt)
+                              . $nl . $nl
+                              . $isrtqry);
 
                     $set_alert = "UPDATE wiseflow.sentinelf_tmp
                                   SET report = 0
@@ -774,6 +816,8 @@ if (!empty($mode)
                         or die("Ñ foi possível actualizar as tabelas 'wiseflow.sentinelf_tmp' e/ou 'wiseflow.sentinelf_events': " . mysqli_error($conBDInt)
                               . $nl . $nl
                               . $set_alert);
+
+                    while (mysqli_more_results($conBDInt) && mysqli_next_result($conBDInt)) {;}
 
                 }
 
@@ -807,15 +851,21 @@ if (!empty($mode)
                 printf("Notificação de gestão enviada" . $nl);
 
                 // registar hora da notificação no evento
-                $set_alert = "UPDATE wiseflow.sentinelf_events
+                $set_alert = "UPDATE wiseflow.sentinelf_reported
+                              SET report = NOW()
+                              WHERE report IS NOT NULL
+                                  AND report = 0;
+                              UPDATE wiseflow.sentinelf_events
                               SET report = NOW()
                               WHERE report IS NOT NULL
                                   AND report = 0;";
 
-                mysqli_query($conBDInt, $set_alert)
-                    or die("Ñ foi possível actualizar a tabela 'wiseflow.sentinelf_events': " . mysqli_error($conBDInt)
+                mysqli_multi_query($conBDInt, $set_alert)
+                    or die("Ñ foi possível actualizar a tabela 'wiseflow.sentinelf_reported' e/ou 'wiseflow.sentinelf_events': " . mysqli_error($conBDInt)
                           . $nl . $nl
                           . $set_alert);
+
+                while (mysqli_more_results($conBDInt) && mysqli_next_result($conBDInt)) {;}
 
                 unset($events);
 
@@ -841,6 +891,8 @@ if (!empty($mode)
                 or die("Ñ foi possível eliminar a tabela 'wiseflow.sentinelf_tmp': " . mysqli_error($conBDInt)
                       . $nl . $nl
                       . $drop_tmp_table);
+
+            while (mysqli_more_results($conBDInt) && mysqli_next_result($conBDInt)) {;}
 
             printf("Sem flows em realização" . $nl);
 

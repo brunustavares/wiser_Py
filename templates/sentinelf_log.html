@@ -33,7 +33,13 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    Sentinel_F: log
+    {% if info == "full" %}
+        Sentinel_F: log
+
+    {% elif info == "reported" %}
+        Sentinel_F: reported
+
+    {% endif %}
 {% endblock %}
 
 {% block main %}
@@ -52,10 +58,23 @@
     </div>
 
     <h2>
-        Sentinel_F: log
+        {% if info == "full" %}
+            Sentinel_F: log
+
+        {% elif info == "reported" %}
+            Sentinel_F: reported
+
+        {% endif %}
     </h2>
 
-    <form action="/sentinelf_log" id="full_report" method="post" onsubmit="showModal()">
+    <form {% if info == "full" %}
+              action="/sentinelf_log"
+
+          {% elif info == "reported" %}
+              action="/sentinelf_reported"
+
+          {% endif %} id="full_report" method="post" onsubmit="showModal()">
+          
         <div class="mb-3">
             <input class="date-picker" type="date" id="date" name="date" value="">
         </div>
