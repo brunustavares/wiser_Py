@@ -933,11 +933,14 @@ if (!empty($mode)
                            flw.title
                     FROM wiseflow.flows flw
                         INNER JOIN wiseflow.flows_assess flwass ON flwass.flowid = flw.flowid
-                    WHERE dtfrom >= CURDATE()
-                        AND dtto < CURDATE() + INTERVAL 1 DAY
-                        AND dtass IS NULL
-                    GROUP BY flowid
-                    ORDER BY subtitle;";
+                            AND (flw.dtfrom >= CURDATE()
+                                AND flw.dtto < CURDATE() + INTERVAL 1 DAY)
+                    GROUP BY flw.flowid , flw.subtitle , flw.title
+                    HAVING SUM(CASE
+                                    WHEN flwass.dtass IS NOT NULL THEN 1
+                                    ELSE 0
+                               END) = 0
+                    ORDER BY flw.subtitle;";
 
         $empty = mysqli_query($conBDInt, $slctqry)
                      or die("Ñ foi possível consultar a tabela 'wiseflow.flows_assess': " . mysqli_error($conBDInt)

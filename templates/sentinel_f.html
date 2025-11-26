@@ -60,13 +60,15 @@
             <table class="table  table-striped table-hover table-borderless menu-table">
                 <tbody class="table-primary menu-table-body">
                     <tr class="menu-table-body">
-                        <th>
-                            <a class="nav-link" href="{{ url_for('sentinelf_events_2check') }}">
-                                <img src="static/img/events_2check.jpg" class="menu-button" alt="eventos a monitorizar">
-                                <br><br>
-                                <label class="menu-label">eventos a monitorizar</label>
-                            </a>
-                        </th>
+                        {% if admin %}
+                            <th>
+                                <a class="nav-link" href="{{ url_for('sentinelf_events_2check') }}">
+                                    <img src="static/img/events_2check.jpg" class="menu-button" alt="eventos a monitorizar">
+                                    <br><br>
+                                    <label class="menu-label">eventos a monitorizar</label>
+                                </a>
+                            </th>
+                        {% endif %}
 
                         <th>
                             <a class="nav-link" href="{{ url_for('sentinelf_reported') }}">
@@ -84,13 +86,15 @@
                             </a>
                         </th>
 
-                        <th>
-                            <a class="nav-link" href="{{ url_for('sentinelf_settings') }}">
-                                <img src="static/img/settings.jpg" class="menu-button" alt="configuração">
-                                <br><br>
-                                <label class="menu-label">configuração</label>
-                            </a>
-                        </th>
+                        {% if admin %}
+                            <th>
+                                <a class="nav-link" href="{{ url_for('sentinelf_settings') }}">
+                                    <img src="static/img/settings.jpg" class="menu-button" alt="configuração">
+                                    <br><br>
+                                    <label class="menu-label">configuração</label>
+                                </a>
+                            </th>
+                        {% endif %}
                     </tr>
                 </tbody>
             </table>

@@ -1686,14 +1686,16 @@ def sentinel_f():
     if set_pwd(session["user_id"]):
         return redirect("/change_pwd")
 
-    # caso o utilizador não tenha privilégios de admin, redireccionar para a página principal
-    if is_admin(session["user_id"]) is None:
+    # caso o utilizador não tenha privilégios de SOSusr ou de admin, redireccionar para a página principal
+    if is_sosusr(session["user_id"]) is None and is_admin(session["user_id"]) is None:
         return redirect("/")
 
     write_activity_log("list", "Sentinel_F menu", None, session["user_id"], session["T_usage"])
 
     # caso contrário, redireccionar para a página de selecção
-    return render_template(SENTINEL_F_TPLT, is_admin=is_admin(session["user_id"]))
+    return render_template(SENTINEL_F_TPLT,
+                           admin=is_admin(session["user_id"]),
+                           sosusr=is_sosusr(session["user_id"]))
 
 
 # menu de eventos Sentinel_F
@@ -1805,6 +1807,7 @@ def sentinelf_events_2check():
     return render_template(SENTINELF_EVENTS_TPLT, is_admin=is_admin(session["user_id"]), event_types=session["result"])
 
 
+# TODO: criar histórico c/ gráfico
 # reports log Sentinel_F
 @app.route("/sentinelf_reported", methods=["GET", "POST"])
 @login_required
@@ -1817,8 +1820,8 @@ def sentinelf_reported():
     if set_pwd(session["user_id"]):
         return redirect("/change_pwd")
 
-    # caso o utilizador não tenha privilégios de admin, redireccionar para a página principal
-    if is_admin(session["user_id"]) is None:
+    # caso o utilizador não tenha privilégios de SOSusr ou de admin, redireccionar para a página principal
+    if is_sosusr(session["user_id"]) is None and is_admin(session["user_id"]) is None:
         return redirect("/")
 
     # se o utilizador chegar ao formulário via POST
@@ -1879,8 +1882,8 @@ def sentinelf_log():
     if set_pwd(session["user_id"]):
         return redirect("/change_pwd")
 
-    # caso o utilizador não tenha privilégios de admin, redireccionar para a página principal
-    if is_admin(session["user_id"]) is None:
+    # caso o utilizador não tenha privilégios de SOSusr ou de admin, redireccionar para a página principal
+    if is_sosusr(session["user_id"]) is None and is_admin(session["user_id"]) is None:
         return redirect("/")
 
     # se o utilizador chegar ao formulário via POST
