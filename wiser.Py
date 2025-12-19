@@ -3782,10 +3782,13 @@ def aida():
                 or request.form.get("endpoint") == "estudantes_UC_actividade" \
                 or request.form.get("endpoint") == "estudantes_UC_escolha" \
                 or request.form.get("endpoint") == "estudantes_WF_escolha" \
+                or request.form.get("endpoint") == "folio_historico_data" \
                 or request.form.get("endpoint") == "ucs_flows_tipo":
-                if request.form.get("endpoint") == "estudantes_folios":
-                    # if request.form.get("lista_stds").strip() == "":
-                    #     return error_msg("lista de estudantes necessária", 400, '/aida')
+                if request.form.get("endpoint") == "estudantes_folios" \
+                    or request.form.get("endpoint") == "folio_historico_data":
+                    if request.form.get("endpoint") == "folio_historico_data":
+                        if request.form.get("lista_stds").strip() == "":
+                            return error_msg("lista de estudantes necessária", 400, '/aida')
 
                     if request.form.get("lista_ucs").strip() == "":
                         return error_msg("lista de UCs necessária", 400, '/aida')

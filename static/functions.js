@@ -520,7 +520,8 @@ document.addEventListener("DOMContentLoaded", function() {
             || this.value === "estudantes_UC_acesso"
             || this.value === "estudantes_UC_actividade"
             || this.value === "estudantes_UC_escolha"
-            || this.value === "estudantes_WF_escolha") {
+            || this.value === "estudantes_WF_escolha"
+            || this.value === "folio_historico_data") {
             show_param("div_students", true);
         } else {
             show_param("div_students", false);
@@ -530,21 +531,26 @@ document.addEventListener("DOMContentLoaded", function() {
             || this.value === "estudantes_UC_acesso"
             || this.value === "estudantes_UC_actividade"
             || this.value === "estudantes_UC_escolha"
+            || this.value === "folio_historico_data"
             || this.value === "ucs_flows_tipo") {
             show_param("div_courses", true);
         } else {
             show_param("div_courses", false);
         }
-        if (this.value === "estudantes_folios") {
-            // set_Mandatory_icon("icon_students", true);
-            // set_Mandatory_text("title_students", true)
+        if (this.value === "estudantes_folios"
+            || this.value === "folio_historico_data") {
             set_Mandatory_icon("icon_courses", true);
-            set_Mandatory_text("title_courses", true)
+            set_Mandatory_text("title_courses", true);
+            if (this.value === "folio_historico_data") {
+                set_Mandatory_icon("icon_students", true);
+                set_Mandatory_text("title_students", true);
+            } else {
+                set_Mandatory_icon("icon_students", false);
+                set_Mandatory_text("title_students", false);
+            }
         } else {
-            // set_Mandatory_icon("icon_students", false);
-            // set_Mandatory_text("title_students", false)
             set_Mandatory_icon("icon_courses", false);
-            set_Mandatory_text("title_courses", false)
+            set_Mandatory_text("title_courses", false);
         }
         if (this.value === "estudantes_NEEs") {
             show_param("div_NEE_status", true);
