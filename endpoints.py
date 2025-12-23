@@ -11,7 +11,7 @@
 # @copyright  Copyright (C) 2024-present Bruno Tavares
 # @license    GNU General Public License v3 or later
 #             https://www.gnu.org/licenses/gpl-3.0.html
-# @version    2025082111
+# @version    2025122308
 # @date       2024-02-20
 #
 # This program is free software: you can redistribute it and/or modify
@@ -35,7 +35,7 @@ php_exec = 'C:\php\php7\php.exe'
 py_exec  = 'C:\Program Files\Python311\python.exe'
 
 def call_endpoint(endpoint):
-    if endpoint == 'sync_stdts' or \
+    if endpoint == 'sync_users' or \
        endpoint == 'sync_flows' or \
        endpoint == 'sync_parts' or \
        endpoint == 'sync_stats':

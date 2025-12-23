@@ -1,16 +1,16 @@
 <?php
 /**
- * manages students in WISEflow
+ * manages users in WISEflow
  * (developed for UAb - Universidade Aberta)
  *
- * @package    sync_stdts
+ * @package    sync_users
  * @category   php_script
  * @author     Bruno Tavares <brunustavares@gmail.com>
  * @link       https://www.linkedin.com/in/brunomastavares/
  * @copyright  Copyright (C) 2022-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2023122002
+ * @version    2025122308
  * @date       2022-10-21
  *
  * This program is free software: you can redistribute it and/or modify
@@ -381,212 +381,142 @@ function checkwftoken($start_time) {
 
     }
 
-// // actualização de estudantes c/ NEEs
-//     $slctqry = "SELECT *
-//                 FROM wiseflow.students
-//                 WHERE xtrT IS NOT NULL
-//                 ORDER BY RAND()
-//                 LIMIT 100;";
+// levantamento de docentes a actualizar
+    $slctqry = "SELECT userid, username, email
+                FROM wiseflow.vw_teacher_2wiseflow
+                WHERE RIGHT(lectyear, 2) = CASE
+                                               WHEN MONTH(CURDATE()) < 10
+                                                   THEN RIGHT(YEAR(CURDATE()), 2)
+                                               ELSE RIGHT(YEAR(CURDATE()) + 1, 2)
+                                           END
+                    AND userid IS NOT NULL
+                GROUP BY username
+                ORDER BY username;";
 
-//     $stdtswnees = mysqli_query($conBDInt, $slctqry)
-//                       or die("Ñ foi possível consultar a tabela 'wiseflow.students': " . mysqli_error($conBDInt) . $nl);
+    $docs2updt = mysqli_query($conBDInt, $slctqry)
+                     or die("Ñ foi possível consultar a view 'wiseflow.vw_teacher_2wiseflow': " . mysqli_error($conBDInt) . $nl);
 
-//     if (mysqli_num_rows($stdtswnees) > 0) {
-//         $nees = 0;
+    if (mysqli_num_rows($docs2updt) > 0) {
+        // actualizar perfil dos docentes
+        while ($row = mysqli_fetch_array($docs2updt)) {
+            $httpcode = 0;
+            while ($httpcode <> 201) {
+                $userid     = $row['userid'];
+                // $username = $row['username'];
+                // $email  = $row['email'];
 
-//         while ($std = mysqli_fetch_array($stdtswnees)) {
-//             $stdid  = $std['stdid'];
-//             $xtrT   = $std['xtrT'] * 60;
-//             $status = $std['status'];
+                $url = $base_url . "users/" . $userid . "/roles";
 
-//             // obter lista de flows do estudante
-//             $slctqry = "SELECT *
-//                         FROM wiseflow.flows_assess AS flw_ass
-//                             INNER JOIN wiseflow.flows AS flw ON flw.flowid = flw_ass.flowid
-//                         WHERE flw_ass.stdid = '" . $stdid . "'
-//                             AND flw_ass.partid IS NOT NULL
-//                             AND flw.dtfrom >= NOW();";
+                $data = <<<DATA
+                               [
+                                {
+                                 "licenseRoleId": 5726
+                                },
+                                {
+                                 "licenseRoleId": 5727
+                                },
+                                {
+                                 "licenseRoleId": 5731
+                                },
+                                {
+                                 "licenseRoleId": 5732
+                                }
+                               ]
+                        DATA;
 
-//             $stdtflows = mysqli_query($conBDInt, $slctqry)
-//                 or die("Ñ foi possível consultar a tabela 'wiseflow.flows_assess': " . mysqli_error($conBDInt) . $nl);
+                $curlopt = array_replace($curlopt_base,
+                                         array(
+                                               CURLOPT_URL => $url,
+                                               CURLOPT_CUSTOMREQUEST => 'POST',
+                                               CURLOPT_POSTFIELDS => $data,
+                                              )
+                                        );
 
-//             if (mysqli_num_rows($stdtflows) > 0) {
-//                 // obter datas dos flows
-//                 while ($stdflw = mysqli_fetch_array($stdtflows)) {
-//                     $httpcode = 0;
-//                     while ($httpcode <> 200) {
-//                         $flowid = $stdflw['flowid'];
-//                         $partid = $stdflw['partid'];
+                $curl = curl_init();
 
-//                         $url = $base_url . "flows/" . $flowid . "/dates";
+                curl_setopt_array($curl, $curlopt);
 
-//                         $curlopt = array_replace($curlopt_base,
-//                                                  array(
-//                                                        CURLOPT_URL => $url,
-//                                                        CURLOPT_CUSTOMREQUEST => 'GET',
-//                                                       )
-//                                                 );
+                $response = curl_exec($curl);
+                // $errNo = curl_errno($curl);
+                // $err = curl_error($curl);
 
-//                         $curl = curl_init();
+                $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
-//                         curl_setopt_array($curl, $curlopt);
+            }
 
-//                         $response = curl_exec($curl);
-//                         // $errNo = curl_errno($curl);
-//                         // $err = curl_error($curl);
+            curl_close($curl);
+            unset($response);
 
-//                         $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        
-//                     }
-        
-//                     $glbflw_dates = json_decode($response, true);
+        }
 
-//                     curl_close($curl);
-//                     unset($response);
+        printf("Foram actualizados " . mysqli_num_rows($docs2updt) . " docentes no WISEflow" . $nl);
 
-//                     // obter datas específicas do estudante
-//                     $httpcode = 0;
-//                     while ($httpcode <> 200) {
-//                         $url = $base_url . "flows/" . $flowid . "/" . "participants" . "/" . $partid . "/dates";
+    }
 
-//                         $curlopt = array_replace($curlopt_base,
-//                                                  array(
-//                                                        CURLOPT_URL => $url,
-//                                                        CURLOPT_CUSTOMREQUEST => 'GET',
-//                                                       )
-//                                                 );
+// levantamento de tutores a actualizar
+    $slctqry = "SELECT userid, username, email
+                FROM wiseflow.vw_tutor_2wiseflow
+                WHERE RIGHT(lectyear, 2) = CASE
+                                               WHEN MONTH(CURDATE()) < 10
+                                                   THEN RIGHT(YEAR(CURDATE()), 2)
+                                               ELSE RIGHT(YEAR(CURDATE()) + 1, 2)
+                                           END
+                    AND userid IS NOT NULL
+                GROUP BY username
+                ORDER BY username;";
 
-//                         $curl = curl_init();
+    $tuts2updt = mysqli_query($conBDInt, $slctqry)
+                     or die("Ñ foi possível consultar a view 'wiseflow.vw_tutor_2wiseflow': " . mysqli_error($conBDInt) . $nl);
 
-//                         curl_setopt_array($curl, $curlopt);
+    if (mysqli_num_rows($tuts2updt) > 0) {
+        // actualizar perfil dos tutores
+        while ($row = mysqli_fetch_array($tuts2updt)) {
+            $httpcode = 0;
+            while ($httpcode <> 201) {
+                $userid     = $row['userid'];
+                // $username = $row['username'];
+                // $email  = $row['email'];
 
-//                         $response = curl_exec($curl);
-//                         // $errNo = curl_errno($curl);
-//                         // $err = curl_error($curl);
+                $url = $base_url . "users/" . $userid . "/roles";
 
-//                         $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        
-//                     }
-        
-//                     $stdflw_dates = json_decode($response, true);
+                $data = <<<DATA
+                               [
+                                {
+                                 "licenseRoleId": 5726
+                                },
+                                {
+                                 "licenseRoleId": 5727
+                                }
+                               ]
+                        DATA;
 
-//                     curl_close($curl);
-//                     unset($response);
+                $curlopt = array_replace($curlopt_base,
+                                         array(
+                                               CURLOPT_URL => $url,
+                                               CURLOPT_CUSTOMREQUEST => 'POST',
+                                               CURLOPT_POSTFIELDS => $data,
+                                              )
+                                        );
 
-//                     // validar e actualizar datas específicas para o estudante
-//                     if ($glbflw_dates['data']['participation']['end'] >= time()) {
-//                         $result['success'] = "false";
+                $curl = curl_init();
 
-//                         if ($status == 1
-//                             && $stdflw_dates['data']['participation']['end'] <> $glbflw_dates['data']['participation']['end'] + $xtrT) {
-//                             $httpcode = 0;
-//                             while ($httpcode <> 200) {
-//                                 $start = $glbflw_dates['data']['participation']['start'];
-//                                 $end = $glbflw_dates['data']['participation']['end'] + $xtrT;
+                curl_setopt_array($curl, $curlopt);
 
-//                                 $url = $base_url . "flows/" . $flowid . "/" . "participants" . "/" . $partid . "/dates";
+                $response = curl_exec($curl);
+                // $errNo = curl_errno($curl);
+                // $err = curl_error($curl);
 
-//                                 $data = <<<DATA
-//                                                {
-//                                                 "participation": {
-//                                                                   "start": $start,
-//                                                                   "end": $end
-//                                                                  }
-//                                                }
-//                                         DATA;
+                $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
-//                                 $curlopt = array_replace($curlopt_base,
-//                                                         array(
-//                                                               CURLOPT_URL => $url,
-//                                                               CURLOPT_CUSTOMREQUEST => 'PATCH',
-//                                                               CURLOPT_POSTFIELDS => $data,
-//                                                              )
-//                                                         );
+            }
 
-//                                 $curl = curl_init();
+            curl_close($curl);
+            unset($response);
 
-//                                 curl_setopt_array($curl, $curlopt);
+        }
 
-//                                 $response = curl_exec($curl);
-//                                 // $errNo = curl_errno($curl);
-//                                 // $err = curl_error($curl);
+        printf("Foram actualizados " . mysqli_num_rows($tuts2updt) . " tutores no WISEflow" . $nl);
 
-//                                 $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-                
-//                             }
-                
-//                             $result = json_decode($response, true);
-
-//                             curl_close($curl);
-//                             unset($response);
-
-//                         } elseif ($status == 0
-//                             && $xtrT > 0
-//                             && $stdflw_dates['data']['participation']['end'] == $glbflw_dates['data']['participation']['end'] + $xtrT) {
-//                             $httpcode = 0;
-//                             while ($httpcode <> 200) {
-//                                 $start = $glbflw_dates['data']['participation']['start'];
-//                                 $end = $glbflw_dates['data']['participation']['end'];
-
-//                                 $url = $base_url . "flows/" . $flowid . "/" . "participants" . "/" . $partid . "/dates";
-
-//                                 $data = <<<DATA
-//                                                {
-//                                                 "participation": {
-//                                                                   "start": $start,
-//                                                                   "end": $end
-//                                                                  }
-//                                                }
-//                                         DATA;
-
-//                                 $curlopt = array_replace($curlopt_base,
-//                                                          array(
-//                                                                CURLOPT_URL => $url,
-//                                                                CURLOPT_CUSTOMREQUEST => 'PATCH',
-//                                                                CURLOPT_POSTFIELDS => $data,
-//                                                               )
-//                                                         );
-
-//                                 $curl = curl_init();
-
-//                                 curl_setopt_array($curl, $curlopt);
-
-//                                 $response = curl_exec($curl);
-//                                 // $errNo = curl_errno($curl);
-//                                 // $err = curl_error($curl);
-
-//                                 $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-                
-//                             }
-                
-//                             $result = json_decode($response, true);
-
-//                             curl_close($curl);
-//                             unset($response);
-
-//                         }
-
-//                         if ($result['success'] == "true") { $nees++; }
-
-//                     }
-
-//                 }
-
-//             }
-
-//         }
-
-//         if ($nees > 0) {
-//             printf("Foram actualizados " . $nees . " estudantes c/ NEEs no WISEflow" . $nl);
-    
-//         } else {
-//             printf("Sem estudantes c/ NEEs p/ actualizar" . $nl);
-    
-//         }
-
-//     } else {
-//         printf("Sem estudantes c/ NEEs p/ actualizar" . $nl);
-
-//     }
+    }
 
 @mysqli_close($conBDInt);
