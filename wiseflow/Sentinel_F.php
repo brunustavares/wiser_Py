@@ -187,6 +187,20 @@ if (!empty($mode)
         // obtenção dos parâmetros transversais do curl
         $curlopt_base = set_curl_params(time());
 
+        $slctqry = "SELECT MAX(CASE WHEN setting = 'manageTO' THEN value END) AS manageTO,
+                           MAX(CASE WHEN setting = 'manageCC' THEN value END) AS manageCC
+                    FROM wiseflow.sentinelf_settings;";
+
+        $result = mysqli_query($conBDInt, $slctqry)
+                      or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_settings': " . mysqli_error($conBDInt)
+                            . $nl . $nl
+                            . $slctqry);
+
+        $manage = mysqli_fetch_assoc($result);
+
+        $manageTO = array_map('trim', explode(';', $manage['manageTO']));
+        $manageCC = array_map('trim', explode(';', $manage['manageCC']));
+
         // obtenção da lista de flows em realização
         $slctqry = "SELECT subtitle,
                            flowid,
@@ -216,20 +230,6 @@ if (!empty($mode)
                                 . $get_lastrun);
 
             $lastrun = (string)mysqli_fetch_assoc($result)['lastrun'];
-
-            $slctqry = "SELECT MAX(CASE WHEN setting = 'manageTO' THEN value END) AS manageTO,
-                               MAX(CASE WHEN setting = 'manageCC' THEN value END) AS manageCC
-                        FROM wiseflow.sentinelf_settings;";
-
-            $result = mysqli_query($conBDInt, $slctqry)
-                        or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_settings': " . mysqli_error($conBDInt)
-                              . $nl . $nl
-                              . $slctqry);
-
-            $manage = mysqli_fetch_assoc($result);
-
-            $manageTO = array_map('trim', explode(';', $manage['manageTO']));
-            $manageCC = array_map('trim', explode(';', $manage['manageCC']));
 
             printf("A ler " . $total . " flows..." . $nl);
 
@@ -502,9 +502,9 @@ if (!empty($mode)
 
                                         <hr>'
 
-                                    . $html_table .
+                                      . $html_table .
 
-                                    '</div>';
+                                   '</div>';
 
                     $email->send();
                 
@@ -823,15 +823,8 @@ if (!empty($mode)
 
                 $html_table .= "</tbody></table>";
 
-                foreach ($manageTO as $TO) {
-                    $email->AddAddress($TO);
-                    
-                }
-    
-                foreach ($manageCC as $CC) {
-                    $email->AddCC($CC);
-                    
-                }
+                foreach ($manageTO as $TO) { $email->AddAddress($TO); }
+                foreach ($manageCC as $CC) { $email->AddCC($CC); }
 
                 $email->Subject = 'ALERTA: eventos relevantes detectados';
 
@@ -842,9 +835,9 @@ if (!empty($mode)
 
                                     <hr>'
 
-                                . $html_table .
+                                  . $html_table .
 
-                                '</div>';
+                               '</div>';
 
                 $email->send();
             
@@ -884,101 +877,111 @@ if (!empty($mode)
             printf("Hora de execução actualizada" . $nl);
 
         } else { // depois de terminados os flows
-            // síntese de eventos reportados no período
-            $slctqry = "SELECT flw.subtitle,
-                               flw.flowid,
-                               std.std_num,
-                               std.stdid,
-                               rep.type,
-                               COUNT(DISTINCT rep.timestamp) AS N
-                        FROM wiseflow.sentinelf_reported rep
-                            INNER JOIN wiseflow.flows flw ON flw.flowid = rep.flowid
-                            INNER JOIN wiseflow.students std ON std.stdid = rep.stdid
-                            INNER JOIN wiseflow.sentinelf_tmp tmp ON (tmp.flowid = rep.flowid AND tmp.stdid  = rep.stdid)
-                        WHERE DATE(rep.report) = CURDATE()
-                        GROUP BY flw.flowid, std.stdid, rep.type
-                        ORDER BY flw.flowid, std.stdid, rep.type;";
+            // verificar existência da tabela temporária
+            $slctqry = "SELECT COUNT(*) AS table_exists
+                        FROM information_schema.tables
+                        WHERE table_schema = 'wiseflow'
+                            AND table_name = 'sentinelf_tmp';";
 
-            $report = mysqli_query($conBDInt, $slctqry)
-                          or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_reported': " . mysqli_error($conBDInt)
+            $result = mysqli_query($conBDInt, $slctqry)
+                          or die("Ñ foi possível consultar a tabela 'information_schema.tables': " . mysqli_error($conBDInt)
                                 . $nl . $nl
                                 . $slctqry);
 
-            if (mysqli_num_rows($report) > 0) {
-                $html_table = '';
+            $row = mysqli_fetch_assoc($result);
+            $tmp_table_exists = (int)$row['table_exists'];
 
-                $html_table .= "<table border='1' cellspacing='0' cellpadding='6' style='border-collapse: collapse; font-family: Arial, sans-serif;'>";
+            if ($tmp_table_exists == 1) {
+                // síntese de eventos reportados no período
+                $slctqry = "SELECT flw.subtitle,
+                                   flw.flowid,
+                                   std.std_num,
+                                   std.stdid,
+                                   rep.type,
+                                   COUNT(DISTINCT rep.timestamp) AS N
+                            FROM wiseflow.sentinelf_reported rep
+                                INNER JOIN wiseflow.flows flw ON flw.flowid = rep.flowid
+                                INNER JOIN wiseflow.students std ON std.stdid = rep.stdid
+                                INNER JOIN wiseflow.sentinelf_tmp tmp ON (tmp.flowid = rep.flowid AND tmp.stdid  = rep.stdid)
+                            WHERE DATE(rep.report) = CURDATE()
+                            GROUP BY flw.flowid, std.stdid, rep.type
+                            ORDER BY flw.flowid, std.stdid, rep.type;";
 
-                $events = [];
+                $report = mysqli_query($conBDInt, $slctqry)
+                              or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_reported': " . mysqli_error($conBDInt)
+                                    . $nl . $nl
+                                    . $slctqry);
 
-                $events = mysqli_fetch_all($report, MYSQLI_ASSOC);
+                if (mysqli_num_rows($report) > 0) {
+                    $html_table = '';
 
-                $html_table .= "<thead style='background-color:#f0f0f0;'>
-                                    <tr>
-                                        <th>flow</th>
-                                        <th>std_num</th>
-                                        <th>tipo</th>
-                                        <th>número de eventos</th>
-                                    </tr>
-                                </thead><tbody>";
+                    $html_table .= "<table border='1' cellspacing='0' cellpadding='6' style='border-collapse: collapse; font-family: Arial, sans-serif;'>";
 
-                foreach ($events as $event) {
-                    $html_table .= "<tr>";
-                    $html_table .= "<td><a href='https://europe.wiseflow.net/manager/display.php?id="
-                                               . htmlspecialchars($event['flowid']) . "'>"
-                                               . htmlspecialchars($event['subtitle']) . "</a></td>";
-                    $html_table .= "<td>" . htmlspecialchars($event['std_num']) . "</td>";
-                    $html_table .= "<td>" . htmlspecialchars($event['type']) . "</td>";
-                    $html_table .= "<td style='text-align:center;'>" . htmlspecialchars($event['N']) . "</td>";
-                    $html_table .= "</tr>";
+                    $events = [];
 
-                }
+                    $events = mysqli_fetch_all($report, MYSQLI_ASSOC);
+
+                    $html_table .= "<thead style='background-color:#f0f0f0;'>
+                                        <tr>
+                                            <th>flow</th>
+                                            <th>std_num</th>
+                                            <th>tipo</th>
+                                            <th>número de eventos</th>
+                                        </tr>
+                                    </thead><tbody>";
+
+                    foreach ($events as $event) {
+                        $html_table .= "<tr>";
+                        $html_table .= "<td><a href='https://europe.wiseflow.net/manager/display.php?id="
+                                                   . htmlspecialchars($event['flowid']) . "'>"
+                                                   . htmlspecialchars($event['subtitle']) . "</a></td>";
+                        $html_table .= "<td>" . htmlspecialchars($event['std_num']) . "</td>";
+                        $html_table .= "<td>" . htmlspecialchars($event['type']) . "</td>";
+                        $html_table .= "<td style='text-align:center;'>" . htmlspecialchars($event['N']) . "</td>";
+                        $html_table .= "</tr>";
+
+                    }
+                    
+                    $html_table .= "</tbody></table>";
+
+                    foreach ($manageTO as $TO) { $email->AddAddress($TO); }
+                    foreach ($manageCC as $CC) { $email->AddCC($CC); }
+
+                    $email->Subject = 'INFO: síntese de eventos reportados no período';
+
+                    $email->Body = '<div style="font-family: Arial, sans-serif; color: #222;">
+                                        <div style="display:flex; align-items:center; gap:12px;">
+                                            <img src="cid:sentinelfavatar" width="100" height="100" style="border-radius:50%; object-fit:cover;">
+                                        </div>
+
+                                        <hr>'
+
+                                      . $html_table .
+
+                                   '</div>';
+
+                    $email->send();
                 
-                $html_table .= "</tbody></table>";
+                    printf("Síntese enviada" . $nl);
 
-                foreach ($manageTO as $TO) {
-                    $email->AddAddress($TO);
-                    
-                }
-    
-                foreach ($manageCC as $CC) {
-                    $email->AddCC($CC);
-                    
+                    unset($events);
+
+                } else {
+                    printf("Sem eventos relevantes para síntese" . $nl);
+
                 }
 
-                $email->Subject = 'INFO: síntese de eventos reportados no período';
+                // eliminar tabela temporária
+                $drop_tmp_table = "DROP TABLE IF EXISTS wiseflow.sentinelf_tmp;";
 
-                $email->Body = '<div style="font-family: Arial, sans-serif; color: #222;">
-                                    <div style="display:flex; align-items:center; gap:12px;">
-                                        <img src="cid:sentinelfavatar" width="100" height="100" style="border-radius:50%; object-fit:cover;">
-                                    </div>
+                mysqli_multi_query($conBDInt, $drop_tmp_table)
+                    or die("Ñ foi possível eliminar a tabela 'wiseflow.sentinelf_tmp': " . mysqli_error($conBDInt)
+                          . $nl . $nl
+                          . $drop_tmp_table);
 
-                                    <hr>'
-
-                                  . $html_table .
-
-                               '</div>';
-
-                $email->send();
-            
-                printf("Síntese enviada" . $nl);
-
-                unset($events);
-
-            } else {
-                printf("Sem eventos relevantes para síntese" . $nl);
+                while (mysqli_more_results($conBDInt) && mysqli_next_result($conBDInt)) {;}
 
             }
-
-            // eliminar tabela temporária
-            $drop_tmp_table = "DROP TABLE IF EXISTS wiseflow.sentinelf_tmp;";
-
-            mysqli_multi_query($conBDInt, $drop_tmp_table)
-                or die("Ñ foi possível eliminar a tabela 'wiseflow.sentinelf_tmp': " . mysqli_error($conBDInt)
-                      . $nl . $nl
-                      . $drop_tmp_table);
-
-            while (mysqli_more_results($conBDInt) && mysqli_next_result($conBDInt)) {;}
 
             printf("Sem flows em realização" . $nl);
 
@@ -1095,10 +1098,7 @@ if (!empty($mode)
 
             $html_table .= "</tbody></table>";
 
-            foreach ($reportTO as $TO) {
-                $email->AddAddress($TO);
-                
-            }
+            foreach ($reportTO as $TO) { $email->AddAddress($TO); }
 
             $email->Subject = date("Y/M_d") . ': eventos relevantes';
 
@@ -1109,9 +1109,9 @@ if (!empty($mode)
 
                                 <hr>'
 
-                            . $html_table .
+                              . $html_table .
 
-                            '</div>';
+                           '</div>';
 
             $email->send();
         
