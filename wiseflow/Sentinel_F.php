@@ -883,8 +883,94 @@ if (!empty($mode)
 
             printf("Hora de execução actualizada" . $nl);
 
-        } else {
-            // eliminar tabela temporária, depois de terminados os flows
+        } else { // depois de terminados os flows
+            // síntese de eventos reportados no período
+            $slctqry = "SELECT flw.subtitle,
+                               flw.flowid,
+                               std.std_num,
+                               std.stdid,
+                               rep.type,
+                               COUNT(DISTINCT rep.timestamp) AS N
+                        FROM wiseflow.sentinelf_reported rep
+                            INNER JOIN wiseflow.flows flw ON flw.flowid = rep.flowid
+                            INNER JOIN wiseflow.students std ON std.stdid = rep.stdid
+                            INNER JOIN wiseflow.sentinelf_tmp tmp ON (tmp.flowid = rep.flowid AND tmp.stdid  = rep.stdid)
+                        WHERE DATE(rep.report) = CURDATE()
+                        GROUP BY flw.flowid, std.stdid, rep.type
+                        ORDER BY flw.flowid, std.stdid, rep.type;";
+
+            $report = mysqli_query($conBDInt, $slctqry)
+                          or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_reported': " . mysqli_error($conBDInt)
+                                . $nl . $nl
+                                . $slctqry);
+
+            if (mysqli_num_rows($report) > 0) {
+                $html_table = '';
+
+                $html_table .= "<table border='1' cellspacing='0' cellpadding='6' style='border-collapse: collapse; font-family: Arial, sans-serif;'>";
+
+                $events = [];
+
+                $events = mysqli_fetch_all($report, MYSQLI_ASSOC);
+
+                $html_table .= "<thead style='background-color:#f0f0f0;'>
+                                    <tr>
+                                        <th>flow</th>
+                                        <th>std_num</th>
+                                        <th>tipo</th>
+                                        <th>número de eventos</th>
+                                    </tr>
+                                </thead><tbody>";
+
+                foreach ($events as $event) {
+                    $html_table .= "<tr>";
+                    $html_table .= "<td><a href='https://europe.wiseflow.net/manager/display.php?id="
+                                               . htmlspecialchars($event['flowid']) . "'>"
+                                               . htmlspecialchars($event['subtitle']) . "</a></td>";
+                    $html_table .= "<td>" . htmlspecialchars($event['std_num']) . "</td>";
+                    $html_table .= "<td>" . htmlspecialchars($event['type']) . "</td>";
+                    $html_table .= "<td style='text-align:center;'>" . htmlspecialchars($event['N']) . "</td>";
+                    $html_table .= "</tr>";
+
+                }
+                
+                $html_table .= "</tbody></table>";
+
+                foreach ($manageTO as $TO) {
+                    $email->AddAddress($TO);
+                    
+                }
+    
+                foreach ($manageCC as $CC) {
+                    $email->AddCC($CC);
+                    
+                }
+
+                $email->Subject = 'INFO: síntese de eventos reportados no período';
+
+                $email->Body = '<div style="font-family: Arial, sans-serif; color: #222;">
+                                    <div style="display:flex; align-items:center; gap:12px;">
+                                        <img src="cid:sentinelfavatar" width="100" height="100" style="border-radius:50%; object-fit:cover;">
+                                    </div>
+
+                                    <hr>'
+
+                                  . $html_table .
+
+                               '</div>';
+
+                $email->send();
+            
+                printf("Síntese enviada" . $nl);
+
+                unset($events);
+
+            } else {
+                printf("Sem eventos relevantes para síntese" . $nl);
+
+            }
+
+            // eliminar tabela temporária
             $drop_tmp_table = "DROP TABLE IF EXISTS wiseflow.sentinelf_tmp;";
 
             mysqli_multi_query($conBDInt, $drop_tmp_table)
@@ -911,7 +997,7 @@ if (!empty($mode)
 
         $reportTO = array_map('trim', explode(';', mysqli_fetch_assoc($result)['reportTO']));
 
-        // ocorrências reportadas no dia
+        // eventos reportados no dia
         $slctqry = "SELECT CASE WHEN et.report = 1 THEN e.type ELSE 'INACTIVITY' END AS type,
                            COUNT(*) AS N
                     FROM wiseflow.sentinelf_events e
@@ -964,7 +1050,7 @@ if (!empty($mode)
                                     </tr>
                                     <tr>
                                         <th>tipo</th>
-                                        <th>número de ocorrências</th>
+                                        <th>número de eventos</th>
                                     </tr>
                                 </thead><tbody>";
 
