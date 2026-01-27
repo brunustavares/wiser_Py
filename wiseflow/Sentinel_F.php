@@ -705,6 +705,14 @@ if (!empty($mode)
                                 WHERE inactivity_seconds > reference_inactivity
                                     AND evt_report = 1
                                     AND reported IS NULL
+                                    AND NOT EXISTS (
+                                                    SELECT 1
+                                                    FROM wiseflow.sentinelf_tmp p
+                                                    WHERE p.stdid = inactivity_calc.stdid
+                                                        AND p.flowid = inactivity_calc.flowid
+                                                        AND p.type = 'PAPER_HANDED_IN'
+                                                        AND p.timestamp < inactivity_calc.timestamp
+                                                   )
                                 ORDER BY timestamp, stdid;";
 
                     $new_events = mysqli_query($conBDInt, $slctqry)
