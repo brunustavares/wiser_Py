@@ -12,7 +12,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2025082111
+ * @version    2026012807
  * @date       2024-02-20
  *
  * This program is free software: you can redistribute it and/or modify
@@ -42,7 +42,7 @@
     </script>
 
     <div class="navigation">
-        <a href="{{ url_for('user_report') }}">
+        <a {% if user_history %} href="{{ url_for('user_report') }}" {% elif user_monitor %} href="{{ url_for('sentinelf_reported') }}" {% endif %}>
             <svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
                 <path d="M9.4 278.6c-12.5-12.5-12.5-32.8 0-45.3l128-128c9.2-9.2 22.9-11.9 34.9-6.9s19.8 16.6 19.8 29.6l0 256c0 12.9-7.8 24.6-19.8 29.6s-25.7 2.2-34.9-6.9l-128-128z"/>
             </svg>
@@ -59,10 +59,14 @@
     <iframe class="graph" src={{graph}} width="100%" height="800" frameborder="0"></iframe>
 
     <br>
-    
-    <p><span class="inloco">presencial</span> | 
-       <span class="advert">advertência</span> | 
-       <span class="anul_bio">anulação p/ biometria</span> | 
-       <span class="anul_irreg">anulação p/ realiz.irreg.</span></p>
+
+    {% if user_history %}
+        <p><span class="advert">advertência</span> | 
+        <span class="anul_bio">anulação p/ biometria</span> | 
+        <span class="anul_irreg">anulação p/ realiz.irreg.</span> | 
+        <span class="anul_copy">anulação p/ cópia indevida</span> | 
+        <span class="inloco">presencial</span>
+        </p>
+    {% endif %}
          
 {% endblock %}s

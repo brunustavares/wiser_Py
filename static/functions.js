@@ -11,7 +11,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2025111411
+ * @version    2026012807
  * @date       2024-02-20
  *
  * This program is free software: you can redistribute it and/or modify
@@ -220,17 +220,20 @@ function set_std_flw_status(info, notify=false) {
 
     let type = info.split(";")[2];
 
-    if (type == "flw_inloco") {
-        params["set_status"] = "4";
-
-    } else if (type == "flw_null_irreg") {
-        params["set_status"] = "3";
+    if (type == "flw_warn") {
+        params["set_status"] = "0";
 
     } else if (type == "flw_null_bio") {
         params["set_status"] = "2";
 
-    } else if (type == "flw_warn") {
-        params["set_status"] = "0";
+    } else if (type == "flw_null_irreg") {
+        params["set_status"] = "3";
+
+    } else if (type == "flw_null_copy") {
+        params["set_status"] = "5";
+
+    } else if (type == "flw_inloco") {
+        params["set_status"] = "4";
 
     } else {
         params["set_status"] = "null";
@@ -336,17 +339,20 @@ function attach_flw_status(flw_status) {
     yes_button.value = yes_button.value.concat(";").concat(flw_status);
     no_button.value = no_button.value.concat(";").concat(flw_status);
 
-    if (flw_status == "flw_inloco") {
-        status = " | presencial";
-
-    } else if (flw_status == "flw_null_irreg") {
-        status = " | anulação p/ realiz.irreg.";
+    if (flw_status == "flw_warn") {
+        status = " | advertência";
 
     } else if (flw_status == "flw_null_bio") {
         status = " | anulação p/ biometria";
 
-    } else if (flw_status == "flw_warn") {
-        status = " | advertência";
+    } else if (flw_status == "flw_null_irreg") {
+        status = " | anulação p/ realiz.irreg.";
+
+    } else if (flw_status == "flw_null_copy") {
+        status = " | anulação p/ cópia indevida";
+
+    } else if (flw_status == "flw_inloco") {
+        status = " | presencial";
 
     } else {
         status = " | regular";
@@ -586,6 +592,22 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById("report_single").addEventListener("change", function() {
         if (this.checked) {
             show_param("div_courses", true);
+        }
+    });
+});
+
+// gestão da disponibilidade do critério p/ acesso aos reports do Sentinel_F
+document.addEventListener("DOMContentLoaded", function() {
+    document.getElementById("by_date").addEventListener("change", function() {
+        if (this.checked) {
+            show_param("student", false);
+            show_param("date", true);
+        }
+    });
+    document.getElementById("by_student").addEventListener("change", function() {
+        if (this.checked) {
+            show_param("date", false);
+            show_param("student", true);
         }
     });
 });

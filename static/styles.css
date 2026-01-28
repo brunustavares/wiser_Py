@@ -11,7 +11,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2025102405
+ * @version    2026012807
  * @date       2024-02-20
  *
  * This program is free software: you can redistribute it and/or modify
@@ -99,12 +99,13 @@ button#usr_bio {
     width: 150px !important;
 }
 
-button#flw_inloco,
-button#flw_null_irreg,
-button#flw_null_bio,
 button#flw_warn,
+button#flw_null_bio,
+button#flw_null_irreg,
+button#flw_null_copy,
+button#flw_inloco,
 button#flw_default {
-    width: 210px !important;
+    width: 235px !important;
 }
 
 .nav-button:hover,
@@ -254,6 +255,11 @@ button#flw_default {
         margin-right: auto !important;
         margin-left: auto !important;
         font-size: inherit;
+        width: 270px !important;
+    }
+
+    .form-check {
+        text-align: left !important;
     }
 
     .form-control {
@@ -281,7 +287,7 @@ button#flw_default {
 
     #stats_detail,
     .stats_detail {
-        width: 120px !important;
+        width: 135px !important;
     }
 
     #report_detail,
@@ -367,6 +373,9 @@ button#flw_default {
     .anul_irreg {
         background-color: darkorange !important;
     }
+    .anul_copy {
+        background-color: lightcoral !important;
+    }
 
     .inloco {
         background-color: lightgreen !important;
@@ -419,7 +428,6 @@ a[data-target="#flw_opt"]:hover {
 
 .input-field,
 .date-picker,
-.form-select,
 button#new {
     width: 225px !important;
 }
@@ -635,6 +643,7 @@ h2 {
 
 h4 {
     text-align: center;
+    font-size: 16px;
 }
 
 .mail-server,

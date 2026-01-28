@@ -15,6 +15,8 @@ It was originally developed for [Universidade Aberta (UAb)](https://portal.uab.p
 
 ### Data Reporting and Visualization
 *   **Comprehensive Reports**: Generate detailed reports on student participation, grades, and biometric data from both WISEflow and Moodle.
+    *   **Actionable Insights**: Directly manage assessment statuses (e.g., annulment, warnings) and trigger automated email notifications to students from the report view.
+    *   **Data Export**: Export report data and statistical indicators to CSV format for external analysis.
 *   **Student-Specific History**: View a complete academic history for any student, including a graphical representation of their biometric verification scores across assessments.
 *   **Statistical Dashboards**: Access aggregated statistics and performance indicators, filterable by academic year, for both WISEflow and Moodle assessments.
 *   **AIDA Indicators**: Interface with the AIDA web service to retrieve specialized academic indicators.
@@ -68,6 +70,7 @@ The application orchestrates several PHP scripts to perform detailed synchroniza
 *   **Event Monitoring (Sentinel_F Module)**:
     *   Configure and manage specific WISEflow participation event types to monitor (e.g., `FACIAL_RECOGNITION`, `PAPER_HANDED_IN`).
     *   View logs of monitored events for specific dates, showing the flow, student, and event details.
+    *   **Student Analysis**: Analyze reported events per student with interactive graphical visualizations to identify patterns.
     *   Manage settings for the Sentinel_F module, including recipient mailboxes for notifications.
     *   This feature appears to be for administrators to closely track critical events within assessment flows.
 *   **Email Notifications**:

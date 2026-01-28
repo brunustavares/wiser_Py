@@ -12,7 +12,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2025111411
+ * @version    2026012807
  * @date       2025-11-14
  *
  * This program is free software: you can redistribute it and/or modify
@@ -37,7 +37,7 @@
         Sentinel_F: log
 
     {% elif info == "reported" %}
-        Sentinel_F: reported
+        Sentinel_F: eventos reportados
 
     {% endif %}
 {% endblock %}
@@ -62,7 +62,7 @@
             Sentinel_F: log
 
         {% elif info == "reported" %}
-            Sentinel_F: reported
+            Sentinel_F: eventos reportados
 
         {% endif %}
     </h2>
@@ -74,9 +74,24 @@
               action="/sentinelf_reported"
 
           {% endif %} id="full_report" method="post" onsubmit="showModal()">
-          
+
+        {% if info == "reported" %}
+            <div class="mb-3 stats_detail">
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" id="by_date" name="events" value="by_date" checked>
+                    <label class="form-check-label" for="by_date">p/ data</label>
+                </div>
+
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" id="by_student" name="events" value="by_student">
+                    <label class="form-check-label" for="by_student">p/ estudante</label>
+                </div>
+            </div>        
+        {% endif %}
+
         <div class="mb-3">
             <input class="date-picker" type="date" id="date" name="date" value="">
+            <input class="form-control mx-auto w-auto input-field" type="text" id="student" name="student" placeholder="Número de Estudante" style="display: none;">
         </div>
 
         <button class="btn btn-primary nav-button" type="submit">Obter dados</button>

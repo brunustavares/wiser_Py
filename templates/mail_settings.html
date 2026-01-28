@@ -12,7 +12,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2025082111
+ * @version    2026012807
  * @date       2024-02-20
  *
  * This program is free software: you can redistribute it and/or modify
@@ -170,6 +170,7 @@
                                                         {% if tplt[1] == 0 %} class="form-select mail-notif-type advert" \
                                                         {% elif tplt[1] == 2 %} class="form-select mail-notif-type anul_bio" \
                                                         {% elif tplt[1] == 3 %} class="form-select mail-notif-type anul_irreg" \
+                                                        {% elif tplt[1] == 5 %} class="form-select mail-notif-type anul_copy" \
                                                         {% elif tplt[1] == 4 %} class="form-select mail-notif-type inloco"
                                                         {% endif %}
                                                         onchange="checkUpdtReqs('mail_div', '{{ tplt[0] }}', {'prev_sel':'{{ prev_sel }}', 'prev_text':'{{ prev_text }}'})">

@@ -11,7 +11,7 @@
 # @copyright  Copyright (C) 2024-present Bruno Tavares
 # @license    GNU General Public License v3 or later
 #             https://www.gnu.org/licenses/gpl-3.0.html
-# @version    2025111411
+# @version    2026012807
 # @date       2024-02-20
 #
 # This program is free software: you can redistribute it and/or modify
@@ -41,6 +41,7 @@ import smtplib, ssl
 import random
 import string
 import base64
+from collections import defaultdict
 from zoneinfo import ZoneInfo
 from functools import wraps
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -359,7 +360,7 @@ def build_query(sys=None, lect_year=None, student=None, date=None, bio=None, sta
 
             if bio is not None:
                 query += " AND ((flw_ass.fr_avgM * 1) < %s \
-                        AND flw_tmpl.flowtype_name <> 'FLOWassign') "
+                               AND flw_tmpl.flowtype_name <> 'FLOWassign') "
 
             if status is not None:
                 if status == 0 or status == 4:
@@ -367,7 +368,8 @@ def build_query(sys=None, lect_year=None, student=None, date=None, bio=None, sta
 
                 else:
                     query += " AND (flw_ass.status = 2 \
-                            OR flw_ass.status = 3) "
+                                   OR flw_ass.status = 3 \
+                                   OR flw_ass.status = 5) "
 
             query += "ORDER BY flw_std.std_num ASC, flw_ass.dtass ASC, flw.subtitle ASC;"
 
@@ -1072,7 +1074,7 @@ def fill_csv(csv_file):
                                                      '0' AS log,
                                                      '0' AS to_eval,
                                                      '0' AS assign,
-                                                     '0' AS author
+                                                     '1' AS author
                                      FROM wiseflow.courses wfcrs
                                          INNER JOIN lead.alunos_inscricoes ainsc ON (ainsc.cd_discip = wfcrs.course AND ainsc.cd_lectivo = wfcrs.lectyear)
                                          INNER JOIN wiseflow.flows_templates wftplt ON LOWER(wftplt.flowtype_name) = LOWER('{type}')
@@ -1396,7 +1398,7 @@ def sanitize(string):
 # configuração da aplicação
 app = Flask(__name__)
 
-BUILD = "2025111411"  # YYYYMMDDHH
+BUILD = "2026012807"  # YYYYMMDDHH
 
 # SECRET_KEY
 app.secret_key = "RaK7ng8-UCKWZnW6"
@@ -1807,7 +1809,6 @@ def sentinelf_events_2check():
     return render_template(SENTINELF_EVENTS_TPLT, is_admin=is_admin(session["user_id"]), event_types=session["result"])
 
 
-# TODO: criar histórico c/ gráfico
 # reports log Sentinel_F
 @app.route("/sentinelf_reported", methods=["GET", "POST"])
 @login_required
@@ -1826,43 +1827,163 @@ def sentinelf_reported():
 
     # se o utilizador chegar ao formulário via POST
     if request.method == "POST":
-        date = None
-        if request.form.get("date") != '':
-            date = request.form.get("date")
-            start = date + " 00:00:00"
-            end = date + " 23:59:59"
-            criteria = "WHERE timestamp BETWEEN '"   + start + "' AND '" + end + "'"
-            key = "data: " + date
-
-        else:
-            criteria = ""
-            key = "data: todas"
-
-        query = "SELECT flw.subtitle, \
-                        flw.flowid, \
-                        std.std_num, \
-                        evts.timestamp, \
-                        evts.type, \
-                        evts.payload, \
-                        evts.report \
-                 FROM wiseflow.sentinelf_reported evts \
-                     INNER JOIN wiseflow.flows flw ON flw.flowid = evts.flowid \
-                     INNER JOIN wiseflow.students std ON std.stdid = evts.stdid " \
-               + criteria + " \
-                 ORDER BY evts.timestamp ASC;"
-
         wf_db = connect_db()
         wf_db_cursor = wf_db.cursor()
 
-        wf_db_cursor.execute(query)
-        result = wf_db_cursor.fetchall()
+        if request.form.get("events") == 'by_date':
+            date = None
+            if request.form.get("date") != '':
+                date = request.form.get("date")
+                start = date + " 00:00:00"
+                end = date + " 23:59:59"
+                criteria = "WHERE timestamp BETWEEN '"   + start + "' AND '" + end + "'"
+                key = "data: " + date
+
+            else:
+                criteria = ""
+                key = "data: todas"
+
+            query = "SELECT flw.subtitle, \
+                            flw.flowid, \
+                            std.std_num, \
+                            evts.timestamp, \
+                            evts.type, \
+                            evts.payload, \
+                            evts.report \
+                     FROM wiseflow.sentinelf_reported evts \
+                         INNER JOIN wiseflow.flows flw ON flw.flowid = evts.flowid \
+                         INNER JOIN wiseflow.students std ON std.stdid = evts.stdid " \
+                   + criteria + " \
+                     ORDER BY evts.timestamp ASC;"
+
+            wf_db_cursor.execute(query)
+            result = wf_db_cursor.fetchall()
+
+            write_activity_log("list", "Sentinel_F reported", key, session["user_id"], session["T_usage"])
+
+            return render_template(SENTINELF_LOG_TPLT, is_admin=is_admin(session["user_id"]), info=info, log=result, key=key)
+
+        elif request.form.get("events") == 'by_student':
+            if not request.form.get("student"):
+                return error_msg("número de estudante necessário", 400, '/sentinelf_reported')
+
+            student = request.form.get("student")
+            key = ("std_" + str(student))
+
+            query = "SELECT flw_std.firstname, \
+                            flw_std.lastname, \
+                            flw_std.std_num, \
+                            flw_std.stdid, \
+                            flw.title, \
+                            flw.subtitle, \
+                            flw.flowid, \
+                            flw_tmpl.flowtype_name AS 'flow_type', \
+                            flw.dtfrom, \
+                            flw.dtto, \
+                            flw_ass.dtass AS 'dtpart', \
+                            flw_ass.status AS 'flow_status', \
+                            rep.type, \
+                            COUNT(rep.type) AS 'N' \
+                     FROM wiseflow.sentinelf_reported rep \
+                         INNER JOIN wiseflow.students flw_std ON flw_std.stdid = rep.stdid \
+                         INNER JOIN wiseflow.flows_assess flw_ass ON (flw_ass.stdid = flw_std.stdid AND flw_ass.stdid = rep.stdid) \
+                         INNER JOIN wiseflow.flows flw ON (flw.flowid = flw_ass.flowid AND flw.flowid = rep.flowid) \
+                         INNER JOIN wiseflow.flows_templates flw_tmpl ON flw_tmpl.id = flw.template \
+                     WHERE flw_std.std_num = '"   + student + "' \
+                     GROUP BY flw.flowid, rep.type \
+                     ORDER BY flw.flowid, rep.type;"
+
+            wf_db_cursor.execute(query)
+            result = wf_db_cursor.fetchall()
+
+            if len(result) == 0:
+                return error_msg("estudante não encontrado", 404, '/sentinelf_reported')
+
+            # base do link directo para o flow de origem
+            flw_base_url = "https://europe.wiseflow.net/manager/display.php?id="
+
+            # inicialização do gráfico
+            graph = go.Figure()
+
+            EVENT_COLORS = {
+                'ASSIGNMENT_ACCESSED':  'rgb(255,255,0)',
+                'CHARACTERS_TYPED':  'rgb(83,127,190)',
+                'FACIAL_RECOGNITION':  'rgb(255,182,193)',
+                'FLOW_OPENED':  'rgb(255,140,0)',
+                'HEARTBEAT':  'rgb(144,238,144)',
+                'INACTIVITY':  'rgb(240,128,128)',
+                'INDIVIDUAL_DEADLINE':  'rgb(186,85,211)',
+                'LOG':  'rgb(70,130,180)',
+                'PAPER_HANDED_IN':  'rgb(255,215,0)',
+                'PAPER_SAVED':  'rgb(60,179,113)',
+                'PAPER_WITHDRAWN': 'rgb(220,20,60)',
+                'PARTICIPANT_PRESENCE': 'rgb(0,191,255)',
+                'PARTICIPATION_PAUSE': 'rgb(255,99,71)',
+                'PROCTOR_PASSWORD_CORRECT': 'rgb(154,205,50)',
+                'PROGRESS': 'rgb(199,21,133)',
+            }
+
+            flows = {}
+            data_by_type = defaultdict(list)
+
+            for row in result:
+                flow_id = row[6]
+                event_type = str(row[12])
+                count = row[13]
+
+                # etiqueta do flow
+                if flow_id not in flows:
+                    flows[flow_id] = (
+                        f'<a href="' + flw_base_url + str(row[6]) + '" target="_blank">'
+                        + str(row[5])
+                        + '<br>('
+                        + str(row[7])
+                        + '<br>'
+                        + str(datetime.datetime.strptime(row[8], "%Y-%m-%d %H:%M:%S").date())
+                        + ')</a>'
+                    )
+
+                data_by_type[event_type].append((flow_id, count))
+
+            flow_ids = list(flows.keys())
+            flow_labels = [flows[fid] for fid in flow_ids]
+
+            for event_type, values in data_by_type.items():
+                y = [0] * len(flow_ids)
+
+                for fid, count in values:
+                    y[flow_ids.index(fid)] = count
+
+                graph.add_trace(
+                    go.Bar(
+                        name=f'{event_type}',
+                        x=flow_labels,
+                        y=y,
+                        marker_color=EVENT_COLORS.get(event_type, 'rgb(128,128,128)')
+                    )
+                )
+
+            graph.update_layout(
+                title=str(result[0][2]) + " | " + str(result[0][0]) + " " + str(result[0][1]),
+                xaxis_title='flows p/ data',
+                yaxis_title='T_ocorrências',
+                barmode='group',
+                bargap=0.15,
+                bargroupgap=0.05,
+                showlegend=True,
+                legend_title='eventos'
+            )
+
+            # guardar o gráfico na sessão e num ficheiro temporário
+            session["tmp_graph_file"] = "tmp/usrID" + str(session["user_id"]) + "_output_file_name.html"
+            graph.write_html(session["tmp_graph_file"])
+
+            write_activity_log("list", "Sentinel_F graph", key, session["user_id"], session["T_usage"])
+
+            return render_template(USER_GRAPH_TPLT, graph="https://mdlws.uab.pt/wiser_py/" + session["tmp_graph_file"], user_monitor="True")
 
         wf_db_cursor.close()
         wf_db.close()
-
-        write_activity_log("list", "Sentinel_F reported", key, session["user_id"], session["T_usage"])
-
-        return render_template(SENTINELF_LOG_TPLT, is_admin=is_admin(session["user_id"]), info=info, log=result, key=key)
 
     # caso contrário, redireccionar para a página de selecção
     write_activity_log("list", "Sentinel_F reported", None, session["user_id"], session["T_usage"])
@@ -2633,7 +2754,7 @@ def no_reply():
 
 
 # executar endpoints
-# TODO: suspender execução automática
+# TODO: viabilizar suspensão da execução automática
 @app.route("/endpoints", methods=["GET", "POST"])
 @login_required
 def endpoints():
@@ -2986,7 +3107,7 @@ def sys_menu():
 
 
 # histórico completo no WISEflow
-# TODO: módulo imagens do dia
+# TODO: criar módulo imagens do dia
 @app.route("/wf_full_report", methods=["GET", "POST"])
 @login_required
 def wf_full_report():
@@ -3034,7 +3155,7 @@ def wf_full_report():
             
             wf_db.commit()
 
-            if value == '2' or value == '3':
+            if value == '2' or value == '3' or value == '5':
                 wf_db_cursor.execute("SELECT flw_ass.partid \
                                       FROM wiseflow.flows_assess flw_ass \
                                           INNER JOIN wiseflow.students stds ON stds.stdid = flw_ass.stdid \
@@ -3398,6 +3519,7 @@ def user_report():
                                      'rgb(255,255,0)' if row[14] == '0'
                                 else 'rgb(255,182,193)' if row[14] == '2'
                                 else 'rgb(255,140,0)' if row[14] == '3'
+                                else 'rgb(240,128,128)' if row[14] == '5'
                                 else 'rgb(144,238,144)' if row[14] == '4'
                                 else 'rgb(83,127,190)'
                                      for row in result
@@ -3421,7 +3543,7 @@ def user_report():
 
             write_activity_log("list", "graph", ("std_" + str(request.form.get("student"))), session["user_id"], session["T_usage"])
 
-            return render_template(USER_GRAPH_TPLT, graph="https://mdlws.uab.pt/wiser_py/" + session["tmp_graph_file"])
+            return render_template(USER_GRAPH_TPLT, graph="https://mdlws.uab.pt/wiser_py/" + session["tmp_graph_file"], user_history="True")
 
         elif request.form.get("report") == "report_single":
             if not request.form.get("flowid"):
@@ -3454,6 +3576,8 @@ def user_report():
 
             else:
                 return error_msg("flowid não encontrado para o estudante", 404, '/user_report')
+
+        # TODO: viabilizar download da prova
 
     write_activity_log("list", "std_report", None, session["user_id"], session["T_usage"])
 

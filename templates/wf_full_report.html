@@ -12,7 +12,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2025102405
+ * @version    2026012807
  * @date       2024-02-20
  *
  * This program is free software: you can redistribute it and/or modify
@@ -152,6 +152,7 @@
                                 <tr {% if row[14] == "0" %} class="advert" \
                                     {% elif row[14] == "2" %} class="anul_bio" \
                                     {% elif row[14] == "3" %} class="anul_irreg" \
+                                    {% elif row[14] == "5" %} class="anul_copy" \
                                     {% elif row[14] == "4" %} class="inloco"
                                     {% endif %}>
                                     <td>{{ row[0] }}</td>
@@ -178,10 +179,11 @@
                         </tbody>
                     </table>
 
-                    <h4><span class="inloco">presencial</span> | 
-                        <span class="advert">advertência</span> | 
+                    <h4><span class="advert">advertência</span> | 
                         <span class="anul_bio">anulação p/ biometria</span> | 
-                        <span class="anul_irreg">anulação p/ realiz.irreg.</span>
+                        <span class="anul_irreg">anulação p/ realiz.irreg.</span> | 
+                        <span class="anul_copy">anulação p/ cópia indevida</span> | 
+                        <span class="inloco">presencial</span>
                     </h4>
 
                     <hr>
@@ -221,13 +223,15 @@
                             </div>
 
                             <div class="modal-body">
-                                <button class="btn btn-primary nav-button" type="button" id="flw_inloco" name="flw_inloco" data-toggle="modal" data-target="#notify" onclick="attach_flw_status('flw_inloco')" data-dismiss="modal">presencial</button>
-                                <br>
-                                <button class="btn btn-primary nav-button" type="button" id="flw_null_irreg" name="flw_null_irreg" data-toggle="modal" data-target="#notify" onclick="attach_flw_status('flw_null_irreg')" data-dismiss="modal">anulação p/ realiz.irreg.</button>
+                                <button class="btn btn-primary nav-button" type="button" id="flw_warn" name="flw_warn" data-toggle="modal" data-target="#notify" onclick="attach_flw_status('flw_warn')" data-dismiss="modal">advertência</button>
                                 <br>
                                 <button class="btn btn-primary nav-button" type="button" id="flw_null_bio" name="flw_null_bio" data-toggle="modal" data-target="#notify" onclick="attach_flw_status('flw_null_bio')" data-dismiss="modal">anulação p/ biometria</button>
                                 <br>
-                                <button class="btn btn-primary nav-button" type="button" id="flw_warn" name="flw_warn" data-toggle="modal" data-target="#notify" onclick="attach_flw_status('flw_warn')" data-dismiss="modal">advertência</button>
+                                <button class="btn btn-primary nav-button" type="button" id="flw_null_irreg" name="flw_null_irreg" data-toggle="modal" data-target="#notify" onclick="attach_flw_status('flw_null_irreg')" data-dismiss="modal">anulação p/ realiz.irreg.</button>
+                                <br>
+                                <button class="btn btn-primary nav-button" type="button" id="flw_null_copy" name="flw_null_copy" data-toggle="modal" data-target="#notify" onclick="attach_flw_status('flw_null_copy')" data-dismiss="modal">anulação p/ cópia indevida</button>
+                                <br>
+                                <button class="btn btn-primary nav-button" type="button" id="flw_inloco" name="flw_inloco" data-toggle="modal" data-target="#notify" onclick="attach_flw_status('flw_inloco')" data-dismiss="modal">presencial</button>
                                 <br>
                                 <button class="btn btn-primary nav-button" type="button" id="flw_default" name="flw_default" data-toggle="modal" data-target="#notify" onclick="attach_flw_status('flw_default')" data-dismiss="modal">regular</button>
                             </div>
