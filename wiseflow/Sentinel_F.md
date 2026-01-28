@@ -18,8 +18,9 @@ It was originally developed for [Universidade Aberta (UAb)](https://portal.uab.p
 - **Administrative Alerts**: Sends email notifications to administrators when new event types are discovered, allowing for their review and classification.
 - **Relevant Event Reporting**: Identifies and reports on specific, pre-defined "relevant" events to management, providing timely alerts on critical student activities.
 - **Typing Speed Anomaly Detection**: Monitors `CHARACTERS_TYPED` events to identify sudden, unusual increases in typing speed, which could indicate suspicious activity.
-- **Prolonged Inactivity Detection**: Detects and reports instances where students exhibit prolonged periods of inactivity during a flow, based on event timestamps.
-- **Daily Summaries**: Generates and emails a daily summary report of all relevant events detected.
+- **Prolonged Inactivity Detection**: Detects and reports instances where students exhibit prolonged periods of inactivity during a flow, based on event timestamps, excluding students who have already submitted their work.
+- **End-of-Session Summaries**: When the last active exam for the day concludes, a summary of all events reported during that monitoring period is automatically sent to management.
+- **Daily Summaries & No-Show Reporting**: Generates and emails a daily summary report that includes a count of all relevant events detected and a list of any scheduled exams that had no student participation.
 - **JSON Payload Normalization**: Includes a function to validate and standardize JSON payloads before database insertion, ensuring data consistency.
 - **Database Maintenance**: Automatically purges event data older than one year to keep the database size manageable.
 
@@ -59,7 +60,7 @@ php sentinel_f.php -m monitor
 **Workflow:**
 
 1.  **Authentication**: It checks for a valid API token in `./auth.tkn`. If the token is missing or expiring within 3 minutes, it requests a new one using functions from `auth_lib_bdint.php`.
-2.  **Fetch Running Flows**: It queries the `wiseflow.flows` table to get a list of flows that are currently active or have ended within the last 30 minutes.
+2.  **Fetch Running Flows**: It queries the `wiseflow.flows` table to get a list of flows that are currently active or have ended within the last 45 minutes.
 3.  **Fetch Events**: For each running flow, it makes a POST request to the `/participation-events` WISEflow API endpoint.
     - It uses the `lastrun` timestamp from the settings to fetch only the events that have occurred since the script was last executed.
     - The API response is paginated, and the script iterates through all pages to retrieve all events within the time window.
@@ -72,12 +73,11 @@ php sentinel_f.php -m monitor
 7.  **Detect and Notify Relevant Events**:
     - **Elementary Events**: It queries `sentinelf_tmp` for simple events that are marked as reportable (`evt_tp.report = 1`) and have not been reported yet (`evts.report IS NULL`).
     - **Typing Speed Analysis**: It also analyzes `CHARACTERS_TYPED` events to detect anomalous spikes in typing speed. It calculates the characters per second between consecutive events for a student and compares it against a threshold defined in `sentinelf_event_types`.
-    - **Inactivity Detection**: The script identifies prolonged periods of student inactivity. It calculates the time difference between the current execution and the student's last event. If this period exceeds a configurable threshold (defined in `sentinelf_event_types` for the `INACTIVITY` event type), an alert is generated.
+    - **Inactivity Detection**: The script identifies prolonged periods of student inactivity. It calculates the time difference between the current execution and the student's last event. If this period exceeds a configurable threshold (defined in `sentinelf_event_types` for the `INACTIVITY` event type), an alert is generated. This check excludes students who have already handed in their paper.
     - If any of these relevant events are found, it constructs a single HTML email with a table of all such events and sends it to the management mailing lists (`manageTO` and `manageCC`).
     - It then updates the `report` column for the sent events to prevent them from being reported again.
 8.  **Update Last Run Time**: After processing all flows, it updates the `lastrun` setting with the current timestamp.
-
-At the end of the `monitor` mode execution, if there are no active flows, it cleans up any temporary tables used for analysis.
+9.  **End-of-Session Summary**: If no flows are currently running, the script sends a summary of all events reported during the day's monitoring session, and then removes the temporary analysis table.
 
 ### `report` Mode
 
