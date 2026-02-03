@@ -10,7 +10,7 @@
  * @copyright  Copyright (C) 2025-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2025103104
+ * @version    2026020203
  * @date       2025-10-31
  *
  * This program is free software: you can redistribute it and/or modify
@@ -738,6 +738,113 @@ if (!empty($mode)
             }
 
             if (count($events) > 0) {
+                $students = '';
+                $courses = '';
+
+                foreach ($events as &$event) {
+                    $slctqry = "SELECT flowid,
+                                       subtitle
+                                FROM wiseflow.flows
+                                WHERE flowid = " . intval($event['flowid']) . ";";
+
+                    $flow_info = mysqli_query($conBDInt, $slctqry)
+                                     or die("Ñ foi possível consultar a tabela 'wiseflow.flows': " . mysqli_error($conBDInt)
+                                           . $nl . $nl
+                                           . $slctqry);
+
+                    $flow_row = mysqli_fetch_array($flow_info);
+
+                    $event['subtitle'] = $flow_row['subtitle'];
+
+                    if (strpos($courses, substr($event['subtitle'], 0, 5)) === false) {
+                        $courses .= (empty($courses) ? '' : ', ') . substr($event['subtitle'], 0, 5);
+                        
+                    }
+
+                    $slctqry = "SELECT stdid,
+                                       std_num
+                                FROM wiseflow.students
+                                WHERE stdid = " . intval($event['stdid']) . ";";
+
+                    $std_info = mysqli_query($conBDInt, $slctqry)
+                                    or die("Ñ foi possível consultar a tabela 'wiseflow.students': " . mysqli_error($conBDInt)
+                                          . $nl . $nl
+                                          . $slctqry);
+
+                    $std_row = mysqli_fetch_array($std_info);
+
+                    $event['std_num'] = $std_row['std_num'];
+
+                    if (strpos($students, $event['std_num']) === false) {
+                        $students .= (empty($students) ? '' : ', ') . $event['std_num'];
+
+                    }
+
+                }
+
+                unset($event);
+
+                // verificar acesso à PlataformAbERTA, durante a prova
+                $slctqry = "SELECT report
+                            FROM wiseflow.sentinelf_event_types
+                            WHERE type = 'PLATAFORMABERTA_ACCESS';";
+
+                $evt_report = mysqli_query($conBDInt, $slctqry)
+                                  or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_event_types': " . mysqli_error($conBDInt)
+                                        . $nl . $nl
+                                        . $slctqry);
+
+                $mdl_report = (int)mysqli_fetch_array($evt_report)['report'];
+
+                if ($mdl_report == 1) {
+                    $mdl_access = connect2mdl("estudantes_UC_acesso")
+                                           . "&lista_stds=" . base64_encode($students)
+                                           . "&lista_ucs=" . base64_encode($courses)
+                                           . "&de_ate=" . (string)date("Ymd") . "_" . (string)date("Ymd");
+
+                    $data = json_decode(file_get_contents($mdl_access), true);
+
+                    if (!empty($data)) {
+                        $new_events = array();
+                        $added = array();
+
+                        foreach ($data as $record) {
+                            if ((strtotime($record['lastaccess']) >= $dtfrom)
+                            && (strtotime($record['lastaccess']) <= $dtto)) {
+                                foreach ($events as $event) {
+                                    if ($event['std_num'] === $record['stdnum']) {
+                                        $key = $event['flowid'] . '_' . $event['stdid'] . '_' . $record['ucid'] . strtotime($record['lastaccess']);
+
+                                        if (!isset($added[$key])) {
+                                            $new_events[] = array(
+                                                                  'flowid' => $event['flowid'],
+                                                                  'stdid' => $event['stdid'],
+                                                                  'std_num' => $record['stdnum'],
+                                                                  'timestamp' => $record['lastaccess'],
+                                                                  'type' => 'PLATAFORMABERTA_ACCESS',
+                                                                  'payload' => $record['ucsname']
+                                                            );
+
+                                            $added[$key] = true;
+
+                                        }
+
+                                        break;
+
+                                    }
+
+                                }
+
+                            }
+
+                        }
+
+                        if (!empty($new_events)) { $events = array_merge($events, $new_events); }
+
+                    }
+                            
+                }
+
                 usort($events, function($a, $b) {
                     return strtotime($a['timestamp']) <=> strtotime($b['timestamp']);
 
@@ -759,34 +866,6 @@ if (!empty($mode)
                                 </thead><tbody>";
 
                 foreach ($events as $event) {
-                    $slctqry = "SELECT flowid,
-                                       subtitle
-                                FROM wiseflow.flows
-                                WHERE flowid = " . intval($event['flowid']) . ";";
-
-                    $flow_info = mysqli_query($conBDInt, $slctqry)
-                                     or die("Ñ foi possível consultar a tabela 'wiseflow.flows': " . mysqli_error($conBDInt)
-                                           . $nl . $nl
-                                           . $slctqry);
-
-                    $flow_row = mysqli_fetch_array($flow_info);
-
-                    $event['subtitle'] = $flow_row['subtitle'];
-
-                    $slctqry = "SELECT stdid,
-                                       std_num
-                                FROM wiseflow.students
-                                WHERE stdid = " . intval($event['stdid']) . ";";
-
-                    $std_info = mysqli_query($conBDInt, $slctqry)
-                                    or die("Ñ foi possível consultar a tabela 'wiseflow.students': " . mysqli_error($conBDInt)
-                                          . $nl . $nl
-                                          . $slctqry);
-
-                    $std_row = mysqli_fetch_array($std_info);
-
-                    $event['std_num'] = $std_row['std_num'];
-                    
                     $html_table .= "<tr>";
                     $html_table .= "<td><a href='https://europe.wiseflow.net/manager/display.php?id="
                                                . htmlspecialchars($event['flowid']) . "'>"
@@ -1061,7 +1140,7 @@ if (!empty($mode)
                                     </tr>
                                     <tr>
                                         <th>tipo</th>
-                                        <th>número de eventos</th>
+                                        <th>número</th>
                                     </tr>
                                 </thead><tbody>";
 

@@ -19,6 +19,7 @@ It was originally developed for [Universidade Aberta (UAb)](https://portal.uab.p
 - **Relevant Event Reporting**: Identifies and reports on specific, pre-defined "relevant" events to management, providing timely alerts on critical student activities.
 - **Typing Speed Anomaly Detection**: Monitors `CHARACTERS_TYPED` events to identify sudden, unusual increases in typing speed, which could indicate suspicious activity.
 - **Prolonged Inactivity Detection**: Detects and reports instances where students exhibit prolonged periods of inactivity during a flow, based on event timestamps, excluding students who have already submitted their work.
+- **LMS Access Verification**: Cross-references student activity with Moodle logs to detect if students accessed course materials during an exam.
 - **End-of-Session Summaries**: When the last active exam for the day concludes, a summary of all events reported during that monitoring period is automatically sent to management.
 - **Daily Summaries & No-Show Reporting**: Generates and emails a daily summary report that includes a count of all relevant events detected and a list of any scheduled exams that had no student participation.
 - **JSON Payload Normalization**: Includes a function to validate and standardize JSON payloads before database insertion, ensuring data consistency.
@@ -42,6 +43,7 @@ The script relies on several tables within the `wiseflow` database schema:
 - `flows`: Contains information about the WISEflow flows, including their IDs, start times (`dtfrom`), and end times (`dtto`).
 - `sentinelf_events`: The main table where all fetched student participation events are logged. It includes the flow ID, student ID, timestamp, event type, the full JSON payload of the event, and a `report` column to track if an event has been reported.
 - `sentinelf_event_types`: Acts as a catalogue for event types. It determines whether an event type should be included in management reports (`report` column). This table is also used to store reference values for composite event detection, such as inactivity thresholds.
+- `sentinelf_reported`: Stores a history of events that have been reported to management, used to generate end-of-session synthesis reports.
 - `students`: A table mapping WISEflow student IDs (`stdid`) to their student numbers (`std_num`).
 
 ## Execution
@@ -74,6 +76,7 @@ php sentinel_f.php -m monitor
     - **Elementary Events**: It queries `sentinelf_tmp` for simple events that are marked as reportable (`evt_tp.report = 1`) and have not been reported yet (`evts.report IS NULL`).
     - **Typing Speed Analysis**: It also analyzes `CHARACTERS_TYPED` events to detect anomalous spikes in typing speed. It calculates the characters per second between consecutive events for a student and compares it against a threshold defined in `sentinelf_event_types`.
     - **Inactivity Detection**: The script identifies prolonged periods of student inactivity. It calculates the time difference between the current execution and the student's last event. If this period exceeds a configurable threshold (defined in `sentinelf_event_types` for the `INACTIVITY` event type), an alert is generated. This check excludes students who have already handed in their paper.
+    - **LMS Access Check**: If enabled in the configuration (`PLATAFORMABERTA_ACCESS`), the script queries the Moodle web service to check if any of the monitored students accessed course pages during the exam window. These events are merged with the WISEflow events.
     - If any of these relevant events are found, it constructs a single HTML email with a table of all such events and sends it to the management mailing lists (`manageTO` and `manageCC`).
     - It then updates the `report` column for the sent events to prevent them from being reported again.
 8.  **Update Last Run Time**: After processing all flows, it updates the `lastrun` setting with the current timestamp.
