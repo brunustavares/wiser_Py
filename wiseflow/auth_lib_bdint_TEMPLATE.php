@@ -190,15 +190,18 @@
     }
 
 // PlataformAbERTA
+    // variáveis globais
+        GLOBAL $mdl_wsURL, $mdl_token;
+        $mdl_wsURL = 'https://<hidden-url>/';
+        $mdl_token = '<hidden-token>';
+
     /**
      * Conexão ao web service da PlataformAbERTA
      *
      * @return string
      */
-    function connect2mdl($endpoint)
-    {
-        $mdl_wsURL = 'https://<hidden-url>/';
-        $mdl_token = '<hidden-token>';
+    function connect2mdl($endpoint) {
+        GLOBAL $mdl_wsURL, $mdl_token;
 
         $connection = $mdl_wsURL
                     . '?wstoken=' . $mdl_token

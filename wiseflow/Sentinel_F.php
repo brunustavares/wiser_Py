@@ -72,15 +72,23 @@ if (Is_cli()) {
  *
  * @return array curlopt_base
  */
-function set_curl_params($start_time)
+function set_curl_params($sys, $start_time = null)
 {
-    $auth_chain = checkwftoken($start_time);
+    if ($sys == "wf") {
+        $auth_chain = checkwftoken($start_time);
 
-    $headers = array(
-                     "accept:application/json",
-                     "content-type:application/json",
-                     "authorization:" . $auth_chain,
-                    );
+        $headers = array(
+                         "accept:application/json",
+                         "content-type:application/json",
+                         "authorization:" . $auth_chain,
+                        );
+
+    } elseif ($sys == "mdl") {
+        $headers = array(
+                         "content-type:application/x-www-form-urlencoded",
+                        );
+
+    }
 
     $curlopt_base = array(
                           CURLOPT_RETURNTRANSFER => true,
@@ -149,7 +157,10 @@ function normalizeJsonString($payload) {
     $temp = str_replace('\\"', '"', $payload);
     $decoded = json_decode($temp, true);
 
-    if ($decoded === null) { return null; }
+    if ($decoded === null) {
+        return '"' . addslashes($payload) . '"';
+    
+    }
 
     $encoded = json_encode($decoded, JSON_UNESCAPED_SLASHES);
 
@@ -185,7 +196,7 @@ if (!empty($mode)
     
     if ($mode == "monitor") {
         // obtenção dos parâmetros transversais do curl
-        $curlopt_base = set_curl_params(time());
+        $curlopt_base = set_curl_params("wf", time());
 
         $slctqry = "SELECT MAX(CASE WHEN setting = 'manageTO' THEN value END) AS manageTO,
                            MAX(CASE WHEN setting = 'manageCC' THEN value END) AS manageCC
@@ -293,17 +304,17 @@ if (!empty($mode)
                     //         DATA;
 
                     $data = <<<DATA
-                                {
-                                 "flowId": $flowid,
-                                 "timestamp": {
-                                               "from": $dtfrom,
-                                               "to": $dtto
-                                 },
-                                 "pagination": {
-                                                "limit": $limit,
-                                                "offset": $offset
-                                 }
-                                }
+                                   {
+                                    "flowId": $flowid,
+                                    "timestamp": {
+                                                  "from": $dtfrom,
+                                                  "to": $dtto
+                                    },
+                                    "pagination": {
+                                                   "limit": $limit,
+                                                   "offset": $offset
+                                    }
+                                   }
                             DATA;
 
                     $httpcode = 0;
@@ -312,8 +323,8 @@ if (!empty($mode)
                                                  $curlopt_base,
                                                  array(
                                                        CURLOPT_URL => $url,
-                                                       CURLOPT_CUSTOMREQUEST => 'POST',
                                                        CURLOPT_POSTFIELDS => $data,
+                                                       CURLOPT_CUSTOMREQUEST => 'POST',
                                                  )
                                                 );
 
@@ -797,12 +808,29 @@ if (!empty($mode)
                 $mdl_report = (int)mysqli_fetch_array($evt_report)['report'];
 
                 if ($mdl_report == 1) {
-                    $mdl_access = connect2mdl("estudantes_UC_acesso")
-                                           . "&lista_stds=" . base64_encode($students)
-                                           . "&lista_ucs=" . base64_encode($courses)
-                                           . "&de_ate=" . (string)date("Ymd") . "_" . (string)date("Ymd");
+                    // TODO: dividir em múltiplos requests, se necessário
+                    $curlopt = array_replace(
+                                             set_curl_params("mdl"),
+                                             array(
+                                                   CURLOPT_URL => $mdl_wsURL . '?wstoken=' . $mdl_token,
+                                                   CURLOPT_POSTFIELDS => 'wsfunction=local_aida_estudantes_UC_acesso' .
+                                                                         '&moodlewsrestformat=json' .
+                                                                         '&lista_stds=' . base64_encode($students) .
+                                                                         '&lista_ucs=' . base64_encode($courses) .
+                                                                         '&de_ate=' . (string)date("Ymd") . '_' . (string)date("Ymd"),
+                                                   CURLOPT_CUSTOMREQUEST => 'POST',
+                                             )
+                                            );
 
-                    $data = json_decode(file_get_contents($mdl_access), true);
+                    $curl = curl_init();
+
+                    curl_setopt_array($curl, $curlopt);
+
+                    $response = curl_exec($curl);
+                    // $errNo = curl_errno($curl);
+                    // $err = curl_error($curl);
+
+                    $data = json_decode($response, true);
 
                     if (!empty($data)) {
                         $new_events = array();
@@ -817,7 +845,9 @@ if (!empty($mode)
 
                                         if (!isset($added[$key])) {
                                             $new_events[] = array(
+                                                                  'id' => '00000000',
                                                                   'flowid' => $event['flowid'],
+                                                                  'subtitle' => $event['subtitle'],
                                                                   'stdid' => $event['stdid'],
                                                                   'std_num' => $record['stdnum'],
                                                                   'timestamp' => $record['lastaccess'],
@@ -839,9 +869,24 @@ if (!empty($mode)
 
                         }
 
-                        if (!empty($new_events)) { $events = array_merge($events, $new_events); }
+                        if (!empty($new_events)) {
+                            $events = array_merge($events, $new_events);
+                            
+                            printf("Identificados " . count($new_events) . " acessos à PlataformAbERTA" . $nl);
+                            
+                        } else {
+                            printf("Sem acessos à PlataformAbERTA" . $nl);
+                            
+                        }
 
+                    } else {
+                        printf("Sem acessos à PlataformAbERTA" . $nl);
+                        
                     }
+
+                    curl_close($curl);
+                    unset($response);
+                    unset($data);
                             
                 }
 
@@ -877,7 +922,7 @@ if (!empty($mode)
                     $html_table .= "<td><pre style='margin:0;'>" . htmlspecialchars(normalizeJsonString($event['payload'])) . "</pre></td>";
                     $html_table .= "</tr>";
 
-                    $isrtqry = "INSERT INTO wiseflow.sentinelf_reported(flowid, stdid, timestamp, type, payload, report)
+                    $isrtqry = "INSERT IGNORE INTO wiseflow.sentinelf_reported(flowid, stdid, timestamp, type, payload, report)
                                 VALUES (
                                         " . intval($event['flowid']) . ",
                                         " . intval($event['stdid']) . ",
@@ -1088,13 +1133,11 @@ if (!empty($mode)
         $reportTO = array_map('trim', explode(';', mysqli_fetch_assoc($result)['reportTO']));
 
         // eventos reportados no dia
-        $slctqry = "SELECT CASE WHEN et.report = 1 THEN e.type ELSE 'INACTIVITY' END AS type,
+        $slctqry = "SELECT r.type,
                            COUNT(*) AS N
-                    FROM wiseflow.sentinelf_events e
-                        INNER JOIN wiseflow.sentinelf_event_types et ON et.type = e.type
-                    WHERE e.report IS NOT NULL
-                        AND e.report >= CURDATE()
-                        AND e.report < CURDATE() + INTERVAL 1 DAY
+                    FROM wiseflow.sentinelf_reported r
+                    WHERE r.report >= CURDATE()
+                        AND r.report < CURDATE() + INTERVAL 1 DAY
                     GROUP BY type
                     ORDER BY type ASC;";
 
