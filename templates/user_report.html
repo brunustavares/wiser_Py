@@ -12,7 +12,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2025102405
+ * @version    2026020612
  * @date       2024-02-20
  *
  * This program is free software: you can redistribute it and/or modify
@@ -61,6 +61,11 @@
                 downloadFile("{{ file_url }}", "{{ file_name }}", "/user_report");
             </script>
 
+        {% elif open %}
+            <script type="text/javascript">
+                openPDF("{{ file_url }}");
+            </script>
+
         {% endif %}
 
         <form action="/user_report" method="post" onsubmit="showModal()">
@@ -82,6 +87,19 @@
 
             <div class="mb-3" name="div_courses" id="div_courses" style="display: none;">
                 <input autofocus class="form-control mx-auto w-auto input-field" id="flowid" name="flowid" placeholder="ID do fluxo" type="text">
+
+                <div class="mb-3 report_detail">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" id="flow_sub" name="flow_data" value="flow_sub" checked>
+                        <label class="form-check-label" for="flow_sub">prova</label>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" id="full_log" name="flow_data" value="full_log">
+                        <label class="form-check-label" for="full_log">log completo</label>
+                    </div>
+                </div>
+
             </div>
 
             <button class="btn btn-primary nav-button" type="submit">Executar</button>

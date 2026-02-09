@@ -11,7 +11,7 @@
 # @copyright  Copyright (C) 2024-present Bruno Tavares
 # @license    GNU General Public License v3 or later
 #             https://www.gnu.org/licenses/gpl-3.0.html
-# @version    2026012807
+# @version    2026020612
 # @date       2024-02-20
 #
 # This program is free software: you can redistribute it and/or modify
@@ -28,6 +28,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 
+from fileinput import filename
 import sys
 import os
 from urllib import response
@@ -50,6 +51,8 @@ from flask import Flask, redirect, render_template, request, session
 from flask_session import Session
 from waitress import serve
 from endpoints import call_endpoint
+from PDFgenerator import generate_CoverSheet
+from PDFgenerator import merge_files
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from jinja2 import Template
@@ -725,6 +728,93 @@ def manage_user_bio(userid, method, pic=None):
     return requests.request(method, url, headers=headers, data=payload, files=files)
 
 
+# recolha dos ficheiros submetidos pelo estudante no fluxo
+def get_wf_subs(stdid, stdnum, stdname, flowid, flowtitle, flowsubtitle, flowtype, flowscale, flowseason, flowteacher, dtfrom, dtto):
+    # renovar o token se não estiver definido ou tiver expirado
+    try:
+        if session["wf_token"]["expires_in"] >= (int(datetime.datetime.now().timestamp()) - 180):
+            session["wf_token"] = get_wf_token()
+    
+    except KeyError:
+        session["wf_token"] = get_wf_token()
+
+    url = wf_base_url + "flows/" + flowid + "/participants"
+
+    headers = {
+               'Accept': 'application/json',
+               'Content-Type': 'application/json',
+               'Authorization': session["wf_token"]['token_type'] + ' ' + session["wf_token"]['access_token']
+              }
+
+    participants = requests.request("GET", url, headers=headers).json().get('data')
+
+    for participant in participants:
+        if participant["userId"] == int(stdid):
+            subid = str(participant["submissionId"])
+            break
+
+    url = wf_base_url + "flows/" + flowid + "/submissions/" + subid + "/files"
+
+    headers = {
+               'Accept': 'application/json',
+               'Content-Type': 'application/json',
+               'Authorization': session["wf_token"]['token_type'] + ' ' + session["wf_token"]['access_token']
+              }
+
+    sub_files = requests.request("GET", url, headers=headers).json().get('data')
+
+    sub_files_sorted = sorted(
+        sub_files,
+        key=lambda f: f["createdAt"]
+    )
+
+    files = []
+    output_path = "tmp/usrID" + str(session["user_id"]) + "_" + stdid + "-" + flowid + "-"
+
+    for file in sub_files_sorted:
+        file_url = file["link"]
+        file_name = file["fileName"]
+        file_path = output_path + file_name
+
+        files.append(file_path)
+
+        response = requests.get(file_url, stream=True)
+        response.raise_for_status()
+
+        with open(file_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+
+    CoverSheet = output_path + "CoverSheet.pdf"
+
+    generate_CoverSheet(
+        CoverSheet,
+        "WISEflow",
+        "Europa/Lisboa",
+        flowtitle,
+        flowsubtitle,
+        flowseason,
+        dtfrom,
+        dtto,
+        flowscale,
+        flowtype,
+        flowteacher,
+        stdname,
+        stdnum
+    )
+    
+    files.insert(0, CoverSheet)
+
+    filename = output_path + "prova.pdf"
+
+    merge_files(files, filename)
+    
+    file = {"filename": filename, "url": "https://mdlws.uab.pt/wiser_py/" + filename}
+
+    return file
+
+
 # recolha dos eventos do estudante no fluxo
 def get_wf_events(stdid, flowid, dtfrom, dtto):
     # renovar o token se não estiver definido ou tiver expirado
@@ -1398,7 +1488,7 @@ def sanitize(string):
 # configuração da aplicação
 app = Flask(__name__)
 
-BUILD = "2026012807"  # YYYYMMDDHH
+BUILD = "2026020612"  # YYYYMMDDHH
 
 # SECRET_KEY
 app.secret_key = "RaK7ng8-UCKWZnW6"
@@ -1891,7 +1981,7 @@ def sentinelf_reported():
                          INNER JOIN wiseflow.flows_templates flw_tmpl ON flw_tmpl.id = flw.template \
                      WHERE flw_std.std_num = '"   + student + "' \
                      GROUP BY flw.flowid, rep.type \
-                     ORDER BY flw.flowid, rep.type;"
+                     ORDER BY flw.dtfrom, rep.type;"
 
             wf_db_cursor.execute(query)
             result = wf_db_cursor.fetchall()
@@ -1919,6 +2009,7 @@ def sentinelf_reported():
                 'PAPER_WITHDRAWN': 'rgb(220,20,60)',
                 'PARTICIPANT_PRESENCE': 'rgb(0,191,255)',
                 'PARTICIPATION_PAUSE': 'rgb(255,99,71)',
+                'PLATAFORMABERTA_ACCESS': 'rgb(255,0,0)',
                 'PROCTOR_PASSWORD_CORRECT': 'rgb(154,205,50)',
                 'PROGRESS': 'rgb(199,21,133)',
             }
@@ -2161,8 +2252,9 @@ def calendar():
             wf_db_cursor = wf_db.cursor()
 
             for query in session["result"]:
+                # TODO: viabilizar actualização condicional | se template for o mesmo, actualizar; se for diferente, apagar anterior e inserir novo
                 insert = "INSERT INTO wiseflow.flows (courseid, lectyear, evaltype, season, title, subtitle, flowid, template, dtfrom, dtto, dur, log, to_eval, assign, author) " + \
-                         query
+                          query
 
                 wf_db_cursor.execute(insert)
                 wf_db.commit()
@@ -3107,6 +3199,7 @@ def sys_menu():
 
 
 # histórico completo no WISEflow
+# TODO: ligar a histórico do Sentinel_F
 # TODO: criar módulo imagens do dia
 @app.route("/wf_full_report", methods=["GET", "POST"])
 @login_required
@@ -3483,9 +3576,6 @@ def user_report():
 
         result = wf_db_cursor.fetchall()
 
-        wf_db_cursor.close()
-        wf_db.close()
-
         if len(result) == 0:
             return error_msg("estudante não encontrado", 404, '/user_report')
 
@@ -3552,32 +3642,71 @@ def user_report():
             flowid = None
             for row in result:
                 if str(row[8]) == str(request.form.get("flowid")):
-                    flowid = str(row[8])
                     stdid = str(row[3])
+                    stdnum = str(row[2])
+                    stdname = str(row[0]) + " " + str(row[1])
+                    flowid = str(row[8])
+                    flowtitle = str(row[6])
+                    flowsubtitle = str(row[7])
+                    flowtype = str(row[9])
                     dtfrom = str(row[10])
-                    dtto = str(row[11])
+                    dtto = str(row[11])            
 
             if flowid is not None:
-                from_ts = int(datetime.datetime.strptime(dtfrom, "%Y-%m-%d %H:%M:%S").timestamp()) - 300
-                to_ts = int(datetime.datetime.strptime(dtto, "%Y-%m-%d %H:%M:%S").timestamp()) + 300
+                if request.form.get("flow_data") == "flow_sub":
+                    wf_db_cursor.execute("SELECT f.flowid, \
+                                                 f.evaltype, \
+                                                 f.season, \
+                                                 CONCAT(t.firstname, ' ', t.lastname) AS tName \
+                                          FROM wiseflow.flows f \
+                                              INNER JOIN wiseflow.vw_teacher_2wiseflow ft ON (ft.cd_discip = SUBSTR(f.subtitle, 1, 5) \
+                                                                                              AND SUBSTR(ft.lectyear, 3, 2) = SUBSTR(f.subtitle, 7, 2)) \
+                                              INNER JOIN wiseflow.teachers t ON t.username = ft.username \
+                                          WHERE f.flowid = %s \
+                                          GROUP BY flowid;",
+                                        (flowid, ))
+                    flow_info = wf_db_cursor.fetchone()
 
-                events = get_wf_events(stdid, flowid, from_ts, to_ts)
+                    if flow_info[1] == "E":
+                        flowscale = "12 valores"
+                    elif flow_info[1] == "X":
+                        flowscale = "20 valores"
+                    if flow_info[2] == "N":
+                        flowseason = "Época Normal"
+                    elif flow_info[2] == "R":
+                        flowseason = "Época de Recurso"
+                    elif flow_info[2] == "E":
+                        flowseason = "Época Especial"
+                    flowteacher = flow_info[3]
+                    
+                    file2export = get_wf_subs(stdid, stdnum, stdname, flowid, flowtitle, flowsubtitle, flowtype, flowscale, flowseason, flowteacher, dtfrom, dtto)
 
-                for event in events:
-                    event['timestamp'] = datetime.datetime.fromtimestamp(event['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
-                    event['flowId'] = str(row[7])
-                    event['userId'] = str(row[2])
+                    write_activity_log("download", "flow_submission", ("std_" + str(stdid) + " | flow_" + str(flowid)), session["user_id"], session["T_usage"])
 
-                csv_file = export_to_csv(events, (events[0].keys()), ("tmp/usrID" + str(session["user_id"]) + "_" + str(row[7]) + "-log.csv"), True)
+                    return render_template(USER_REPORT_TPLT, open="True", file_url=file2export["url"], search=True, allow_export=True)
 
-                write_activity_log("export", "FLOWmonitor", ("std_" + str(stdid) + " | flow_" + str(flowid)), session["user_id"], session["T_usage"])
+                elif request.form.get("flow_data") == "full_log":
+                    from_ts = int(datetime.datetime.strptime(dtfrom, "%Y-%m-%d %H:%M:%S").timestamp()) - 300
+                    to_ts = int(datetime.datetime.strptime(dtto, "%Y-%m-%d %H:%M:%S").timestamp()) + 300
 
-                return render_template(USER_REPORT_TPLT, download="True", file_url=csv_file["url"], file_name=csv_file["filename"])
+                    events = get_wf_events(stdid, flowid, from_ts, to_ts)
+
+                    for event in events:
+                        event['timestamp'] = datetime.datetime.fromtimestamp(event['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
+                        event['flowId'] = str(row[7])
+                        event['userId'] = str(row[2])
+
+                    file2export = export_to_csv(events, (events[0].keys()), ("tmp/usrID" + str(session["user_id"]) + "_" + str(row[7]) + "-log.csv"), True)
+
+                    write_activity_log("export", "FLOWmonitor", ("std_" + str(stdid) + " | flow_" + str(flowid)), session["user_id"], session["T_usage"])
+
+                    return render_template(USER_REPORT_TPLT, download="True", file_url=file2export["url"], file_name=file2export["filename"])
 
             else:
                 return error_msg("flowid não encontrado para o estudante", 404, '/user_report')
 
-        # TODO: viabilizar download da prova
+        wf_db_cursor.close()
+        wf_db.close()
 
     write_activity_log("list", "std_report", None, session["user_id"], session["T_usage"])
 

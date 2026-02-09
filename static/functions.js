@@ -11,7 +11,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2026012807
+ * @version    2026020612
  * @date       2024-02-20
  *
  * This program is free software: you can redistribute it and/or modify
@@ -251,15 +251,29 @@ function set_std_flw_status(info, notify=false) {
 
 // download do ficheiro gerado e redirecionamento para a pesquisa
 function downloadFile(file_url, file_name, page) {
-    let link = document.createElement('a');
+    const link = document.createElement('a');
 
     link.href = file_url;
     link.download = file_name;
+
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
 
     setTimeout(function() {
         go_to(page);
     }, 1000);
+}
+
+// abertura do PDF gerado numa tab independente
+function openPDF(file_url) {
+    const newTab = window.open(file_url, '_blank');
+
+    if (!newTab) {
+        alert('Para aceder ao ficheiro, os pop-ups devem estar activados neste site.');
+    }
+
+    newTab.focus();
 }
 
 // link directo

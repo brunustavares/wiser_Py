@@ -18,24 +18,26 @@ It was originally developed for [Universidade Aberta (UAb)](https://portal.uab.p
     *   **Actionable Insights**: Directly manage assessment statuses (e.g., annulment, warnings) and trigger automated email notifications to students from the report view.
     *   **Data Export**: Export report data and statistical indicators to CSV format for external analysis.
 *   **Student-Specific History**: View a complete academic history for any student, including a graphical representation of their biometric verification scores across assessments.
+    *   **Submission Export**: Download a student's submission for a specific assessment as a single merged PDF file. The system automatically generates and prepends a cover sheet containing the assessment details.
+    *   **Event Log Export**: Download the detailed event log for a specific student's assessment attempt as a CSV file.
 *   **Statistical Dashboards**: Access aggregated statistics and performance indicators, filterable by academic year, for both WISEflow and Moodle assessments.
 *   **AIDA Indicators**: Interface with the AIDA web service to retrieve specialized academic indicators.
 
 ### System Administration and Management
 *   **User Management**: Administrators can create, delete, and manage application users and their specific permissions (e.g., `admin`, `flowman`, `bioman`).
 *   **Password Control**: Secure user authentication with password hashing, mandatory password changes on first login, and password reset functionality.
-*   **Activity Logging**: All significant user actions are logged for auditing and monitoring purposes.
+*   **Activity Logging**: All significant user actions are logged for auditing and monitoring purposes. Logs are automatically purged after one year.
 
 ### Data Synchronization and Orchestration
 *   **Endpoint Execution**: Manually trigger synchronization scripts that handle data flows between systems. This includes:
-    *   **WISEflow Sync**: Synchronize students (`sync_stdts`), flows (`sync_flows`), participants (`sync_parts`), and activity statistics (`sync_stats`). These scripts are orchestrated by the Python application but are implemented in PHP.
+    *   **WISEflow Sync**: Synchronize students (`sync_users`), flows (`sync_flows`), participants (`sync_parts`), and activity statistics (`sync_stats`). These scripts are orchestrated by the Python application but are implemented in PHP.
     *   **Moodle Sync**: Collect submissions (`sync_subs`) and grades (`sync_grades`) from PlataformAbERTA (currently marked as discontinued in the UI).
-*   **Calendar Management**: Upload a CSV file to bulk-create assessment schedules (flows) in the system.
+*   **Calendar Management**: Upload a CSV file to bulk-create assessment schedules (flows) in the system. Integrates with Moodle Web Service to automatically determine flow types.
 
 ### WISEflow API Integration Details
 The application orchestrates several PHP scripts to perform detailed synchronization tasks with the WISEflow API. The logic is primarily driven by views in the integration database (`BDInt`), which determine what data needs to be created, updated, or removed in WISEflow.
 
-*   **`sync_stdts.php` (Student Synchronization)**: Manages the lifecycle of student accounts in WISEflow based on data from the `BDInt` database.
+*   **`sync_users.php` (Student Synchronization)**: Manages the lifecycle of student accounts in WISEflow based on data from the `BDInt` database.
     *   **User Creation**:
         *   Identifies new students from the `wiseflow.vw_newstdts_2wiseflow` view.
         *   Creates new users via a `POST` request to `/license/user`.
@@ -64,6 +66,7 @@ The application orchestrates several PHP scripts to perform detailed synchroniza
 ### Specialized Tools and Utilities
 *   **Flow Management (SOS Module)**:
     *   Extend the duration of active WISEflow exams for all participants who have not yet submitted.
+    *   **Data Export**: Export the list of students who received extra time in a flow to a CSV file.
     *   Purge all participants from a specific flow, for example, in case of a cancellation or major error.
 *   **Grade Sync Reset (SOS Module)**: Manually reset the synchronization status of grades for specific courses and students, forcing a new sync attempt to the SiGES academic system.
 *   **Biometric Data Management**: View and manage student reference photos used for biometric identity verification in WISEflow.
@@ -76,8 +79,8 @@ The application orchestrates several PHP scripts to perform detailed synchroniza
 *   **Email Notifications**:
     *   Configure SMTP server settings for sending automated emails.
     *   Manage email templates for various notifications (e.g., assessment cancellations, warnings).
-    *   Send bulk `BCC` emails to students for important announcements.
-*   **WISEflow File Checker**: Upload and analyze `.wf` (WISEflow exam) files to identify the student, flow, and submission timestamp.
+    *   Send bulk `BCC` emails to students for important announcements. Includes a summary report sent to the manager with the list of recipients.
+*   **WISEflow File Checker**: Upload and analyze `.wf` (WISEflow exam) files to identify the student, flow, flow type, and submission timestamp.
 
 ## 2. Architecture
 
@@ -97,7 +100,7 @@ The application orchestrates several PHP scripts to perform detailed synchroniza
 *   **Frontend**: HTML, CSS, JavaScript
 *   **Database**: MySQL (via `mysql-connector-python`)
 *   **Web Server**: Can be run with Waitress for production or the Flask development server.
-*   **Dependencies**: See `requirements.txt` for a full list of Python packages. Key libraries include `Flask`, `requests`, `plotly`, and `mysql-connector-python`.
+*   **Dependencies**: See `requirements.txt` for a full list of Python packages. Key libraries include `Flask`, `Flask-Session`, `requests`, `plotly`, `mysql-connector-python`, `reportlab`, `pypdf`, `waitress` and `wfastcgi`.
 
 ### Data Flow
 The application orchestrates complex data flows:
@@ -109,7 +112,7 @@ The application orchestrates complex data flows:
 ## 3. Setup and Configuration
 
 ### 3.1. Prerequisites
-*   Python 3.8+
+*   Python 3.9+
 *   MySQL Server
 *   PHP environment with access to the required databases (for WISEflow sync scripts).
 *   Access credentials for all databases and external APIs.
@@ -190,4 +193,4 @@ You should have received a copy of the GNU General Public License along with thi
 ### Assets
 
 - **Source code**: GNU GPL v3 or later (© Bruno Tavares)  
-- **Images**: created using [Image Creator from ©Microsoft Designer](https://www.bing.com/images/create?FORM=IRPGEN) and [Ideogram](https://ideogram.ai/t/explore)
+- **Images**: created using [Image Creator from ©Microsoft Designer](https://www.bing.com/images/create?FORM=IRPGEN) and [Ideogram](https://ideogram.ai/t/explore), except Universidade Aberta's logo, with all rights reserved and usage subject to the institution's policy.
