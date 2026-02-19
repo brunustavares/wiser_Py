@@ -295,6 +295,15 @@ button#flw_default {
         width: 210px !important;
     }
 
+    #flow_opt,
+    .flow_opt {
+        width: 250px;
+        margin: auto;
+        padding: 10px;
+        border-radius: 20px;
+        border: 2px solid rgba(211, 211, 211, 0.3);
+    }
+
     .full_report_key {
         text-align: center;
     }

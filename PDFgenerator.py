@@ -11,7 +11,7 @@
 # @copyright  Copyright (C) 2024-present Bruno Tavares
 # @license    GNU General Public License v3 or later
 #             https://www.gnu.org/licenses/gpl-3.0.html
-# @version    2026020612
+# @version    2026021808
 # @date       2026-02-06
 #
 # This program is free software: you can redistribute it and/or modify
@@ -28,7 +28,6 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 
-from reportlab.lib.pagesizes import A4
 from reportlab.platypus import (
     SimpleDocTemplate,
     Paragraph,
@@ -38,6 +37,8 @@ from reportlab.platypus import (
     Image,
     Flowable
 )
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4, landscape, portrait
 from reportlab.lib.styles import (
     getSampleStyleSheet,
     ParagraphStyle
@@ -49,6 +50,7 @@ from reportlab.lib.enums import (
 from reportlab.lib.units import mm
 from reportlab.lib import colors
 from typing import Iterable
+from PIL import Image as PILImage
 from pypdf import PdfWriter
 from datetime import datetime
 from pathlib import Path
@@ -210,7 +212,8 @@ def generate_CoverSheet(
     type: str,
     assessor: str,
     student_name: str,
-    student_number: str
+    student_number: str,
+    student_grade: str
 ):
     doc = SimpleDocTemplate(
         output_path,
@@ -304,18 +307,55 @@ def generate_CoverSheet(
     ]))
 
     sheet.append(info_table)
-    sheet.append(Spacer(1, 200))
+    sheet.append(Spacer(1, 180))
 
     # identificação do estudante
     sheet.append(Paragraph("Estudante", styles["csSectionTitle"]))
-    sheet.append(Paragraph(f"<b>Nome:</b> {student_name}", styles["csNormalLeft"]))
-    sheet.append(Paragraph(f"<b>Número:</b> {student_number}", styles["csNormalLeft"]))
+    sheet.append(Paragraph(f"<b>Nome: </b> {student_name}", styles["csNormalLeft"]))
+    sheet.append(Paragraph(f"<b>Número: </b> {student_number}", styles["csNormalLeft"]))
+    sheet.append(Paragraph(f"<b>Nota: </b> {student_grade}", styles["csNormalLeft"]))
 
     doc.build(
         sheet,
         onFirstPage=watermark,
         onLaterPages=watermark
     )
+
+
+# conversão de imagem para PDF
+def img_to_pdf(img):
+    pil_img = PILImage.open(img)
+    pdf_path = str(img.with_stem(img.stem + "_temp").with_suffix('.pdf'))
+
+    width_px, height_px = pil_img.size
+    dpi = pil_img.info.get("dpi", (72, 72))[0]
+
+    img_width = (width_px / dpi) * 72
+    img_height = (height_px / dpi) * 72
+
+    if width_px > height_px:
+        page_size = landscape(A4)
+
+    else:
+        page_size = portrait(A4)
+
+    page_width, page_height = page_size
+
+    c = canvas.Canvas(pdf_path, pagesize=page_size)
+
+    scale = min(page_width / img_width, page_height / img_height)
+
+    draw_width = img_width * scale
+    draw_height = img_height * scale
+
+    x = (page_width - draw_width) / 2
+    y = (page_height - draw_height) / 2
+
+    c.drawImage(img, x, y, draw_width, draw_height)
+    c.showPage()
+    c.save()
+
+    return pdf_path
 
 
 # junção de PDFs
@@ -327,6 +367,9 @@ def merge_files(pdf_files: Iterable[str | Path], output_path: str | Path) -> Non
     try:
         for pdf in pdf_files:
             pdf = Path(pdf)
+
+            if pdf.suffix.lower() in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']:
+                pdf = img_to_pdf(pdf)
 
             merger.append(str(pdf))
 

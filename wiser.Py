@@ -11,7 +11,7 @@
 # @copyright  Copyright (C) 2024-present Bruno Tavares
 # @license    GNU General Public License v3 or later
 #             https://www.gnu.org/licenses/gpl-3.0.html
-# @version    2026020612
+# @version    2026021808
 # @date       2024-02-20
 #
 # This program is free software: you can redistribute it and/or modify
@@ -750,8 +750,19 @@ def get_wf_subs(stdid, stdnum, stdname, flowid, flowtitle, flowsubtitle, flowtyp
 
     for participant in participants:
         if participant["userId"] == int(stdid):
+            partid = str(participant["participantId"])
             subid = str(participant["submissionId"])
             break
+
+    url = wf_base_url + "flow/" + flowid + "/assessments/" + partid
+
+    headers = {
+               'Accept': 'application/json',
+               'Content-Type': 'application/json',
+               'Authorization': session["wf_token"]['token_type'] + ' ' + session["wf_token"]['access_token']
+              }
+
+    stdgrade = requests.request("GET", url, headers=headers).json().get('data')['grade']
 
     url = wf_base_url + "flows/" + flowid + "/submissions/" + subid + "/files"
 
@@ -801,7 +812,8 @@ def get_wf_subs(stdid, stdnum, stdname, flowid, flowtitle, flowsubtitle, flowtyp
         flowtype,
         flowteacher,
         stdname,
-        stdnum
+        stdnum,
+        stdgrade
     )
     
     files.insert(0, CoverSheet)
@@ -3681,7 +3693,7 @@ def user_report():
                     
                     file2export = get_wf_subs(stdid, stdnum, stdname, flowid, flowtitle, flowsubtitle, flowtype, flowscale, flowseason, flowteacher, dtfrom, dtto)
 
-                    write_activity_log("download", "flow_submission", ("std_" + str(stdid) + " | flow_" + str(flowid)), session["user_id"], session["T_usage"])
+                    write_activity_log("download", "flow_submission", ("std_" + str(stdnum) + " | flow_" + str(flowid)), session["user_id"], session["T_usage"])
 
                     return render_template(USER_REPORT_TPLT, open="True", file_url=file2export["url"], search=True, allow_export=True)
 
@@ -3698,7 +3710,7 @@ def user_report():
 
                     file2export = export_to_csv(events, (events[0].keys()), ("tmp/usrID" + str(session["user_id"]) + "_" + str(row[7]) + "-log.csv"), True)
 
-                    write_activity_log("export", "FLOWmonitor", ("std_" + str(stdid) + " | flow_" + str(flowid)), session["user_id"], session["T_usage"])
+                    write_activity_log("export", "FLOWmonitor", ("std_" + str(stdnum) + " | flow_" + str(flowid)), session["user_id"], session["T_usage"])
 
                     return render_template(USER_REPORT_TPLT, download="True", file_url=file2export["url"], file_name=file2export["filename"])
 
