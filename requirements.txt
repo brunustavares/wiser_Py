@@ -2,7 +2,10 @@ Flask==3.0.0
 Flask-Session
 Jinja2
 mysql-connector-python
+Pillow
 plotly
+pypdf
+reportlab
 requests
 Werkzeug
 wfastcgi==3.0.0

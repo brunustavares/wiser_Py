@@ -738,7 +738,7 @@ def get_wf_subs(stdid, stdnum, stdname, flowid, flowtitle, flowsubtitle, flowtyp
     except KeyError:
         session["wf_token"] = get_wf_token()
 
-    url = wf_base_url + "flows/" + flowid + "/participants"
+    parts_url = wf_base_url + "flows/" + flowid + "/participants"
 
     headers = {
                'Accept': 'application/json',
@@ -746,7 +746,27 @@ def get_wf_subs(stdid, stdnum, stdname, flowid, flowtitle, flowsubtitle, flowtyp
                'Authorization': session["wf_token"]['token_type'] + ' ' + session["wf_token"]['access_token']
               }
 
-    participants = requests.request("GET", url, headers=headers).json().get('data')
+    participants = []
+    offset = 0
+    limit = 100
+    repeat = True
+
+    while repeat:
+        offseturl = parts_url + "?offset=" + str(offset) + "&limit=" + str(limit)
+
+        newparts = requests.request("GET", offseturl, headers=headers).json().get('data')
+
+        if newparts:
+            participants += newparts
+
+            if len(newparts) >= limit:
+                offset += limit
+
+            else:
+                repeat = False
+
+        else:
+            repeat = False
 
     for participant in participants:
         if participant["userId"] == int(stdid):
@@ -754,7 +774,7 @@ def get_wf_subs(stdid, stdnum, stdname, flowid, flowtitle, flowsubtitle, flowtyp
             subid = str(participant["submissionId"])
             break
 
-    url = wf_base_url + "flow/" + flowid + "/assessments/" + partid
+    assess_url = wf_base_url + "flow/" + flowid + "/assessments/" + partid
 
     headers = {
                'Accept': 'application/json',
@@ -762,9 +782,14 @@ def get_wf_subs(stdid, stdnum, stdname, flowid, flowtitle, flowsubtitle, flowtyp
                'Authorization': session["wf_token"]['token_type'] + ' ' + session["wf_token"]['access_token']
               }
 
-    stdgrade = requests.request("GET", url, headers=headers).json().get('data')['grade']
+    result = requests.request("GET", assess_url, headers=headers).json().get('data')
+    if result:
+        stdgrade = [result['grade']]
+        
+    else:
+        stdgrade = '(por classificar)'
 
-    url = wf_base_url + "flows/" + flowid + "/submissions/" + subid + "/files"
+    subs_url = wf_base_url + "flows/" + flowid + "/submissions/" + subid + "/files"
 
     headers = {
                'Accept': 'application/json',
@@ -772,7 +797,7 @@ def get_wf_subs(stdid, stdnum, stdname, flowid, flowtitle, flowsubtitle, flowtyp
                'Authorization': session["wf_token"]['token_type'] + ' ' + session["wf_token"]['access_token']
               }
 
-    sub_files = requests.request("GET", url, headers=headers).json().get('data')
+    sub_files = requests.request("GET", subs_url, headers=headers).json().get('data')
 
     sub_files_sorted = sorted(
         sub_files,
