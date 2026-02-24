@@ -10,7 +10,7 @@
  * @copyright  Copyright (C) 2025-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2026020203
+ * @version    2026022408
  * @date       2025-10-31
  *
  * This program is free software: you can redistribute it and/or modify
@@ -30,10 +30,6 @@
 require ("auth_lib_bdint.php");
 
 date_default_timezone_set('Europe/Lisbon');
-
-define('FULLDATE', "Y-m-d H:i:s");
-
-GLOBAL $base_url;
 
 /**
  * Verifica a origem da chamada: CLI ou browser
@@ -170,6 +166,91 @@ function normalizeJsonString($payload) {
 
 }
 
+/**
+ * Wrapper HTML para emails, com estilos injectados inline
+ *
+ * @return string HTML body
+ */
+function build_email_wrapper($content_html) {
+    $bg_main = "#0B0F14";
+    $bg_card = "#141A22";
+    $border = "#2A3544";
+    $text_main = "#E6E9ED";
+    $accent = "#F28C28";
+    $logo_size = 100;
+    $logo_border = 2;
+    $logo_vml_size = $logo_size + ($logo_border * 2);
+
+    $wrapper = "<table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0' style='width:100%; background-color:" . $bg_main . "; margin:0; padding:24px 0; mso-table-lspace:0pt; mso-table-rspace:0pt;'>
+                    <tr>
+                        <td align='center' style='padding:24px 12px;'>
+                            <!--[if mso]>
+                            <v:roundrect xmlns:v='urn:schemas-microsoft-com:vml' arcsize='3%' strokecolor='" . $border . "' strokeweight='1px' fillcolor='" . $bg_card . "' style='width:900px; mso-width-percent:1000;'>
+                            <v:textbox inset='0,0,0,0'>
+                            <![endif]-->
+                            <!--[if !mso]><!-- -->
+                            <table role='presentation' cellpadding='0' cellspacing='0' border='0' width='100%' style='width:100%; max-width:900px; background-color:" . $bg_card . "; border:1px solid " . $border . "; border-radius:12px; mso-table-lspace:0pt; mso-table-rspace:0pt;'>
+                            <!--<![endif]-->
+                                <tr>
+                                    <td style='padding:18px 20px; border-bottom:1px solid " . $border . ";'>
+                                        <table role='presentation' cellpadding='0' cellspacing='0' border='0' width='100%'>
+                                            <tr>
+                                                <td width='" . $logo_vml_size . "' valign='middle' style='padding-right:12px;'>
+                                                    <!--[if mso]>
+                                                    <v:oval xmlns:v='urn:schemas-microsoft-com:vml' strokecolor='" . $accent . "' strokeweight='" . $logo_border . "px' fill='t' style='width:" . $logo_vml_size . "px; height:" . $logo_vml_size . "px;'>
+                                                        <v:fill src='cid:sentinelfavatar' type='frame' />
+                                                    </v:oval>
+                                                    <![endif]-->
+                                                    <!--[if !mso]><!-- -->
+                                                    <img src='cid:sentinelfavatar' width='100' height='100' style='display:block; border:0; outline:none; text-decoration:none; border-radius:50%; border:2px solid " . $accent . "; -ms-interpolation-mode:bicubic;' alt='Sentinel_F'>
+                                                    <!--<![endif]-->
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style='padding:20px; font-family: Segoe UI, Arial, sans-serif; color:" . $text_main . ";'>
+                                        " . $content_html . "
+                                    </td>
+                                </tr>
+                            <!--[if !mso]><!-- -->
+                            </table>
+                            <!--<![endif]-->
+                            <!--[if mso]>
+                            </v:textbox>
+                            </v:roundrect>
+                            <![endif]-->
+                        </td>
+                    </tr>
+                </table>";
+
+    return $wrapper;
+
+}
+
+/**
+ * Tabela com estilos inline, para compatibilidade com clientes de email
+ *
+ * @return array<string, string>
+ */
+function get_email_table_styles() {
+    return array(
+        "table" => "width:100%; border-collapse:collapse; background-color:#141A22; color:#E6E9ED; font-family: Segoe UI, Arial, sans-serif; mso-table-lspace:0pt; mso-table-rspace:0pt;",
+        "th" => "padding:14px 16px; text-align:left; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; background-color:#1C2430; color:#E6E9ED; border-bottom:1px solid rgba(242,140,40,0.25);",
+        "td" => "padding:12px 16px; font-size:14px; color:#9AA3AE; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:top;",
+        "td_primary" => "padding:12px 16px; font-size:14px; color:#E6E9ED; font-weight:500; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:top;",
+        "td_accent" => "padding:12px 16px; font-size:14px; color:#F28C28; font-weight:500; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:top;",
+        "td_center" => "padding:12px 16px; font-size:14px; color:#9AA3AE; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:top; text-align:center;",
+        "th_center" => "padding:14px 16px; text-align:center; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; background-color:#1C2430; color:#E6E9ED; border-bottom:1px solid rgba(242,140,40,0.25);",
+        "section_title" => "padding:14px 16px; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#E6E9ED; background-color:#1C2430; border-top:1px solid rgba(242,140,40,0.25); border-bottom:1px solid rgba(242,140,40,0.25);",
+        "link" => "color:#E6E9ED; text-decoration:none;",
+        "row_even" => "background-color:#141A22;",
+        "row_odd" => "background-color:#1C2430;",
+        "payload" => "font-family: Consolas, monospace; font-size:12px; line-height:1.4; white-space:pre-wrap; word-break:break-word; color:#9AA3AE; margin:0;"
+    );
+}
+
 $mode = getopt("m:", ["mode:"]);
 
 if (!empty($mode)
@@ -190,6 +271,7 @@ if (!empty($mode)
                         . $slctqry);
 
     $admin = (string)mysqli_fetch_assoc($result)['admin'];
+    $email_styles = get_email_table_styles();
 
     $email->setFrom('Sentinel_F@uab.pt', 'Sentinel_F');
     $email->addEmbeddedImage('../static/img/Sentinel_F.jpg', 'sentinelfavatar', 'Sentinel_F.jpg');
@@ -229,7 +311,7 @@ if (!empty($mode)
         $total = mysqli_num_rows($running_flows);
 
         if ($total > 0) {
-            $runtime = (string)date(FULLDATE);
+            $runtime = (string)date("Y-m-d H:i:s");
 
             $get_lastrun = "SELECT value AS lastrun
                             FROM wiseflow.sentinelf_settings
@@ -432,18 +514,19 @@ if (!empty($mode)
 
                     $html_table = '';
 
-                    $html_table .= "<table border='1' cellspacing='0' cellpadding='6' style='border-collapse: collapse; font-family: Arial, sans-serif;'>";
+                    $html_table .= "<table border='0' cellspacing='0' cellpadding='0' style='" . $email_styles['table'] . "'>";
 
-                    $html_table .= "<thead style='background-color:#f0f0f0;'>
+                    $html_table .= "<thead>
                                         <tr>
-                                            <th>flow</th>
-                                            <th>std_num</th>
-                                            <th>timestamp</th>
-                                            <th>type</th>
-                                            <th>payload</th>
+                                            <th style='" . $email_styles['th'] . "'>flow</th>
+                                            <th style='" . $email_styles['th'] . "'>std_num</th>
+                                            <th style='" . $email_styles['th'] . "'>timestamp</th>
+                                            <th style='" . $email_styles['th'] . "'>type</th>
+                                            <th style='" . $email_styles['th'] . "'>payload</th>
                                         </tr>
                                     </thead><tbody>";
 
+                    $row_index = 0;
                     foreach ($events as $event) {
                         $slctqry = "SELECT flowid,
                                            subtitle
@@ -473,15 +556,22 @@ if (!empty($mode)
 
                         $event['std_num'] = $std_row['std_num'];
                         
-                        $html_table .= "<tr>";
-                        $html_table .= "<td><a href='https://europe.wiseflow.net/manager/display.php?id="
-                                                   . htmlspecialchars($event['flowid']) . "'>"
-                                                   . htmlspecialchars($event['subtitle']) . "</a></td>";
-                        $html_table .= "<td>" . htmlspecialchars($event['std_num']) . "</td>";
-                        $html_table .= "<td>" . htmlspecialchars($event['timestamp']) . "</td>";
-                        $html_table .= "<td>" . htmlspecialchars($event['type']) . "</td>";
-                        $html_table .= "<td><pre style='margin:0;'>" . htmlspecialchars($event['payload']) . "</pre></td>";
-                        $html_table .= "</tr>";
+                        $row_style = ($row_index % 2 == 0) ? $email_styles['row_even'] : $email_styles['row_odd'];
+                        $html_table .= "<tr style='" . $row_style . "'>
+                                            <td style='" . $email_styles['td_primary'] . "'>
+                                                <a style='" . $email_styles['link'] . "' href='https://europe.wiseflow.net/manager/display.php?id="
+                                                            . htmlspecialchars($event['flowid']) . "'>"
+                                                            . htmlspecialchars($event['subtitle']) . "
+                                                </a>
+                                            </td>
+                                            <td style='" . $email_styles['td'] . "'>" . htmlspecialchars($event['std_num']) . "</td>
+                                            <td style='" . $email_styles['td'] . "'>" . htmlspecialchars($event['timestamp']) . "</td>
+                                            <td style='" . $email_styles['td_accent'] . "'>" . htmlspecialchars($event['type']) . "</td>
+                                            <td style='" . $email_styles['td'] . "'>
+                                                <span style='" . $email_styles['payload'] . "'>" . htmlspecialchars($event['payload']) . "</span>
+                                            </td>
+                                        </tr>";
+                        $row_index++;
 
                     }
 
@@ -506,16 +596,7 @@ if (!empty($mode)
 
                     $email->Subject = 'ALERTA: novos eventos registados';
 
-                    $email->Body = '<div style="font-family: Arial, sans-serif; color: #222;">
-                                        <div style="display:flex; align-items:center; gap:12px;">
-                                            <img src="cid:sentinelfavatar" width="100" height="100" style="border-radius:50%; object-fit:cover;">
-                                        </div>
-
-                                        <hr>'
-
-                                      . $html_table .
-
-                                   '</div>';
+                    $email->Body = build_email_wrapper($html_table);
 
                     $email->send();
                 
@@ -897,30 +978,38 @@ if (!empty($mode)
 
                 $html_table = '';
 
-                $html_table .= "<table border='1' cellspacing='0' cellpadding='6' style='border-collapse: collapse; font-family: Arial, sans-serif;'>";
+                $html_table .= "<table border='0' cellspacing='0' cellpadding='0' style='" . $email_styles['table'] . "'>";
 
-                $html_table .= "<thead style='background-color:#f0f0f0;'>
+                $html_table .= "<thead>
                                     <tr>
-                                        <th>flow</th>
-                                        <th>std_num</th>
-                                        <th>stdid</th>
-                                        <th>timestamp</th>
-                                        <th>type</th>
-                                        <th>payload</th>
+                                        <th style='" . $email_styles['th'] . "'>flow</th>
+                                        <th style='" . $email_styles['th'] . "'>std_num</th>
+                                        <th style='" . $email_styles['th'] . "'>stdid</th>
+                                        <th style='" . $email_styles['th'] . "'>timestamp</th>
+                                        <th style='" . $email_styles['th'] . "'>type</th>
+                                        <th style='" . $email_styles['th'] . "'>payload</th>
                                     </tr>
                                 </thead><tbody>";
 
+                $row_index = 0;
                 foreach ($events as $event) {
-                    $html_table .= "<tr>";
-                    $html_table .= "<td><a href='https://europe.wiseflow.net/manager/display.php?id="
-                                               . htmlspecialchars($event['flowid']) . "'>"
-                                               . htmlspecialchars($event['subtitle']) . "</a></td>";
-                    $html_table .= "<td>" . htmlspecialchars($event['std_num']) . "</td>";
-                    $html_table .= "<td>" . htmlspecialchars($event['stdid']) . "</td>";
-                    $html_table .= "<td>" . htmlspecialchars($event['timestamp']) . "</td>";
-                    $html_table .= "<td>" . htmlspecialchars($event['type']) . "</td>";
-                    $html_table .= "<td><pre style='margin:0;'>" . htmlspecialchars(normalizeJsonString($event['payload'])) . "</pre></td>";
-                    $html_table .= "</tr>";
+                    $row_style = ($row_index % 2 == 0) ? $email_styles['row_even'] : $email_styles['row_odd'];
+                    $html_table .= "<tr style='" . $row_style . "'>
+                                        <td style='" . $email_styles['td_primary'] . "'>
+                                            <a style='" . $email_styles['link'] . "' href='https://europe.wiseflow.net/manager/display.php?id="
+                                                        . htmlspecialchars($event['flowid']) . "'>"
+                                                        . htmlspecialchars($event['subtitle']) . "
+                                            </a>
+                                        </td>
+                                        <td style='" . $email_styles['td'] . "'>" . htmlspecialchars($event['std_num']) . "</td>
+                                        <td style='" . $email_styles['td'] . "'>" . htmlspecialchars($event['stdid']) . "</td>
+                                        <td style='" . $email_styles['td'] . "'>" . htmlspecialchars($event['timestamp']) . "</td>
+                                        <td style='" . $email_styles['td_accent'] . "'>" . htmlspecialchars($event['type']) . "</td>
+                                        <td style='" . $email_styles['td'] . "'>
+                                            <span style='" . $email_styles['payload'] . "'>" . htmlspecialchars(normalizeJsonString($event['payload'])) . "</span>
+                                        </td>
+                                    </tr>";
+                    $row_index++;
 
                     $isrtqry = "INSERT IGNORE INTO wiseflow.sentinelf_reported(flowid, stdid, timestamp, type, payload, report)
                                 VALUES (
@@ -960,16 +1049,7 @@ if (!empty($mode)
 
                 $email->Subject = 'ALERTA: eventos relevantes detectados';
 
-                $email->Body = '<div style="font-family: Arial, sans-serif; color: #222;">
-                                    <div style="display:flex; align-items:center; gap:12px;">
-                                        <img src="cid:sentinelfavatar" width="100" height="100" style="border-radius:50%; object-fit:cover;">
-                                    </div>
-
-                                    <hr>'
-
-                                  . $html_table .
-
-                               '</div>';
+                $email->Body = build_email_wrapper($html_table);
 
                 $email->send();
             
@@ -1047,30 +1127,35 @@ if (!empty($mode)
                 if (mysqli_num_rows($report) > 0) {
                     $html_table = '';
 
-                    $html_table .= "<table border='1' cellspacing='0' cellpadding='6' style='border-collapse: collapse; font-family: Arial, sans-serif;'>";
+                    $html_table .= "<table border='0' cellspacing='0' cellpadding='0' style='" . $email_styles['table'] . "'>";
 
                     $events = [];
 
                     $events = mysqli_fetch_all($report, MYSQLI_ASSOC);
 
-                    $html_table .= "<thead style='background-color:#f0f0f0;'>
+                    $html_table .= "<thead>
                                         <tr>
-                                            <th>flow</th>
-                                            <th>std_num</th>
-                                            <th>tipo</th>
-                                            <th>número de eventos</th>
+                                            <th style='" . $email_styles['th'] . "'>flow</th>
+                                            <th style='" . $email_styles['th'] . "'>std_num</th>
+                                            <th style='" . $email_styles['th'] . "'>tipo</th>
+                                            <th style='" . $email_styles['th'] . "'>número de eventos</th>
                                         </tr>
                                     </thead><tbody>";
 
                     foreach ($events as $event) {
-                        $html_table .= "<tr>";
-                        $html_table .= "<td><a href='https://europe.wiseflow.net/manager/display.php?id="
-                                                   . htmlspecialchars($event['flowid']) . "'>"
-                                                   . htmlspecialchars($event['subtitle']) . "</a></td>";
-                        $html_table .= "<td>" . htmlspecialchars($event['std_num']) . "</td>";
-                        $html_table .= "<td>" . htmlspecialchars($event['type']) . "</td>";
-                        $html_table .= "<td style='text-align:center;'>" . htmlspecialchars($event['N']) . "</td>";
-                        $html_table .= "</tr>";
+                        $row_style = ($row_index % 2 == 0) ? $email_styles['row_even'] : $email_styles['row_odd'];
+                        $html_table .= "<tr style='" . $row_style . "'>
+                                            <td style='" . $email_styles['td_primary'] . "'>
+                                                <a style='" . $email_styles['link'] . "' href='https://europe.wiseflow.net/manager/display.php?id="
+                                                            . htmlspecialchars($event['flowid']) . "'>"
+                                                            . htmlspecialchars($event['subtitle']) . "
+                                                </a>
+                                            </td>
+                                            <td style='" . $email_styles['td'] . "'>" . htmlspecialchars($event['std_num']) . "</td>
+                                            <td style='" . $email_styles['td_accent'] . "'>" . htmlspecialchars($event['type']) . "</td>
+                                            <td style='" . $email_styles['td_center'] . "'>" . htmlspecialchars($event['N']) . "</td>
+                                        </tr>";
+                        $row_index++;
 
                     }
                     
@@ -1081,16 +1166,7 @@ if (!empty($mode)
 
                     $email->Subject = 'INFO: síntese de eventos reportados no período';
 
-                    $email->Body = '<div style="font-family: Arial, sans-serif; color: #222;">
-                                        <div style="display:flex; align-items:center; gap:12px;">
-                                            <img src="cid:sentinelfavatar" width="100" height="100" style="border-radius:50%; object-fit:cover;">
-                                        </div>
-
-                                        <hr>'
-
-                                      . $html_table .
-
-                                   '</div>';
+                    $email->Body = build_email_wrapper($html_table);
 
                     $email->send();
                 
@@ -1170,30 +1246,35 @@ if (!empty($mode)
             || mysqli_num_rows($empty) > 0) {
             $html_table = '';
 
-            $html_table .= "<table border='1' cellspacing='0' cellpadding='6' style='border-collapse: collapse; font-family: Arial, sans-serif;'>";
+            $html_table .= "<table border='0' cellspacing='0' cellpadding='0' style='" . $email_styles['table'] . "'>";
+            $row_index = 0;
 
             $events = [];
 
             if (mysqli_num_rows($report) > 0) {
                 $events = mysqli_fetch_all($report, MYSQLI_ASSOC);
 
-                $html_table .= "<thead style='background-color:#f0f0f0;'>
+                $html_table .= "<thead>
                                     <tr>
-                                        <th colspan='2'>eventos reportados</th>
+                                        <th style='" . $email_styles['section_title'] . "' colspan='2'>eventos reportados</th>
                                     </tr>
                                     <tr>
-                                        <th>tipo</th>
-                                        <th>número</th>
+                                        <th style='" . $email_styles['th'] . "'>tipo</th>
+                                        <th style='" . $email_styles['th_center'] . "'>número</th>
                                     </tr>
                                 </thead><tbody>";
 
                 foreach ($events as $event) {
-                    $html_table .= "<tr>";
-                    $html_table .= "<td>" . htmlspecialchars($event['type']) . "</td>";
-                    $html_table .= "<td style='text-align:center;'>" . htmlspecialchars($event['N']) . "</td>";
-                    $html_table .= "</tr>";
+                    $row_style = ($row_index % 2 == 0) ? $email_styles['row_even'] : $email_styles['row_odd'];
+                    $html_table .= "<tr style='" . $row_style . "'>
+                                        <td style='" . $email_styles['td_accent'] . "'>" . htmlspecialchars($event['type']) . "</td>
+                                        <td style='" . $email_styles['td_center'] . "'>" . htmlspecialchars($event['N']) . "</td>
+                                    </tr>";
+                    $row_index++;
 
                 }
+
+                $html_table .= "</tbody>";
 
             }
             
@@ -1202,25 +1283,33 @@ if (!empty($mode)
             if (mysqli_num_rows($empty) > 0) {
                 $events = mysqli_fetch_all($empty, MYSQLI_ASSOC);
 
-                $html_table .= "<thead style='background-color:#f0f0f0;'>
+                $html_table .= "<thead>
                                     <tr>
-                                        <th colspan='2'>fluxos S/ participação</th>
+                                        <th style='" . $email_styles['section_title'] . "' colspan='2'>fluxos S/ participação</th>
                                     </tr>
                                     <tr>
-                                        <th>subtítulo</th>
-                                        <th>título</th>
+                                        <th style='" . $email_styles['th'] . "'>subtítulo</th>
+                                        <th style='" . $email_styles['th'] . "'>título</th>
                                     </tr>
                                 </thead><tbody>";
 
                 foreach ($events as $event) {
-                    $html_table .= "<tr>";
-                    $html_table .= "<td><a href='https://europe.wiseflow.net/manager/display.php?id="
-                                               . htmlspecialchars($event['flowid']) . "'>"
-                                               . htmlspecialchars($event['subtitle']) . "</a></td>";
-                    $html_table .= "<td><a href='https://europe.wiseflow.net/manager/display.php?id="
-                                               . htmlspecialchars($event['flowid']) . "'>"
-                                               . htmlspecialchars($event['title']) . "</a></td>";
-                    $html_table .= "</tr>";
+                    $row_style = ($row_index % 2 == 0) ? $email_styles['row_even'] : $email_styles['row_odd'];
+                    $html_table .= "<tr style='" . $row_style . "'>
+                                        <td style='" . $email_styles['td_primary'] . "'>
+                                            <a style='" . $email_styles['link'] . "' href='https://europe.wiseflow.net/manager/display.php?id="
+                                                        . htmlspecialchars($event['flowid']) . "'>"
+                                                        . htmlspecialchars($event['subtitle']) . "
+                                            </a>
+                                        </td>
+                                        <td style='" . $email_styles['td_primary'] . "'>
+                                            <a style='" . $email_styles['link'] . "' href='https://europe.wiseflow.net/manager/display.php?id="
+                                                        . htmlspecialchars($event['flowid']) . "'>"
+                                                        . htmlspecialchars($event['title']) . "
+                                            </a>
+                                        </td>
+                                    </tr>";
+                    $row_index++;
 
                 }
 
@@ -1232,16 +1321,7 @@ if (!empty($mode)
 
             $email->Subject = date("Y/M_d") . ': eventos relevantes';
 
-            $email->Body = '<div style="font-family: Arial, sans-serif; color: #222;">
-                                <div style="display:flex; align-items:center; gap:12px;">
-                                    <img src="cid:sentinelfavatar" width="100" height="100" style="border-radius:50%; object-fit:cover;">
-                                </div>
-
-                                <hr>'
-
-                              . $html_table .
-
-                           '</div>';
+            $email->Body = build_email_wrapper($html_table);
 
             $email->send();
         
