@@ -76,6 +76,14 @@
 
                         {% if stats %}
                             <th>
+                                <a class="nav-link" href="{{ url_for('queryn') }}" onclick="showModal()">
+                                    <img src="static/img/queryn.jpg" class="menu-button" alt="Queryn">
+                                    <br><br>
+                                    <label class="menu-label">Queryn</label>
+                                </a>
+                            </th>
+
+                            <th>
                                 <a class="nav-link" href="{{ url_for('aida') }}" onclick="showModal()">
                                     <img src="static/img/AIDA.jpg" class="menu-button" alt="AIDA">
                                 </a>

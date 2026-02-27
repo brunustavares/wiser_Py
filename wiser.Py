@@ -11,7 +11,7 @@
 # @copyright  Copyright (C) 2024-present Bruno Tavares
 # @license    GNU General Public License v3 or later
 #             https://www.gnu.org/licenses/gpl-3.0.html
-# @version    2026021808
+# @version    2026022706
 # @date       2024-02-20
 #
 # This program is free software: you can redistribute it and/or modify
@@ -53,6 +53,7 @@ from waitress import serve
 from endpoints import call_endpoint
 from PDFgenerator import generate_CoverSheet
 from PDFgenerator import merge_files
+from AI_module import ask_AI
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from jinja2 import Template
@@ -68,6 +69,7 @@ USER_GRAPH_TPLT = "user_graph.html"
 USER_BIO_TPLT = "user_bio.html"
 WF_STATS_TPLT = "wf_stats.html"
 MDL_STATS_TPLT = "mdl_stats.html"
+QUERYN_TPLT = "queryn.html"
 AIDA_TPLT = "aida.html"
 SENTINEL_F_TPLT = "sentinel_f.html"
 SENTINELF_EVENTS_TPLT = "sentinelf_events_2check.html"
@@ -1525,7 +1527,7 @@ def sanitize(string):
 # configuração da aplicação
 app = Flask(__name__)
 
-BUILD = "2026020612"  # YYYYMMDDHH
+BUILD = "2026022706"  # YYYYMMDDHH
 
 # SECRET_KEY
 app.secret_key = "RaK7ng8-UCKWZnW6"
@@ -3994,6 +3996,38 @@ def mdl_stats():
 
     # caso contrário, carregar página de pesquisa
     return render_template(MDL_STATS_TPLT, lect_year=lect_year, search=True)
+
+
+# Queryn
+@app.route("/queryn", methods=["GET", "POST"])
+@login_required
+def queryn():
+    session["T_usage"] += (int(datetime.datetime.now().timestamp() - session["time"]))
+    session["time"] = int(datetime.datetime.now().timestamp())
+
+    # caso seja obrigatória a alteração da password, redireccionar para a página de alteração
+    if set_pwd(session["user_id"]):
+        return redirect("/change_pwd")
+
+    # caso o utilizador não tenha privilégios de statsman ou admin, redireccionar para a página principal
+    if is_statsman(session["user_id"]) is None and is_admin(session["user_id"]) is None:
+        return redirect("/")
+
+    # se o utilizador chegar ao formulário via POST
+    if request.method == "POST":
+        if request.form.get("prompt").strip() == "":
+            return error_msg("prompt vazia", 400, '/queryn')
+
+        response = ask_AI(request.form.get("prompt"))["answer"]
+
+        write_activity_log("ask", "queryn", f"\"{request.form.get('prompt')}\"", session["user_id"], session["T_usage"])
+
+        return render_template(QUERYN_TPLT, response=response)
+
+    write_activity_log("visit", "queryn", None, session["user_id"], session["T_usage"])
+
+    # caso contrário, redireccionar para a página de selecção
+    return render_template(QUERYN_TPLT)
 
 
 # indicadores AIDA

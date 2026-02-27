@@ -1,6 +1,9 @@
 bak/
 plataformaberta/auth_lib_mdl.php
 plataformaberta/*.bat
+static/DB/system_prompt_generator.md
+static/DB/wiseflow.json
+static/DB/wiseflow_semantics.json
 wiseflow/DB/
 wiseflow/auth_lib_bdint.php
 wiseflow/rectify_assessor_type.php

@@ -1,0 +1,102 @@
+[
+  {
+    "table": "programs",
+    "columns": [
+      {"key": "PRI", "name": "id", "type": "int", "extra": "auto_increment", "default": null, "nullable": "NO"},
+      {"key": "UNI", "name": "code", "type": "varchar(20)", "extra": "", "default": null, "nullable": "NO"},
+      {"key": "", "name": "title", "type": "varchar(150)", "extra": "", "default": null, "nullable": "NO"},
+      {"key": "", "name": "academic_year", "type": "varchar(9)", "extra": "", "default": null, "nullable": "NO"},
+      {"key": "", "name": "semester", "type": "varchar(10)", "extra": "", "default": null, "nullable": "NO"},
+      {"key": "", "name": "active", "type": "tinyint", "extra": "", "default": "1", "nullable": "NO"}
+    ],
+    "indexes": [
+      {"column": "id", "unique": true, "index_name": "PRIMARY"},
+      {"column": "code", "unique": true, "index_name": "uniq_program_code"},
+      {"column": "academic_year", "unique": false, "index_name": "idx_year"}
+    ],
+    "foreign_keys": null
+  },
+  {
+    "table": "assessments",
+    "columns": [
+      {"key": "PRI", "name": "id", "type": "int", "extra": "auto_increment", "default": null, "nullable": "NO"},
+      {"key": "MUL", "name": "program_id", "type": "int", "extra": "", "default": null, "nullable": "NO"},
+      {"key": "", "name": "title", "type": "varchar(150)", "extra": "", "default": null, "nullable": "NO"},
+      {"key": "", "name": "start_date", "type": "datetime", "extra": "", "default": null, "nullable": "YES"},
+      {"key": "", "name": "end_date", "type": "datetime", "extra": "", "default": null, "nullable": "YES"},
+      {"key": "", "name": "duration_minutes", "type": "int", "extra": "", "default": null, "nullable": "YES"},
+      {"key": "", "name": "published", "type": "tinyint", "extra": "", "default": "0", "nullable": "NO"}
+    ],
+    "indexes": [
+      {"column": "id", "unique": true, "index_name": "PRIMARY"},
+      {"column": "program_id", "unique": false, "index_name": "idx_program"}
+    ],
+    "foreign_keys": null
+  },
+  {
+    "table": "participants",
+    "columns": [
+      {"key": "PRI", "name": "id", "type": "int", "extra": "auto_increment", "default": null, "nullable": "NO"},
+      {"key": "UNI", "name": "external_id", "type": "varchar(50)", "extra": "", "default": null, "nullable": "NO"},
+      {"key": "", "name": "first_name", "type": "varchar(100)", "extra": "", "default": null, "nullable": "NO"},
+      {"key": "", "name": "last_name", "type": "varchar(100)", "extra": "", "default": null, "nullable": "NO"},
+      {"key": "", "name": "email", "type": "varchar(255)", "extra": "", "default": null, "nullable": "YES"},
+      {"key": "", "name": "status", "type": "varchar(20)", "extra": "", "default": "active", "nullable": "NO"}
+    ],
+    "indexes": [
+      {"column": "id", "unique": true, "index_name": "PRIMARY"},
+      {"column": "external_id", "unique": true, "index_name": "uniq_external_id"},
+      {"column": "email", "unique": false, "index_name": "idx_email"}
+    ],
+    "foreign_keys": null
+  },
+  {
+    "table": "submissions",
+    "columns": [
+      {"key": "PRI", "name": "id", "type": "int", "extra": "auto_increment", "default": null, "nullable": "NO"},
+      {"key": "MUL", "name": "assessment_id", "type": "int", "extra": "", "default": null, "nullable": "NO"},
+      {"key": "MUL", "name": "participant_id", "type": "int", "extra": "", "default": null, "nullable": "NO"},
+      {"key": "", "name": "submitted_at", "type": "datetime", "extra": "", "default": null, "nullable": "YES"},
+      {"key": "", "name": "grade", "type": "decimal(5,2)", "extra": "", "default": null, "nullable": "YES"},
+      {"key": "", "name": "status", "type": "varchar(20)", "extra": "", "default": "pending", "nullable": "NO"}
+    ],
+    "indexes": [
+      {"column": "id", "unique": true, "index_name": "PRIMARY"},
+      {"column": "assessment_id", "unique": false, "index_name": "idx_assessment"},
+      {"column": "participant_id", "unique": false, "index_name": "idx_participant"}
+    ],
+    "foreign_keys": null
+  },
+  {
+    "table": "users",
+    "columns": [
+      {"key": "PRI", "name": "id", "type": "int", "extra": "auto_increment", "default": null, "nullable": "NO"},
+      {"key": "UNI", "name": "username", "type": "varchar(50)", "extra": "", "default": null, "nullable": "NO"},
+      {"key": "UNI", "name": "email", "type": "varchar(255)", "extra": "", "default": null, "nullable": "NO"},
+      {"key": "", "name": "password_hash", "type": "varchar(255)", "extra": "", "default": null, "nullable": "NO"},
+      {"key": "", "name": "role", "type": "varchar(20)", "extra": "", "default": "user", "nullable": "NO"},
+      {"key": "", "name": "created_at", "type": "datetime", "extra": "", "default": null, "nullable": "YES"}
+    ],
+    "indexes": [
+      {"column": "id", "unique": true, "index_name": "PRIMARY"},
+      {"column": "username", "unique": true, "index_name": "uniq_username"},
+      {"column": "email", "unique": true, "index_name": "uniq_email"}
+    ],
+    "foreign_keys": null
+  },
+  {
+    "table": "activity_log",
+    "columns": [
+      {"key": "PRI", "name": "id", "type": "int", "extra": "auto_increment", "default": null, "nullable": "NO"},
+      {"key": "MUL", "name": "user_id", "type": "int", "extra": "", "default": null, "nullable": "YES"},
+      {"key": "", "name": "action", "type": "varchar(100)", "extra": "", "default": null, "nullable": "NO"},
+      {"key": "", "name": "entity", "type": "varchar(100)", "extra": "", "default": null, "nullable": "YES"},
+      {"key": "", "name": "created_at", "type": "datetime", "extra": "", "default": null, "nullable": "NO"}
+    ],
+    "indexes": [
+      {"column": "id", "unique": true, "index_name": "PRIMARY"},
+      {"column": "user_id", "unique": false, "index_name": "idx_user"}
+    ],
+    "foreign_keys": null
+  }
+]

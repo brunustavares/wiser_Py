@@ -1,0 +1,50 @@
+{
+  "tables": {
+    "projects": {
+      "purpose": "Project records for departments and fiscal year.",
+      "prefer_for": ["project list", "project by year", "project timeline"],
+      "key_columns": ["project_id", "fiscal_year", "department_id", "project_type", "phase"],
+      "date_columns": ["start_date", "end_date"]
+    },
+    "project_assignments": {
+      "purpose": "Assignment records of employees to projects.",
+      "key_columns": ["employee_id", "project_id", "assignment_id"],
+      "date_columns": ["assigned_at", "completed_at", "reviewed_at", "approved_at", "created_at"]
+    },
+    "employees": {
+      "purpose": "Employee identity and HR registration data.",
+      "key_columns": ["employee_number", "employee_id"]
+    }
+  },
+  "views": {
+    "vw_projects_due_7days": {
+      "purpose": "Projects reaching deadline in the next 7 days (pre-filtered).",
+      "prefer_for": ["next 7 days", "upcoming deadlines", "scheduled tasks"]
+    },
+    "vw_manager_directory": {
+      "purpose": "Managers with department and year information.",
+      "prefer_for": ["managers", "supervisors", "team leads"]
+    },
+    "vw_project_status_overview": {
+      "purpose": "Submitted deliverables and project status information.",
+      "prefer_for": ["status overview", "deliverables submitted", "completion state"]
+    }
+  },
+  "joins": [
+    {
+      "left": "project_assignments.project_id",
+      "right": "projects.project_id",
+      "note": "Connect assignment records to project metadata"
+    },
+    {
+      "left": "project_assignments.employee_id",
+      "right": "employees.employee_id",
+      "note": "Connect assignment records to employee"
+    }
+  ],
+  "synonyms": {
+    "employee": ["worker", "staff", "team member"],
+    "department": ["division", "unit", "branch"],
+    "deadline": ["due date", "cutoff", "delivery date"]
+  }
+}
