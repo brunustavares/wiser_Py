@@ -53,7 +53,7 @@ from waitress import serve
 from endpoints import call_endpoint
 from PDFgenerator import generate_CoverSheet
 from PDFgenerator import merge_files
-from AI_module import ask_AI
+from Queryn import prompt as ask_Queryn
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from jinja2 import Template
@@ -4018,7 +4018,7 @@ def queryn():
         if request.form.get("prompt").strip() == "":
             return error_msg("prompt vazia", 400, '/queryn')
 
-        response = ask_AI(request.form.get("prompt"))["answer"]
+        response = ask_Queryn(request.form.get("prompt"))["answer"]
 
         write_activity_log("ask", "queryn", f"\"{request.form.get('prompt')}\"", session["user_id"], session["T_usage"])
 

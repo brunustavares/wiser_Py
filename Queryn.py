@@ -631,15 +631,15 @@ def answer_question(user_request: str) -> Dict[str, str]:
     }
 
 
-# função principal para interagir com a AI (pode ser chamada por uma interface web, CLI, etc)
-def ask_AI(question: str):
+# função principal para interagir com a Queryn (pode ser chamada por uma interface web, CLI, etc)
+def prompt(question: str):
     build_schema_index()
 
     return answer_question(question)
 
 
 if __name__ == "__main__":
-    result = ask_AI(input("\npedido: "))
+    result = prompt(input("\npedido: "))
 
     print("\nquery gerada:")
     print(result["sql"])
