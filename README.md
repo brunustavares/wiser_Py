@@ -21,6 +21,12 @@ It was originally developed for [Universidade Aberta (UAb)](https://portal.uab.p
     *   **Submission Export**: Download a student's submission for a specific assessment as a single merged PDF file. The system automatically generates and prepends a cover sheet containing the assessment details.
     *   **Event Log Export**: Download the detailed event log for a specific student's assessment attempt as a CSV file.
 *   **Statistical Dashboards**: Access aggregated statistics and performance indicators, filterable by academic year, for both WISEflow and Moodle assessments.
+*   **Queryn (AI Data Assistant)**: Interface with the database using natural language questions.
+    *   **Text-to-SQL**: Leverages LLMs (IAedu, Ollama, OpenAI) to translate user prompts into executable SQL queries.
+    *   **RAG Architecture**: Uses Retrieval-Augmented Generation with schema embeddings to understand the database structure.
+    *   **Semantic Awareness**: Incorporates semantic descriptors to provide the LLM with context about table relationships, field meanings, and business logic.
+    *   **Safety Guardrails**: Implements strict query validation to prevent destructive operations (e.g., `DROP`, `DELETE`) and ensure read-only access.
+    *   **Natural Language Answers**: Summarizes query results into human-readable responses.
 *   **AIDA Indicators**: Interface with the AIDA web service to retrieve specialized academic indicators.
 
 ### System Administration and Management
@@ -89,6 +95,7 @@ The application orchestrates several PHP scripts to perform detailed synchroniza
 ### Components
 *   **Web Application (`wiser.Py`)**: The core Flask application that provides the web interface, manages user sessions, and handles all business logic.
 *   **Synchronization Scripts (`endpoints.py`)**: A Python module that calls external scripts to perform data synchronization. These scripts are a mix of PHP (for WISEflow integration) and Python (for Moodle integration).
+*   **Query Engine (`Queryn.py`)**: Implements the logic for the AI-powered data assistant, handling schema indexing, vector embeddings, semantic context loading, and LLM communication.
 *   **Database**: The application relies heavily on a MySQL database (referred to as `BDInt` or `wiseflow`) which serves as an integration layer. It stores data from WISEflow, Moodle, and configuration for the `wiser.Py` app itself (users, logs, etc.). It also connects to another database (`plataformaberta`) for Moodle-related data.
 *   **External APIs**:
     *   **WISEflow API**: Used for managing flows, participants, and biometric data. Requires OAuth2 authentication.
@@ -100,7 +107,7 @@ The application orchestrates several PHP scripts to perform detailed synchroniza
 *   **Frontend**: HTML, CSS, JavaScript
 *   **Database**: MySQL (via `mysql-connector-python`)
 *   **Web Server**: Can be run with Waitress for production or the Flask development server.
-*   **Dependencies**: See `requirements.txt` for a full list of Python packages. Key libraries include `Flask`, `Flask-Session`, `requests`, `plotly`, `mysql-connector-python`, `reportlab`, `pypdf`, `waitress` and `wfastcgi`.
+*   **Dependencies**: See `requirements.txt` for a full list of Python packages. Key libraries include `Flask`, `Flask-Session`, `requests`, `plotly`, `mysql-connector-python`, `reportlab`, `pypdf`, `openai`, `waitress` and `wfastcgi`.
 
 ### Data Flow
 The application orchestrates complex data flows:
@@ -172,7 +179,7 @@ Access to features is restricted based on user roles, which can be managed by an
 *   **`admin`**: Full access to all features, including user management and application logs.
 *   **`flowman`**: Can manage flows and related data, including access to some SOS and Tools features.
 *   **`bioman`**: Can view and manage student biometric data.
-*   **`statsman`**: Can access the statistical dashboards.
+*   **`statsman`**: Can access the statistical dashboards and the **Queryn** AI assistant.
 *   **`toolsusr`**: Access to general utilities like the calendar uploader and WISEflow file checker.
 *   **`sosusr`**: Access to emergency tools in the "SOS" module, like extending flow times and resetting grade syncs.
 
