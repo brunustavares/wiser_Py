@@ -12,7 +12,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2026012807
+ * @version    2026030608
  * @date       2025-11-14
  *
  * This program is free software: you can redistribute it and/or modify
@@ -33,10 +33,10 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    {% if info == "full" %}
+    {% if full %}
         Sentinel_F: log
 
-    {% elif info == "reported" %}
+    {% elif reported %}
         Sentinel_F: eventos reportados
 
     {% endif %}
@@ -58,24 +58,24 @@
     </div>
 
     <h2>
-        {% if info == "full" %}
+        {% if full %}
             Sentinel_F: log
 
-        {% elif info == "reported" %}
+        {% elif reported %}
             Sentinel_F: eventos reportados
 
         {% endif %}
     </h2>
 
-    <form {% if info == "full" %}
+    <form {% if full %}
               action="/sentinelf_log"
 
-          {% elif info == "reported" %}
+          {% elif reported %}
               action="/sentinelf_reported"
 
           {% endif %} id="full_report" method="post" onsubmit="showModal()">
 
-        {% if info == "reported" %}
+        {% if reported %}
             <div class="mb-3 stats_detail">
                 <div class="form-check">
                     <input class="form-check-input" type="radio" id="by_date" name="events" value="by_date" checked>
@@ -124,7 +124,7 @@
                         {% for row in log %}
                             <tr>
                                 <td><a href="https://europe.wiseflow.net/manager/display.php?id={{ row[1] }}" target="_blank">{{ row[0] }}</a></td>
-                                <td>{{ row[2] }}</td>
+                                <td><a data-toggle="modal" data-target="#std_opt" onclick="attach_std_flw_id('{{ row[2] }}')">{{ row[2] }}</a></td>
                                 <td>{{ row[3] }}</td>
                                 <td>{{ row[4] }}</td>
                                 <td>{{ row[5] }}</td>
@@ -134,6 +134,24 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+
+            <!-- modal para menu de opções no estudante -->
+            <div class="modal fade" id="std_opt" role="dialog">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal">&times;</button>
+                            <h4 class="modal-title" id="modal-title-std_opt"></h4>
+                        </div>
+
+                        <div class="modal-body">
+                            <button class="btn btn-primary nav-button" type="button" id="usr_graph" name="usr_graph" onclick="get_user_info('usr_graph')" data-dismiss="modal">histórico</button>
+                            <br>
+                            <button class="btn btn-primary nav-button" type="button" id="usr_bio" name="usr_bio" onclick="get_user_info('usr_bio')" data-dismiss="modal" {% if not show_bio %} disabled {% endif %}>fotografia</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
         {% elif not search %}

@@ -11,7 +11,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2026020612
+ * @version    2026030608
  * @date       2024-02-20
  *
  * This program is free software: you can redistribute it and/or modify
@@ -204,6 +204,12 @@ function get_user_info(type) {
 
         post("user_report", params);
 
+    } else if (type == "usr_sentinelf") {
+        params["student"] = std_num;
+        params["events"] = "by_student";
+
+        post("sentinelf_reported", params);
+
     } else if (type == "usr_bio") {
         params["student"] = std_num;
 
@@ -231,6 +237,12 @@ function set_std_flw_status(info, notify=false) {
 
     } else if (type == "flw_null_copy") {
         params["set_status"] = "5";
+
+    } else if (type == "flw_null_mdl") {
+        params["set_status"] = "6";
+
+    } else if (type == "flw_revert") {
+        params["set_status"] = "9";
 
     } else if (type == "flw_inloco") {
         params["set_status"] = "4";
@@ -317,28 +329,28 @@ function update_users(usrid) {
 }
 
 // enviar dados do estudante e da prova para os menus de opções
-function attach_std_flw_id(std_num, std_name, flw_id = null) {
+function attach_std_flw_id(std_num, std_name = null, flw_id = null) {
     let std_opt_title = document.getElementById("modal-title-std_opt");
     let flw_opt_title = document.getElementById("modal-title-flw_opt");
+
     let graph_button = document.getElementById("usr_graph");
+    let sentinelf_button = document.getElementById("usr_sentinelf");
     let bio_button = document.getElementById("usr_bio");
-    // let inloco_button = document.getElementById("flw_inloco");
-    // let null_irreg_button = document.getElementById("flw_null_irreg");
-    // let null_bio_button = document.getElementById("flw_null_bio");
-    // let warn_button = document.getElementById("flw_warn");
-    // let default_button = document.getElementById("flw_default");
+
     let yes_button = document.getElementById("yes");
     let no_button = document.getElementById("no");
 
-    std_opt_title.innerHTML = std_num.concat(" | ").concat(std_name);
-    flw_opt_title.innerHTML = std_num.concat(" | ").concat(std_name);
+    if (std_name) {
+        std_opt_title.innerHTML = std_num.concat(" | ").concat(std_name);
+        flw_opt_title.innerHTML = std_num.concat(" | ").concat(std_name);
+    } else {
+        std_opt_title.innerHTML = std_num;
+    }
+
     graph_button.value = std_num;
+    if (sentinelf_button) { sentinelf_button.value = std_num; }
     bio_button.value = std_num;
-    // inloco_button.value = std_num.concat(";").concat(flw_id);
-    // null_irreg_button.value = std_num.concat(";").concat(flw_id);
-    // null_bio_button.value = std_num.concat(";").concat(flw_id);
-    // warn_button.value = std_num.concat(";").concat(flw_id);
-    // default_button.value = std_num.concat(";").concat(flw_id);
+
     yes_button.value = std_num.concat(";").concat(flw_id);
     no_button.value = std_num.concat(";").concat(flw_id);
 }
@@ -364,6 +376,12 @@ function attach_flw_status(flw_status) {
 
     } else if (flw_status == "flw_null_copy") {
         status = " | anulação p/ cópia indevida";
+
+    } else if (flw_status == "flw_null_mdl") {
+        status = " | anulação p/ consulta PlataformAbERTA";
+
+    } else if (flw_status == "flw_revert") {
+        status = " | reposição";
 
     } else if (flw_status == "flw_inloco") {
         status = " | presencial";
@@ -445,6 +463,11 @@ function post(form, params=null) {
     document.body.appendChild(hiddenForm);
 
     hiddenForm.submit();
+}
+
+// visibilidade da div de configuração
+function ShowHideDiv(divID) {
+    document.getElementById(divID).classList.toggle("show");
 }
 
 // visibilidade da janela de modelo de mensagem

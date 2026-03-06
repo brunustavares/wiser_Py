@@ -12,7 +12,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2026012807
+ * @version    2026030608
  * @date       2024-02-20
  *
  * This program is free software: you can redistribute it and/or modify
@@ -153,6 +153,8 @@
                                     {% elif row[14] == "2" %} class="anul_bio" \
                                     {% elif row[14] == "3" %} class="anul_irreg" \
                                     {% elif row[14] == "5" %} class="anul_copy" \
+                                    {% elif row[14] == "6" %} class="anul_mdl" \
+                                    {% elif row[14] == "9" %} class="revert" \
                                     {% elif row[14] == "4" %} class="inloco"
                                     {% endif %}>
                                     <td>{{ row[0] }}</td>
@@ -183,6 +185,8 @@
                         <span class="anul_bio">anulação p/ biometria</span> | 
                         <span class="anul_irreg">anulação p/ realiz.irreg.</span> | 
                         <span class="anul_copy">anulação p/ cópia indevida</span> | 
+                        <span class="anul_mdl">anulação p/ consulta PlataformAbERTA</span> |
+                        <span class="revert">reposição</span> |
                         <span class="inloco">presencial</span>
                     </h4>
 
@@ -204,9 +208,9 @@
 
                             <div class="modal-body">
                                 <button class="btn btn-primary nav-button" type="button" id="usr_graph" name="usr_graph" onclick="get_user_info('usr_graph')" data-dismiss="modal">histórico</button>
-
                                 <br>
-
+                                <button class="btn btn-primary nav-button" type="button" id="usr_sentinelf" name="usr_sentinelf" onclick="get_user_info('usr_sentinelf')" data-dismiss="modal" title="Sentinel_F">monitorização</button>
+                                <br>
                                 <button class="btn btn-primary nav-button" type="button" id="usr_bio" name="usr_bio" onclick="get_user_info('usr_bio')" data-dismiss="modal" {% if not show_bio %} disabled {% endif %}>fotografia</button>
                             </div>
                         </div>
@@ -230,6 +234,10 @@
                                 <button class="btn btn-primary nav-button" type="button" id="flw_null_irreg" name="flw_null_irreg" data-toggle="modal" data-target="#notify" onclick="attach_flw_status('flw_null_irreg')" data-dismiss="modal">anulação p/ realiz.irreg.</button>
                                 <br>
                                 <button class="btn btn-primary nav-button" type="button" id="flw_null_copy" name="flw_null_copy" data-toggle="modal" data-target="#notify" onclick="attach_flw_status('flw_null_copy')" data-dismiss="modal">anulação p/ cópia indevida</button>
+                                <br>
+                                <button class="btn btn-primary nav-button" type="button" id="flw_null_mdl" name="flw_null_mdl" data-toggle="modal" data-target="#notify" onclick="attach_flw_status('flw_null_mdl')" data-dismiss="modal">anulação p/ consulta PlataformAbERTA</button>
+                                <br>
+                                <button class="btn btn-primary nav-button" type="button" id="flw_revert" name="flw_revert" data-toggle="modal" data-target="#notify" onclick="attach_flw_status('flw_revert')" data-dismiss="modal">reposição</button>
                                 <br>
                                 <button class="btn btn-primary nav-button" type="button" id="flw_inloco" name="flw_inloco" data-toggle="modal" data-target="#notify" onclick="attach_flw_status('flw_inloco')" data-dismiss="modal">presencial</button>
                                 <br>

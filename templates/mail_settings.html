@@ -12,7 +12,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2026012807
+ * @version    2026030608
  * @date       2024-02-20
  *
  * This program is free software: you can redistribute it and/or modify
@@ -54,6 +54,12 @@
 
     <h2>
         servidor de e-mail
+
+        <button class="settings_button" type="button" id="settings_button" name="settings_button" title="configuração" onclick="ShowHideDiv('mail_server_settings');" {% if users %} disabled {% endif %}>
+            <svg {% if tools %} class="fa-icon" {% elif users %} class="fa-icon-disabled" {% endif %} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.-->
+                <path d="M259.1 73.5C262.1 58.7 275.2 48 290.4 48L350.2 48C365.4 48 378.5 58.7 381.5 73.5L396 143.5C410.1 149.5 423.3 157.2 435.3 166.3L503.1 143.8C517.5 139 533.3 145 540.9 158.2L570.8 210C578.4 223.2 575.7 239.8 564.3 249.9L511 297.3C511.9 304.7 512.3 312.3 512.3 320C512.3 327.7 511.8 335.3 511 342.7L564.4 390.2C575.8 400.3 578.4 417 570.9 430.1L541 481.9C533.4 495 517.6 501.1 503.2 496.3L435.4 473.8C423.3 482.9 410.1 490.5 396.1 496.6L381.7 566.5C378.6 581.4 365.5 592 350.4 592L290.6 592C275.4 592 262.3 581.3 259.3 566.5L244.9 496.6C230.8 490.6 217.7 482.9 205.6 473.8L137.5 496.3C123.1 501.1 107.3 495.1 99.7 481.9L69.8 430.1C62.2 416.9 64.9 400.3 76.3 390.2L129.7 342.7C128.8 335.3 128.4 327.7 128.4 320C128.4 312.3 128.9 304.7 129.7 297.3L76.3 249.8C64.9 239.7 62.3 223 69.8 209.9L99.7 158.1C107.3 144.9 123.1 138.9 137.5 143.7L205.3 166.2C217.4 157.1 230.6 149.5 244.6 143.4L259.1 73.5zM320.3 400C364.5 399.8 400.2 363.9 400 319.7C399.8 275.5 363.9 239.8 319.7 240C275.5 240.2 239.8 276.1 240 320.3C240.2 364.5 276.1 400.2 320.3 400z"/>
+            </svg>
+        </button>
     </h2>
 
     <form action="/mail_settings" id="mail_settings" method="post" onsubmit="showModal()">
@@ -68,162 +74,161 @@
         <input type="hidden" id="mail_conf" name="mail_conf" {% if tools %} value="tools" {% elif users %} value="users" {% endif %}>
         <input type="hidden" id="mail_server_id" name="mail_server_id" {% if mail_server %} value="{{ mail_server[0] }}" {% else %} value="" {% endif %}>
 
-        <div class="mb-3">
-            <input autocomplete="off" class="form-control mx-auto w-auto mail-server" id="server" name="server" placeholder="Servidor" type="text" {% if mail_server[2] %} value="{{ mail_server[2] }}" {% else %} value="" {% endif %}
-                   onchange="checkUpdtReqs('mail_server', null, {'prev_server':'{{ prev_server }}', 'prev_port':'{{ prev_port }}', 'prev_username':'{{ prev_username }}', 'prev_password':'{{ prev_password }}', 'prev_mailbox':'{{ prev_mailbox }}'})">
-            <input autocomplete="off" class="form-control mx-auto w-auto mail-port" id="port" name="port" placeholder="Porta" type="number" {% if mail_server[3] %} value="{{ mail_server[3] }}" {% else %} value="" {% endif %}
-                   onchange="checkUpdtReqs('mail_server', null, {'prev_server':'{{ prev_server }}', 'prev_port':'{{ prev_port }}', 'prev_username':'{{ prev_username }}', 'prev_password':'{{ prev_password }}', 'prev_mailbox':'{{ prev_mailbox }}'})">
+        <div id="mail_server_settings" {% if tools %} class="mb-3 server-div" {% elif users %} class="mb-3 server-div.show"{% endif %}>
+            <div class="mb-3">
+                <input autocomplete="off" class="form-control mx-auto w-auto mail-server" id="server" name="server" placeholder="Servidor" type="text" {% if mail_server[2] %} value="{{ mail_server[2] }}" {% else %} value="" {% endif %}
+                    onchange="checkUpdtReqs('mail_server', null, {'prev_server':'{{ prev_server }}', 'prev_port':'{{ prev_port }}', 'prev_username':'{{ prev_username }}', 'prev_password':'{{ prev_password }}', 'prev_mailbox':'{{ prev_mailbox }}'})">
+                <input autocomplete="off" class="form-control mx-auto w-auto mail-port" id="port" name="port" placeholder="Porta" type="number" {% if mail_server[3] %} value="{{ mail_server[3] }}" {% else %} value="" {% endif %}
+                    onchange="checkUpdtReqs('mail_server', null, {'prev_server':'{{ prev_server }}', 'prev_port':'{{ prev_port }}', 'prev_username':'{{ prev_username }}', 'prev_password':'{{ prev_password }}', 'prev_mailbox':'{{ prev_mailbox }}'})">
+            </div>
+
+            <div class="mb-3">
+                <input autocomplete="off" class="form-control mx-auto w-auto mail-credentials" id="username" name="username" placeholder="Username" type="text" {% if mail_server[4]  %} value="{{ mail_server[4] }}" {% else %} value="" {% endif %}
+                    onchange="checkUpdtReqs('mail_server', null, {'prev_server':'{{ prev_server }}', 'prev_port':'{{ prev_port }}', 'prev_username':'{{ prev_username }}', 'prev_password':'{{ prev_password }}', 'prev_mailbox':'{{ prev_mailbox }}'})">
+            </div>
+
+            <div class="mb-3">
+                <input autocomplete="off" class="form-control mx-auto w-auto mail-credentials" id="password" name="password" placeholder="Password" type="password" {% if mail_server[5] %} value="{{ mail_server[5] }}" {% else %} value="" {% endif %}
+                    onchange="checkUpdtReqs('mail_server', null, {'prev_server':'{{ prev_server }}', 'prev_port':'{{ prev_port }}', 'prev_username':'{{ prev_username }}', 'prev_password':'{{ prev_password }}', 'prev_mailbox':'{{ prev_mailbox }}'})">
+            </div>
+
+            <div class="mb-3">
+                <input autocomplete="off" class="form-control mx-auto w-auto mail-credentials" id="mailbox" name="mailbox" placeholder="E-mail" type="email" {% if mail_server[6] %} value="{{ mail_server[6] }}" {% else %} value="" {% endif %}
+                    onchange="checkUpdtReqs('mail_server', null, {'prev_server':'{{ prev_server }}', 'prev_port':'{{ prev_port }}', 'prev_username':'{{ prev_username }}', 'prev_password':'{{ prev_password }}', 'prev_mailbox':'{{ prev_mailbox }}'})">
+            </div>
+
+            <button class="btn btn-primary nav-button" type="submit" id="save_server" name="save_server" disabled>Registar servidor</button>
         </div>
 
-        <div class="mb-3">
-            <input autocomplete="off" class="form-control mx-auto w-auto mail-credentials" id="username" name="username" placeholder="Username" type="text" {% if mail_server[4]  %} value="{{ mail_server[4] }}" {% else %} value="" {% endif %}
-                   onchange="checkUpdtReqs('mail_server', null, {'prev_server':'{{ prev_server }}', 'prev_port':'{{ prev_port }}', 'prev_username':'{{ prev_username }}', 'prev_password':'{{ prev_password }}', 'prev_mailbox':'{{ prev_mailbox }}'})">
-        </div>
+        {% if mail_server and tools %}
+            <script type="text/javascript">
+                set_loaded("unloaded")
+            </script>
 
-        <div class="mb-3">
-            <input autocomplete="off" class="form-control mx-auto w-auto mail-credentials" id="password" name="password" placeholder="Password" type="password" {% if mail_server[5] %} value="{{ mail_server[5] }}" {% else %} value="" {% endif %}
-                   onchange="checkUpdtReqs('mail_server', null, {'prev_server':'{{ prev_server }}', 'prev_port':'{{ prev_port }}', 'prev_username':'{{ prev_username }}', 'prev_password':'{{ prev_password }}', 'prev_mailbox':'{{ prev_mailbox }}'})">
-        </div>
+            <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 
-        <div class="mb-3">
-            <input autocomplete="off" class="form-control mx-auto w-auto mail-credentials" id="mailbox" name="mailbox" placeholder="E-mail" type="email" {% if mail_server[6] %} value="{{ mail_server[6] }}" {% else %} value="" {% endif %}
-                   onchange="checkUpdtReqs('mail_server', null, {'prev_server':'{{ prev_server }}', 'prev_port':'{{ prev_port }}', 'prev_username':'{{ prev_username }}', 'prev_password':'{{ prev_password }}', 'prev_mailbox':'{{ prev_mailbox }}'})">
-        </div>
+            <script>var quill = {};</script>
 
-        <button class="btn btn-primary nav-button" type="submit" id="save_server" name="save_server" disabled>Registar servidor</button>
+            <hr>
 
-        {% if mail_server %}
-            <div class="table-responsive">
-                {% if tools %}
-                    <script type="text/javascript">
-                        set_loaded("unloaded")
-                    </script>
+            <h2>
+                modelos de mensagem
 
-                    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+                {% if status %}
+                    <button class="save-msg-template" type="button" data-toggle="modal" id="add_template" name="add_template" title="novo modelo" onclick="showMailDiv('mail_div_{{ templates|length + 1 }}', 'hide');">
+                        <svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+                            <path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM232 344V280H168c-13.3 0-24-10.7-24-24s10.7-24 24-24h64V168c0-13.3 10.7-24 24-24s24 10.7 24 24v64h64c13.3 0 24 10.7 24 24s-10.7 24-24 24H280v64c0 13.3-10.7 24-24 24s-24-10.7-24-24z"/>
+                        </svg>
+                    </button>
+                {% endif %}
+            </h2>
 
-                    <script>var quill = {};</script>
+            <table class="mail-table" id="notifications">
+                <tbody>
+                    <tr>
+                        <td>
+                            <div class="mail-div" id="mail_div_{{ templates|length + 1 }}" name="mail_div_{{ templates|length + 1 }}">
+                                <select class="form-select mail-notif-type" id="notif_type_{{ templates|length + 1 }}" name="notif_type_{{ templates|length + 1 }}"
+                                        onchange="checkUpdtReqs('mail_div', '{{ templates|length + 1 }}')">
+                                    <option selected>tipo de notificação</option>
 
-                    <hr>
+                                    <hr>
 
-                    <h2>
-                        modelos de mensagem
+                                    {% for sta in status %}
+                                        <option value="{{ sta[0] }}">{{ sta[1] }}</option>
+                                    {% endfor %}
+                                </select>
 
-                        {% if status %}
-                            <button class="save-msg-template" type="button" data-toggle="modal" id="add_template" name="add_template" title="novo modelo" onclick="showMailDiv('mail_div_{{ templates|length + 1 }}', 'hide');">
-                                <svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
-                                    <path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM232 344V280H168c-13.3 0-24-10.7-24-24s10.7-24 24-24h64V168c0-13.3 10.7-24 24-24s24 10.7 24 24v64h64c13.3 0 24 10.7 24 24s-10.7 24-24 24H280v64c0 13.3-10.7 24-24 24s-24-10.7-24-24z"/>
-                                </svg>
-                            </button>
-                        {% endif %}
-                    </h2>
+                                <!-- <textarea class="mail-area" id="msg_{{ templates|length + 1 }}" name="msg_{{ templates|length + 1 }}"
+                                            onchange="checkUpdtReqs('mail_div', '{{ templates|length + 1 }}')">
+                                </textarea> -->
 
-                    <table class="mail-table" id="notifications">
-                        <tbody>
+                                <div class="mail-area" id="msg_{{ templates|length + 1 }}" name="msg_{{ templates|length + 1 }}"
+                                        onchange="checkUpdtReqs('mail_div', '{{ templates|length + 1 }}')">
+                                </div>
+
+                                <script>
+                                    quill['{{ templates|length + 1 }}'] = new Quill('#msg_{{ templates|length + 1 }}', {
+                                        theme: 'snow'
+                                    });
+                                </script>
+
+                                <!-- <button class="save-msg-template" type="button" data-toggle="modal" id="updt_template_{{ templates|length + 1 }}" name="updt_template_{{ templates|length + 1 }}" title="guardar modelo" onclick="post('mail_settings', {'sect':'save_template','op':'new','selection':document.getElementById('notif_type_{{ templates|length + 1 }}').value,'selinfo':document.getElementById('notif_type_{{ templates|length + 1 }}').selectedOptions[0].text,'text':document.getElementById('msg_{{ templates|length + 1 }}').value})" disabled> -->
+                                <button class="save-msg-template" type="button" data-toggle="modal" id="updt_template_{{ templates|length + 1 }}" name="updt_template_{{ templates|length + 1 }}" title="guardar modelo" onclick="post('mail_settings', {'sect':'save_template','op':'new','selection':document.getElementById('notif_type_{{ templates|length + 1 }}').value,'selinfo':document.getElementById('notif_type_{{ templates|length + 1 }}').selectedOptions[0].text,'text':quill['{{ templates|length + 1 }}'].root.innerHTML})" disabled>
+                                    <svg class="fa-icon-disabled" id="updt_template_{{ templates|length + 1 }}_icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+                                        <path d="M438.6 105.4c12.5 12.5 12.5 32.8 0 45.3l-256 256c-12.5 12.5-32.8 12.5-45.3 0l-128-128c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0L160 338.7 393.4 105.4c12.5-12.5 32.8-12.5 45.3 0z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <tr class="emptyrow"></tr>
+
+                    {% if templates %}
+                        {% for tplt in templates %}
+                            {% set prev_sel = tplt[1] %}
+                            {% set prev_text = tplt[3] %}
                             <tr>
                                 <td>
-                                    <div class="mail-div" id="mail_div_{{ templates|length + 1 }}" name="mail_div_{{ templates|length + 1 }}">
-                                        <select class="form-select mail-notif-type" id="notif_type_{{ templates|length + 1 }}" name="notif_type_{{ templates|length + 1 }}"
-                                                onchange="checkUpdtReqs('mail_div', '{{ templates|length + 1 }}')">
-                                            <option selected>tipo de notificação</option>
+                                    <div class="mail-div" id="mail_div_{{ tplt[0] }}" name="mail_div_{{ tplt[0] }}">
+                                        <select id="notif_type_{{ tplt[0] }}" name="notif_type_{{ tplt[0] }}"
+                                                {% if tplt[1] == 0 %} class="form-select mail-notif-type advert" \
+                                                {% elif tplt[1] == 2 %} class="form-select mail-notif-type anul_bio" \
+                                                {% elif tplt[1] == 3 %} class="form-select mail-notif-type anul_irreg" \
+                                                {% elif tplt[1] == 5 %} class="form-select mail-notif-type anul_copy" \
+                                                {% elif tplt[1] == 6 %} class="form-select mail-notif-type anul_mdl" \
+                                                {% elif tplt[1] == 4 %} class="form-select mail-notif-type inloco"
+                                                {% endif %}
+                                                onchange="checkUpdtReqs('mail_div', '{{ tplt[0] }}', {'prev_sel':'{{ prev_sel }}', 'prev_text':'{{ prev_text }}'})">
+                                            <option value="{{ tplt[1] }}" selected>{{ tplt[2] }}</option>
 
                                             <hr>
 
                                             {% for sta in status %}
-                                                <option value="{{ sta[0] }}">{{ sta[1] }}</option>
+                                                {% if sta[0] != tplt[1] %}
+                                                    <option value="{{ sta[0] }}">{{ sta[1] }}</option>
+                                                {% endif %}
                                             {% endfor %}
                                         </select>
 
-                                        <!-- <textarea class="mail-area" id="msg_{{ templates|length + 1 }}" name="msg_{{ templates|length + 1 }}"
-                                                  onchange="checkUpdtReqs('mail_div', '{{ templates|length + 1 }}')">
+                                        <!-- <textarea class="mail-area" id="msg_{{ tplt[0] }}" name="msg_{{ tplt[0] }}"
+                                                    onchange="checkUpdtReqs('mail_div', '{{ tplt[0] }}', '{{ prev_sel }}', '{{ prev_text }}')">{{ tplt[3] }}
                                         </textarea> -->
-
-                                        <div class="mail-area" id="msg_{{ templates|length + 1 }}" name="msg_{{ templates|length + 1 }}"
-                                             onchange="checkUpdtReqs('mail_div', '{{ templates|length + 1 }}')">
+                                        
+                                        <div class="mail-area" id="msg_{{ tplt[0] }}" name="msg_{{ tplt[0] }}"
+                                                onchange="checkUpdtReqs('mail_div', '{{ tplt[0] }}', '{{ prev_sel }}', '{{ prev_text }}')">{{ tplt[3] }}
                                         </div>
 
                                         <script>
-                                            quill['{{ templates|length + 1 }}'] = new Quill('#msg_{{ templates|length + 1 }}', {
+                                            quill['{{ tplt[0] }}'] = new Quill('#msg_{{ tplt[0] }}', {
                                                 theme: 'snow'
                                             });
                                         </script>
 
-                                        <!-- <button class="save-msg-template" type="button" data-toggle="modal" id="updt_template_{{ templates|length + 1 }}" name="updt_template_{{ templates|length + 1 }}" title="guardar modelo" onclick="post('mail_settings', {'sect':'save_template','op':'new','selection':document.getElementById('notif_type_{{ templates|length + 1 }}').value,'selinfo':document.getElementById('notif_type_{{ templates|length + 1 }}').selectedOptions[0].text,'text':document.getElementById('msg_{{ templates|length + 1 }}').value})" disabled> -->
-                                        <button class="save-msg-template" type="button" data-toggle="modal" id="updt_template_{{ templates|length + 1 }}" name="updt_template_{{ templates|length + 1 }}" title="guardar modelo" onclick="post('mail_settings', {'sect':'save_template','op':'new','selection':document.getElementById('notif_type_{{ templates|length + 1 }}').value,'selinfo':document.getElementById('notif_type_{{ templates|length + 1 }}').selectedOptions[0].text,'text':quill['{{ templates|length + 1 }}'].root.innerHTML})" disabled>
-                                            <svg class="fa-icon-disabled" id="updt_template_{{ templates|length + 1 }}_icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+                                        <!-- <button class="save-msg-template" type="button" data-toggle="modal" id="updt_template_{{ tplt[0] }}" name="updt_template_{{ tplt[0] }}" title="guardar modelo" onclick="post('mail_settings', {'sect':'save_template','op':'updt','rec':'{{ tplt[1] }}','selection':document.getElementById('notif_type_{{ tplt[0] }}').value,'selinfo':document.getElementById('notif_type_{{ tplt[0] }}').selectedOptions[0].text,'text':document.getElementById('msg_{{ tplt[0] }}').value})" disabled> -->
+                                        <button class="save-msg-template" type="button" data-toggle="modal" id="updt_template_{{ tplt[0] }}" name="updt_template_{{ tplt[0] }}" title="guardar modelo" onclick="post('mail_settings', {'sect':'save_template','op':'updt','rec':'{{ tplt[1] }}','selection':document.getElementById('notif_type_{{ tplt[0] }}').value,'selinfo':document.getElementById('notif_type_{{ tplt[0] }}').selectedOptions[0].text,'text':quill['{{ tplt[0] }}'].root.innerHTML})" disabled>
+                                            <svg class="fa-icon-disabled" id="updt_template_{{ tplt[0] }}_icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
                                                 <path d="M438.6 105.4c12.5 12.5 12.5 32.8 0 45.3l-256 256c-12.5 12.5-32.8 12.5-45.3 0l-128-128c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0L160 338.7 393.4 105.4c12.5-12.5 32.8-12.5 45.3 0z"/>
                                             </svg>
                                         </button>
+
+                                        <button class="save-msg-template" type="button" data-toggle="modal" id="del_template_{{ tplt[0] }}" name="del_template_{{ tplt[0] }}" title="remover modelo" onclick="post('mail_settings', {'sect':'save_template','op':'del','rec':'{{ tplt[1] }}','selinfo':document.getElementById('notif_type_{{ tplt[0] }}').selectedOptions[0].text})">
+                                            <svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. -->
+                                                <path d="M170.5 51.6L151.5 80h145l-19-28.4c-1.5-2.2-4-3.6-6.7-3.6H177.1c-2.7 0-5.2 1.3-6.7 3.6zm147-26.6L354.2 80H368h48 8c13.3 0 24 10.7 24 24s-10.7 24-24 24h-8V432c0 44.2-35.8 80-80 80H112c-44.2 0-80-35.8-80-80V128H24c-13.3 0-24-10.7-24-24S10.7 80 24 80h8H80 93.8l36.7-55.1C140.9 9.4 158.4 0 177.1 0h93.7c18.7 0 36.2 9.4 46.6 24.9zM80 128V432c0 17.7 14.3 32 32 32H336c17.7 0 32-14.3 32-32V128H80zm80 64V400c0 8.8-7.2 16-16 16s-16-7.2-16-16V192c0-8.8 7.2-16 16-16s16 7.2 16 16zm80 0V400c0 8.8-7.2 16-16 16s-16-7.2-16-16V192c0-8.8 7.2-16 16-16s16 7.2 16 16zm80 0V400c0 8.8-7.2 16-16 16s-16-7.2-16-16V192c0-8.8 7.2-16 16-16s16 7.2 16 16z" />
+                                            </svg>
+                                        </button>
                                     </div>
+
+                                    <script>showMailDiv('mail_div_{{ tplt[0] }}');</script>
                                 </td>
                             </tr>
 
                             <tr class="emptyrow"></tr>
-
-                            {% if templates %}
-                                {% for tplt in templates %}
-                                    {% set prev_sel = tplt[1] %}
-                                    {% set prev_text = tplt[3] %}
-                                    <tr>
-                                        <td>
-                                            <div class="mail-div" id="mail_div_{{ tplt[0] }}" name="mail_div_{{ tplt[0] }}">
-                                                <select id="notif_type_{{ tplt[0] }}" name="notif_type_{{ tplt[0] }}"
-                                                        {% if tplt[1] == 0 %} class="form-select mail-notif-type advert" \
-                                                        {% elif tplt[1] == 2 %} class="form-select mail-notif-type anul_bio" \
-                                                        {% elif tplt[1] == 3 %} class="form-select mail-notif-type anul_irreg" \
-                                                        {% elif tplt[1] == 5 %} class="form-select mail-notif-type anul_copy" \
-                                                        {% elif tplt[1] == 4 %} class="form-select mail-notif-type inloco"
-                                                        {% endif %}
-                                                        onchange="checkUpdtReqs('mail_div', '{{ tplt[0] }}', {'prev_sel':'{{ prev_sel }}', 'prev_text':'{{ prev_text }}'})">
-                                                    <option value="{{ tplt[1] }}" selected>{{ tplt[2] }}</option>
-
-                                                    <hr>
-
-                                                    {% for sta in status %}
-                                                        {% if sta[0] != tplt[1] %}
-                                                            <option value="{{ sta[0] }}">{{ sta[1] }}</option>
-                                                        {% endif %}
-                                                    {% endfor %}
-                                                </select>
-
-                                                <!-- <textarea class="mail-area" id="msg_{{ tplt[0] }}" name="msg_{{ tplt[0] }}"
-                                                          onchange="checkUpdtReqs('mail_div', '{{ tplt[0] }}', '{{ prev_sel }}', '{{ prev_text }}')">{{ tplt[3] }}
-                                                </textarea> -->
-                                                
-                                                <div class="mail-area" id="msg_{{ tplt[0] }}" name="msg_{{ tplt[0] }}"
-                                                     onchange="checkUpdtReqs('mail_div', '{{ tplt[0] }}', '{{ prev_sel }}', '{{ prev_text }}')">{{ tplt[3] }}
-                                                </div>
-
-                                                <script>
-                                                    quill['{{ tplt[0] }}'] = new Quill('#msg_{{ tplt[0] }}', {
-                                                        theme: 'snow'
-                                                    });
-                                                </script>
-
-                                                <!-- <button class="save-msg-template" type="button" data-toggle="modal" id="updt_template_{{ tplt[0] }}" name="updt_template_{{ tplt[0] }}" title="guardar modelo" onclick="post('mail_settings', {'sect':'save_template','op':'updt','rec':'{{ tplt[1] }}','selection':document.getElementById('notif_type_{{ tplt[0] }}').value,'selinfo':document.getElementById('notif_type_{{ tplt[0] }}').selectedOptions[0].text,'text':document.getElementById('msg_{{ tplt[0] }}').value})" disabled> -->
-                                                <button class="save-msg-template" type="button" data-toggle="modal" id="updt_template_{{ tplt[0] }}" name="updt_template_{{ tplt[0] }}" title="guardar modelo" onclick="post('mail_settings', {'sect':'save_template','op':'updt','rec':'{{ tplt[1] }}','selection':document.getElementById('notif_type_{{ tplt[0] }}').value,'selinfo':document.getElementById('notif_type_{{ tplt[0] }}').selectedOptions[0].text,'text':quill['{{ tplt[0] }}'].root.innerHTML})" disabled>
-                                                    <svg class="fa-icon-disabled" id="updt_template_{{ tplt[0] }}_icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
-                                                        <path d="M438.6 105.4c12.5 12.5 12.5 32.8 0 45.3l-256 256c-12.5 12.5-32.8 12.5-45.3 0l-128-128c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0L160 338.7 393.4 105.4c12.5-12.5 32.8-12.5 45.3 0z"/>
-                                                    </svg>
-                                                </button>
-
-                                                <button class="save-msg-template" type="button" data-toggle="modal" id="del_template_{{ tplt[0] }}" name="del_template_{{ tplt[0] }}" title="remover modelo" onclick="post('mail_settings', {'sect':'save_template','op':'del','rec':'{{ tplt[1] }}','selinfo':document.getElementById('notif_type_{{ tplt[0] }}').selectedOptions[0].text})">
-                                                    <svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. -->
-                                                        <path d="M170.5 51.6L151.5 80h145l-19-28.4c-1.5-2.2-4-3.6-6.7-3.6H177.1c-2.7 0-5.2 1.3-6.7 3.6zm147-26.6L354.2 80H368h48 8c13.3 0 24 10.7 24 24s-10.7 24-24 24h-8V432c0 44.2-35.8 80-80 80H112c-44.2 0-80-35.8-80-80V128H24c-13.3 0-24-10.7-24-24S10.7 80 24 80h8H80 93.8l36.7-55.1C140.9 9.4 158.4 0 177.1 0h93.7c18.7 0 36.2 9.4 46.6 24.9zM80 128V432c0 17.7 14.3 32 32 32H336c17.7 0 32-14.3 32-32V128H80zm80 64V400c0 8.8-7.2 16-16 16s-16-7.2-16-16V192c0-8.8 7.2-16 16-16s16 7.2 16 16zm80 0V400c0 8.8-7.2 16-16 16s-16-7.2-16-16V192c0-8.8 7.2-16 16-16s16 7.2 16 16zm80 0V400c0 8.8-7.2 16-16 16s-16-7.2-16-16V192c0-8.8 7.2-16 16-16s16 7.2 16 16z" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-
-                                            <script>showMailDiv('mail_div_{{ tplt[0] }}');</script>
-                                        </td>
-                                    </tr>
-
-                                    <tr class="emptyrow"></tr>
-                                {% endfor %}
-                            {% endif %}
-                        </tbody>
-                    </table>
-                {% endif %}
-            </div>
+                        {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
         {% endif %}
     </form>
 {% endblock %}

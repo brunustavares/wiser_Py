@@ -11,7 +11,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2026012807
+ * @version    2026030608
  * @date       2024-02-20
  *
  * This program is free software: you can redistribute it and/or modify
@@ -95,6 +95,7 @@ nav .navbar-brand .yellow {
 }
 
 button#usr_graph,
+button#usr_sentinelf,
 button#usr_bio {
     width: 150px !important;
 }
@@ -103,9 +104,11 @@ button#flw_warn,
 button#flw_null_bio,
 button#flw_null_irreg,
 button#flw_null_copy,
+button#flw_null_mdl,
+button#flw_revert,
 button#flw_inloco,
 button#flw_default {
-    width: 235px !important;
+    width: 340px !important;
 }
 
 .nav-button:hover,
@@ -119,6 +122,7 @@ button#flw_default {
 .dropdown-menu>.active>a:hover {
     background-color: #286090;
     border-color: #286090;
+    outline: none;
 }
 
 .container-item {
@@ -318,6 +322,27 @@ button#flw_default {
     text-align: center;
 }
 
+.server-div,
+.llm-div {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+}
+
+.server-div.show,
+.llm-div.show {
+    opacity: 1;
+}
+
+.server-div.show {
+    max-height: 210px;
+}
+
+.llm-div.show {
+    max-height: 210px;
+}
+
 .mail-server {
     width: 400px !important;
 }
@@ -349,7 +374,7 @@ button#flw_default {
 
 .mail-notif-type {
     margin-left: 0px !important;
-    min-width: 250px !important;
+    min-width: 380px !important;
     color: black;
     background-color: lightgrey;
 }
@@ -384,6 +409,13 @@ button#flw_default {
     }
     .anul_copy {
         background-color: lightcoral !important;
+    }
+    .anul_mdl {
+        background-color: darkred !important;
+        color: white !important;
+    }
+    .revert {
+        background-color: cyan !important;
     }
 
     .inloco {
@@ -583,7 +615,8 @@ h2 {
 .save-msg-template,
 .pwd-reset-button,
 .event-delete-button,
-.user-delete-button {
+.user-delete-button,
+.settings_button {
     border: none;
     background: transparent;
 }
@@ -598,8 +631,12 @@ h2 {
     text-align: left;
 }
 
-.modal-content {
-    top: 35vh;
+.modal-dialog {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .loading {
