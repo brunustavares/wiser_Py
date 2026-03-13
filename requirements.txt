@@ -2,11 +2,12 @@ Flask==3.0.0
 Flask-Session
 Jinja2
 mysql-connector-python
+openai
 Pillow
 plotly
 pypdf
 reportlab
 requests
+waitress==3.0.0
 Werkzeug
 wfastcgi==3.0.0
-waitress==3.0.0
