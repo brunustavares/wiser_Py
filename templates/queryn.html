@@ -12,7 +12,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2026022706
+ * @version    2026030608
  * @date       2026-02-27
  *
  * This program is free software: you can redistribute it and/or modify
@@ -36,6 +36,18 @@
     Queryn
 {% endblock %}
 
+{% macro icon_eye_opened() %}
+<svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.-->
+    <path d="M320 96C239.2 96 174.5 132.8 127.4 176.6C80.6 220.1 49.3 272 34.4 307.7C31.1 315.6 31.1 324.4 34.4 332.3C49.3 368 80.6 420 127.4 463.4C174.5 507.1 239.2 544 320 544C400.8 544 465.5 507.2 512.6 463.4C559.4 419.9 590.7 368 605.6 332.3C608.9 324.4 608.9 315.6 605.6 307.7C590.7 272 559.4 220 512.6 176.6C465.5 132.9 400.8 96 320 96zM176 320C176 240.5 240.5 176 320 176C399.5 176 464 240.5 464 320C464 399.5 399.5 464 320 464C240.5 464 176 399.5 176 320zM320 256C320 291.3 291.3 320 256 320C244.5 320 233.7 317 224.3 311.6C223.3 322.5 224.2 333.7 227.2 344.8C240.9 396 293.6 426.4 344.8 412.7C396 399 426.4 346.3 412.7 295.1C400.5 249.4 357.2 220.3 311.6 224.3C316.9 233.6 320 244.4 320 256z"/>
+</svg>
+{% endmacro %}
+
+{% macro icon_eye_closed() %}
+<svg class="fa-icon-hide" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.-->
+    <path d="M73 39.1C63.6 29.7 48.4 29.7 39.1 39.1C29.8 48.5 29.7 63.7 39 73.1L567 601.1C576.4 610.5 591.6 610.5 600.9 601.1C610.2 591.7 610.3 576.5 600.9 567.2L504.5 470.8C507.2 468.4 509.9 466 512.5 463.6C559.3 420.1 590.6 368.2 605.5 332.5C608.8 324.6 608.8 315.8 605.5 307.9C590.6 272.2 559.3 220.2 512.5 176.8C465.4 133.1 400.7 96.2 319.9 96.2C263.1 96.2 214.3 114.4 173.9 140.4L73 39.1zM236.5 202.7C260 185.9 288.9 176 320 176C399.5 176 464 240.5 464 320C464 351.1 454.1 379.9 437.3 403.5L402.6 368.8C415.3 347.4 419.6 321.1 412.7 295.1C399 243.9 346.3 213.5 295.1 227.2C286.5 229.5 278.4 232.9 271.1 237.2L236.4 202.5zM357.3 459.1C345.4 462.3 332.9 464 320 464C240.5 464 176 399.5 176 320C176 307.1 177.7 294.6 180.9 282.7L101.4 203.2C68.8 240 46.4 279 34.5 307.7C31.2 315.6 31.2 324.4 34.5 332.3C49.4 368 80.7 420 127.5 463.4C174.6 507.1 239.3 544 320.1 544C357.4 544 391.3 536.1 421.6 523.4L357.4 459.2z"/>
+</svg>
+{% endmacro %}
+
 {% block main %}
     <div class="mb-3">
         <div class="navigation">
@@ -58,29 +70,140 @@
     
         <h2>
             Queryn
+
+            <button class="settings_button" type="button" id="settings_button" name="settings_button" title="configuração do LLM" onclick="ShowHideDiv('llm_settings', 'llm_prompt', true);" {% if not admin %} disabled {% endif %}>
+                <svg {% if not admin %} class="fa-icon-disabled" {% else %} class="fa-icon" {% endif %} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.-->
+                    <path d="M259.1 73.5C262.1 58.7 275.2 48 290.4 48L350.2 48C365.4 48 378.5 58.7 381.5 73.5L396 143.5C410.1 149.5 423.3 157.2 435.3 166.3L503.1 143.8C517.5 139 533.3 145 540.9 158.2L570.8 210C578.4 223.2 575.7 239.8 564.3 249.9L511 297.3C511.9 304.7 512.3 312.3 512.3 320C512.3 327.7 511.8 335.3 511 342.7L564.4 390.2C575.8 400.3 578.4 417 570.9 430.1L541 481.9C533.4 495 517.6 501.1 503.2 496.3L435.4 473.8C423.3 482.9 410.1 490.5 396.1 496.6L381.7 566.5C378.6 581.4 365.5 592 350.4 592L290.6 592C275.4 592 262.3 581.3 259.3 566.5L244.9 496.6C230.8 490.6 217.7 482.9 205.6 473.8L137.5 496.3C123.1 501.1 107.3 495.1 99.7 481.9L69.8 430.1C62.2 416.9 64.9 400.3 76.3 390.2L129.7 342.7C128.8 335.3 128.4 327.7 128.4 320C128.4 312.3 128.9 304.7 129.7 297.3L76.3 249.8C64.9 239.7 62.3 223 69.8 209.9L99.7 158.1C107.3 144.9 123.1 138.9 137.5 143.7L205.3 166.2C217.4 157.1 230.6 149.5 244.6 143.4L259.1 73.5zM320.3 400C364.5 399.8 400.2 363.9 400 319.7C399.8 275.5 363.9 239.8 319.7 240C275.5 240.2 239.8 276.1 240 320.3C240.2 364.5 276.1 400.2 320.3 400z"/>
+                </svg>
+            </button>
         </h2>
 
         <form action="/queryn" method="post" enctype="multipart/form-data" onsubmit="showModal()">
-            <div class="mb-3">
+            {% if admin %}
+                <div class="mb-3 llm-div" id="llm_settings">
+                    <div class="mb-3 llm_selected">
+                        <button class="settings_button" type="button" id="add_llm" name="add_llm" title="novo LLM" onclick="new_LLM()">
+                            <svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+                                <path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM232 344V280H168c-13.3 0-24-10.7-24-24s10.7-24 24-24h64V168c0-13.3 10.7-24 24-24s24 10.7 24 24v64h64c13.3 0 24 10.7 24 24s-10.7 24-24 24H280v64c0 13.3-10.7 24-24 24s-24-10.7-24-24z"/>
+                            </svg>
+                        </button>
+
+                        <select class="form-select" id="llms" name="llms">
+                            {% for llm in llms %}
+                                <option 
+                                    value="{{ llm[0] }}"
+                                    data-llm='{{ llm | tojson }}'
+                                    {% if llm[8] == 1 %} selected {% endif %}>
+                                    {{ llm[1] }}
+                                </option>
+                            {% endfor %}
+                        </select>
+
+                        <button class="settings_button" type="button" id="del_llm" name="del_llm" title="eliminar LLM" data-toggle="modal" data-target="#go_del" onclick="send_ID(this.value)">
+                            <svg class="fa-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. -->
+                                <path d="M170.5 51.6L151.5 80h145l-19-28.4c-1.5-2.2-4-3.6-6.7-3.6H177.1c-2.7 0-5.2 1.3-6.7 3.6zm147-26.6L354.2 80H368h48 8c13.3 0 24 10.7 24 24s-10.7 24-24 24h-8V432c0 44.2-35.8 80-80 80H112c-44.2 0-80-35.8-80-80V128H24c-13.3 0-24-10.7-24-24S10.7 80 24 80h8H80 93.8l36.7-55.1C140.9 9.4 158.4 0 177.1 0h93.7c18.7 0 36.2 9.4 46.6 24.9zM80 128V432c0 17.7 14.3 32 32 32H336c17.7 0 32-14.3 32-32V128H80zm80 64V400c0 8.8-7.2 16-16 16s-16-7.2-16-16V192c0-8.8 7.2-16 16-16s16 7.2 16 16zm80 0V400c0 8.8-7.2 16-16 16s-16-7.2-16-16V192c0-8.8 7.2-16 16-16s16 7.2 16 16zm80 0V400c0 8.8-7.2 16-16 16s-16-7.2-16-16V192c0-8.8 7.2-16 16-16s16 7.2 16 16z" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <input type="hidden" id="llm_id" name="llm_id">
+
+                    <label for="llm_provider" class="form-label llm_label">provider</label>
+                    <input class="form-control llm_setting" id="llm_provider" name="llm_provider" type="text" placeholder="opções: 'openai', 'iaedu', 'ollama', 'openrouter'">
+
+                    <label for="llm_user" class="form-label llm_label">utilizador</label>
+                    <input class="form-control llm_setting" id="llm_user" name="llm_user" type="text" placeholder="ex: 'user@example.com'">
+
+                    <label for="llm_endpoint" class="form-label llm_label">endpoint</label>
+                    <input class="form-control llm_setting" id="llm_endpoint" name="llm_endpoint" type="text" placeholder="ex: 'https://api.openai.com/v1'">
+
+                    <div class="password-field">
+                        <label for="llm_agent_id" class="form-label llm_label">ID do agente</label>
+                        <input class="form-control llm_setting" id="llm_agent_id" name="llm_agent_id" type="password" placeholder="ex: 'agent-xxxx'">
+                        <span class="toggle-password" onclick="togglePassword(this)">
+                            {{ icon_eye_opened() }}
+                            {{ icon_eye_closed() }}
+                        </span>
+                    </div>
+
+                    <div class="password-field">
+                        <label for="llm_api_key" class="form-label llm_label">chave da API</label>
+                        <input class="form-control llm_setting" id="llm_api_key" name="llm_api_key" type="password" placeholder="ex: 'sk-xxxx'">
+                        <span class="toggle-password" onclick="togglePassword(this)">
+                            {{ icon_eye_opened() }}
+                            {{ icon_eye_closed() }}
+                        </span>
+                    </div>
+
+                    <div class="password-field">
+                        <label for="llm_channel_id" class="form-label llm_label">ID do canal</label>
+                        <input class="form-control llm_setting" id="llm_channel_id" name="llm_channel_id" type="password" placeholder="ex: 'channel-xxxx'">
+                        <span class="toggle-password" onclick="togglePassword(this)">
+                            {{ icon_eye_opened() }}
+                            {{ icon_eye_closed() }}
+                        </span>
+                    </div>
+                    
+                    <label for="llm_model_name" class="form-label llm_label">modelo</label>
+                    <input class="form-control llm_setting" id="llm_model_name" name="llm_model_name" type="text" placeholder="ex: 'gpt-4'">
+
+                    <div class="form-check llm_priority">
+                        <input class="form-check-input exclusive-check" type="checkbox" id="llm_primary" name="llm_primary" value="1" onclick="toggleExclusive(this)">
+                        <label class="form-check-label" for="llm_primary">Primário</label>
+                    </div>
+
+                    <div class="form-check llm_priority">
+                        <input class="form-check-input exclusive-check" type="checkbox" id="llm_secondary" name="llm_secondary" value="1" onclick="toggleExclusive(this)">
+                        <label class="form-check-label" for="llm_secondary">Secundário</label>
+                    </div>
+
+                    <br>
+
+                    <button class="btn btn-primary nav-button" type="submit" id="save_llm" name="save_llm">Gravar</button>
+                </div>
+
+                <!-- modal para confirmação de eliminação -->
+                <div class="modal fade" id="go_del" role="dialog">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                <h4 class="modal-title">Confirmação</h4>
+                            </div>
+
+                            <div class="modal-body">
+                                <p>eliminar LLM?</p>
+                            </div>
+
+                            <div class="modal-footer">
+                                <button class="btn btn-primary" type="submit" id="go" name="go">Sim</button>
+                                <button class="btn btn-secondary" type="button" data-dismiss="modal">Não</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="mb-3 llm-div show" id="llm_prompt">
                 <textarea class="form-control" id="prompt" name="prompt" rows="5" cols="50" type="longtext" class="form-control" placeholder="elaborar o pedido (ex: 'quantos estudantes realizaram fluxos em todos os anos? formata os resultados numa tabela HTML, agrupada por ano')"></textarea>
 
                 <br>
 
-                <button class="btn btn-primary nav-button" type="submit">Enviar pedido</button>
+                <button class="btn btn-primary nav-button" type="submit" id="send_prompt" name="send_prompt">Enviar pedido</button>
+
+                <hr>
+
+                {% if response %}
+                    <script type="text/javascript">
+                        set_loaded("unloaded")
+                    </script>
+
+                    <div class="table-responsive">
+                        {{ response | safe }}
+                    </div>
+
+                {% endif %}
             </div>
-
-            <hr>
-
-            {% if response %}
-                <script type="text/javascript">
-                    set_loaded("unloaded")
-                </script>
-
-                <div id="response" class="result" style="white-space: pre-line;">
-                    {{ response | safe }}
-                </div>
-
-            {% endif %}
         </form>
     </div>
 {% endblock %}

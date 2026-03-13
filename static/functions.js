@@ -47,9 +47,9 @@ function set_admin_layout() {
     document.getElementById("main-menu").style.marginTop  = "-10%";
 }
 
-// reposição do conteúdo na parte superior da página,para acomodar resultados
-function set_loaded(divId) {
-    let divElement = document.getElementById(divId);
+// reposição do conteúdo na parte superior da página, para acomodar resultados
+function set_loaded(divID) {
+    let divElement = document.getElementById(divID);
     
     window.setTimeout(function() {
         divElement.setAttribute('id', "loaded");
@@ -261,6 +261,110 @@ function set_std_flw_status(info, notify=false) {
     post("wf_full_report", params);
 }
 
+// carregamento dos dados do LLM seleccionado
+function load_llm_info(select) {
+    const selected = select.options[select.selectedIndex];
+    const llm = JSON.parse(selected.dataset.llm);
+
+    let llm_id = document.getElementById("llm_id");
+    let llm_provider = document.getElementById("llm_provider");
+    let llm_user = document.getElementById("llm_user");
+    let llm_endpoint = document.getElementById("llm_endpoint");
+    let llm_agent_id = document.getElementById("llm_agent_id");
+    let llm_api_key = document.getElementById("llm_api_key");
+    let llm_channel_id = document.getElementById("llm_channel_id");
+    let llm_model_name = document.getElementById("llm_model_name");
+    let llm_primary = document.getElementById("llm_primary");
+    let llm_secondary = document.getElementById("llm_secondary");
+
+    let del_llm = document.getElementById("del_llm");
+
+    llm_id.value = llm[0];
+    llm_provider.value = llm[1];
+    llm_user.value = llm[2];
+    llm_endpoint.value = llm[3];
+    llm_agent_id.value = llm[4];
+    llm_api_key.value = llm[5];
+    llm_channel_id.value = llm[6];
+    llm_model_name.value = llm[7];
+
+    llm_primary.checked = false;
+    llm_secondary.checked = false;
+
+    if (llm[8] == 1) {
+        llm_primary.checked = true;
+    }
+
+    if (llm[8] == 2) {
+        llm_secondary.checked = true;
+    }
+
+    del_llm.value = llm[0];
+}
+
+// registo de novo LLM
+function new_LLM() {
+    const select = document.getElementById("llms");
+
+    const option = document.createElement("option");
+    option.value = "novo";
+    option.text = "novo LLM";
+    option.selected = true;
+
+    select.appendChild(option);
+
+    document.getElementById("llm_id").value = null;
+    document.getElementById("llm_provider").value = null;
+    document.getElementById("llm_user").value = null;
+    document.getElementById("llm_endpoint").value = null;
+    document.getElementById("llm_agent_id").value = null;
+    document.getElementById("llm_api_key").value = null;
+    document.getElementById("llm_channel_id").value = null;
+    document.getElementById("llm_model_name").value = null;
+    document.getElementById("llm_primary").value = null;
+    document.getElementById("llm_secondary").value = null;
+    document.getElementById("llm_primary").checked = false;
+    document.getElementById("llm_secondary").checked = false;
+}
+
+// controlo de exclusividade entre checkboxes
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".exclusive-check").forEach(cb => {
+        cb.addEventListener("change", function () {
+            if (!this.checked) return;
+
+            document.querySelectorAll(".exclusive-check").forEach(other => {
+                if (other !== this) {
+                    other.checked = false;
+                }
+            });
+        });
+    });
+});
+
+// associação do ID do LLM p/ eliminação
+function send_ID(llm) {
+    document.getElementById("go").value = llm;
+}
+
+// alteração da visibilidade da password
+function togglePassword(pwd) {
+    const wrapper = pwd.closest('.password-field');
+    const input = wrapper.querySelector('input');
+    const show = pwd.querySelector('.fa-icon');
+    const hide = pwd.querySelector('.fa-icon-hide');
+
+    if (input.type === "password") {
+        input.type = "text";
+        show.style.display = "none";
+        hide.style.display = "block";
+    } else {
+        input.type = "password";
+        show.style.display = "block";
+        hide.style.display = "none";
+    }
+}
+
 // download do ficheiro gerado e redirecionamento para a pesquisa
 function downloadFile(file_url, file_name, page) {
     const link = document.createElement('a');
@@ -329,7 +433,7 @@ function update_users(usrid) {
 }
 
 // enviar dados do estudante e da prova para os menus de opções
-function attach_std_flw_id(std_num, std_name = null, flw_id = null) {
+function attach_std_flw_id(std_num, std_name=null, flw_id=null) {
     let std_opt_title = document.getElementById("modal-title-std_opt");
     let flw_opt_title = document.getElementById("modal-title-flw_opt");
 
@@ -466,8 +570,22 @@ function post(form, params=null) {
 }
 
 // visibilidade da div de configuração
-function ShowHideDiv(divID) {
-    document.getElementById(divID).classList.toggle("show");
+function ShowHideDiv(divID01, divID02=null, set_loaded=false) {
+    let div01 = document.getElementById(divID01);
+    let div02 = document.getElementById(divID02);
+    let unloaded = document.getElementById("unloaded");
+    let loaded = document.getElementById("loaded");
+
+    if (div02) { div02.classList.toggle("show"); }
+    div01.classList.toggle("show");
+    
+    if (set_loaded) {
+        if (unloaded) {
+            unloaded.setAttribute('id', "loaded");
+        } else {
+            loaded.setAttribute('id', "unloaded");
+        }
+    }
 }
 
 // visibilidade da janela de modelo de mensagem
@@ -647,6 +765,17 @@ document.addEventListener("DOMContentLoaded", function() {
             show_param("student", true);
         }
     });
+});
+
+// gestão da disponibilidade dos parâmetros p/ os LLMs
+document.addEventListener("DOMContentLoaded", function () {
+    const llmSelect = document.getElementById("llms");
+
+    llmSelect.addEventListener("change", function () {
+        load_llm_info(this);
+    });
+
+    load_llm_info(llmSelect);
 });
 
 // ocultação/exibição de elementos

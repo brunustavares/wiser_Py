@@ -271,11 +271,6 @@ button#flw_default {
         margin: auto;
     }
 
-    /* select#endpoint {
-        width: 525px !important;
-        text-align: left !important;
-    } */
-
     .dropdown.bootstrap-select {
         width: 525px !important;
         text-align: left !important;
@@ -322,6 +317,14 @@ button#flw_default {
     text-align: center;
 }
 
+.llm_selected {
+    width: 360px;
+    margin: auto;
+    padding: 3px;
+    border: 2px solid #034f84;
+    border-radius: 10px;
+}
+
 .server-div,
 .llm-div {
     max-height: 0;
@@ -340,7 +343,36 @@ button#flw_default {
 }
 
 .llm-div.show {
-    max-height: 210px;
+    max-height: 485px;
+}
+
+.llm-div,
+.llm-div.show {
+    width: 875px;
+    margin: auto;
+}
+
+.llm_setting {
+    display: inline-block;
+    width: calc(100% - 125px);
+    vertical-align: middle;
+}
+
+.llm_label {
+    display: inline-block;
+    width: 120px;
+    text-align: right;
+    padding-right: 10px;
+    vertical-align: middle;
+}
+
+.llm_label,
+.llm_setting {
+    margin-bottom: 10px;
+}
+
+.llm_priority {
+    display: inline-block;
 }
 
 .mail-server {
@@ -434,12 +466,17 @@ button#flw_default {
     width: 20px;
 }
 
-.fa-icon {
+.fa-icon,
+.fa-icon-hide {
     fill: #034f84;
 }
 
 .fa-icon-disabled {
     fill: grey;
+}
+
+.fa-icon-hide {
+    display: none;
 }
 
 .fa-icon_mandatory,
@@ -453,6 +490,29 @@ button#flw_default {
 
 .fa-icon_optional {
     fill: green;
+}
+
+.password-field {
+    position: relative;
+    width: 100%;
+    align-items: center;
+}
+
+.password-field input {
+    padding-right: 40px;
+}
+
+.toggle-password {
+    position: absolute;
+    top: 40%;
+    right: 10px;
+    transform: translateY(-50%);
+    cursor: pointer;
+}
+
+.toggle-password svg {
+    width: 20px;
+    height: 20px;
 }
 
 a[data-target="#std_opt"],

@@ -1424,6 +1424,20 @@ def wf_info(wf_file):
     return datetime.datetime.fromtimestamp(timestamp, timezone).strftime('%Y-%m-%d %H:%M:%S'), flowtype, student, flow, error
 
 
+# obtenção dos LLMs registados
+def get_llms():
+    wf_db = connect_db()
+    wf_db_cursor = wf_db.cursor()
+
+    wf_db_cursor.execute("SELECT * FROM wiseflow.llm_settings;")
+    result = wf_db_cursor.fetchall()
+
+    wf_db_cursor.close()
+    wf_db.close()
+
+    return result
+
+
 # registo de actividade na app
 def write_activity_log(action, target, criteria = None, userid = None, sessiontime = None, affecteduser = None):
     wf_db = connect_db()
@@ -1496,7 +1510,11 @@ def error_msg(message, code=400, back=None):
 
         return s
 
-    return render_template(ERROR_TPLT, top=code, bottom=escape(message), back=back), code
+    return render_template(ERROR_TPLT,
+                           top=code,
+                           bottom=escape(message),
+                           back=back
+                          ), code
 
 
 # limpar caracteres especiais
@@ -1936,7 +1954,9 @@ def sentinelf_events_2check():
 
     write_activity_log("list", "Sentinel_F events", None, session["user_id"], session["T_usage"])
 
-    return render_template(SENTINELF_EVENTS_TPLT, is_admin=is_admin(session["user_id"]), event_types=session["result"])
+    return render_template(SENTINELF_EVENTS_TPLT,
+                           is_admin=is_admin(session["user_id"]),
+                           event_types=session["result"])
 
 
 # reports log Sentinel_F
@@ -1994,7 +2014,12 @@ def sentinelf_reported():
 
             write_activity_log("list", "Sentinel_F reported", key, session["user_id"], session["T_usage"])
 
-            return render_template(SENTINELF_LOG_TPLT, is_admin=is_admin(session["user_id"]), reported=True, log=result, key=key, show_bio=show_bio)
+            return render_template(SENTINELF_LOG_TPLT,
+                                   is_admin=is_admin(session["user_id"]),
+                                   reported=True,
+                                   log=result,
+                                   key=key,
+                                   show_bio=show_bio)
 
         elif request.form.get("events") == 'by_student':
             if not request.form.get("student"):
@@ -2114,7 +2139,9 @@ def sentinelf_reported():
 
             write_activity_log("list", "Sentinel_F graph", key, session["user_id"], session["T_usage"])
 
-            return render_template(USER_GRAPH_TPLT, graph="https://mdlws.uab.pt/wiser_py/" + session["tmp_graph_file"], user_monitor=True)
+            return render_template(USER_GRAPH_TPLT,
+                                   graph="https://mdlws.uab.pt/wiser_py/" + session["tmp_graph_file"],
+                                   user_monitor=True)
 
         wf_db_cursor.close()
         wf_db.close()
@@ -2122,7 +2149,9 @@ def sentinelf_reported():
     # caso contrário, redireccionar para a página de selecção
     write_activity_log("list", "Sentinel_F reported", None, session["user_id"], session["T_usage"])
 
-    return render_template(SENTINELF_LOG_TPLT, is_admin=is_admin(session["user_id"]), reported=True, search=True)
+    return render_template(SENTINELF_LOG_TPLT,
+                           is_admin=is_admin(session["user_id"]),
+                           reported=True,search=True)
 
 
 # full log Sentinel_F
@@ -2181,7 +2210,10 @@ def sentinelf_log():
     # caso contrário, redireccionar para a página de selecção
     write_activity_log("list", "Sentinel_F log", None, session["user_id"], session["T_usage"])
 
-    return render_template(SENTINELF_LOG_TPLT, is_admin=is_admin(session["user_id"]), full=True, search=True)
+    return render_template(SENTINELF_LOG_TPLT,
+                           is_admin=is_admin(session["user_id"]),
+                           full=True,
+                           search=True)
 
 
 # menu de configurações Sentinel_F
@@ -2240,7 +2272,10 @@ def sentinelf_settings():
 
     write_activity_log("list", "Sentinel_F settings", None, session["user_id"], session["T_usage"])
 
-    return render_template(SENTINELF_SETTINGS_TPLT, is_admin=is_admin(session["user_id"]), settings=session["result"], lastrun=lastrun)
+    return render_template(SENTINELF_SETTINGS_TPLT,
+                           is_admin=is_admin(session["user_id"]),
+                           settings=session["result"],
+                           lastrun=lastrun)
 
 
 # menu utilitários
@@ -2264,8 +2299,7 @@ def tools():
     return render_template(TOOLS_TPLT,
                            admin=is_admin(session["user_id"]),
                            flowman=is_flowman(session["user_id"]),
-                           sosusr=is_sosusr(session["user_id"])
-                          )
+                           sosusr=is_sosusr(session["user_id"]))
 
 
 # módulo p/ carregamento do calendário lectivo
@@ -2307,7 +2341,8 @@ def calendar():
 
             clean_results()
             
-            return render_template(CAL_TPLT, info="INFO: dados inseridos com sucesso")
+            return render_template(CAL_TPLT,
+                                   info="INFO: dados inseridos com sucesso")
 
         else:
             if "csv" not in request.files:
@@ -2320,7 +2355,11 @@ def calendar():
 
             write_activity_log("load", "cal_csv", session["filename"], session["user_id"], session["T_usage"])
 
-            return render_template(CAL_TPLT, table_header=table_header, table_data=table_data, commit_data=session["result"], error=error)
+            return render_template(CAL_TPLT,
+                                   table_header=table_header,
+                                   table_data=table_data,
+                                   commit_data=session["result"],
+                                   error=error)
 
     write_activity_log("get", "cal_csv", None, session["user_id"], session["T_usage"])
 
@@ -2354,7 +2393,13 @@ def check_wf_file():
 
         write_activity_log("check", "wf_file", file.filename, session["user_id"], session["T_usage"])
 
-        return render_template(WF_TPLT, file=file, timestamp=timestamp, flowtype=flowtype, student=student, flow=flow, error=error)
+        return render_template(WF_TPLT,
+                               file=file,
+                               timestamp=timestamp,
+                               flowtype=flowtype,
+                               student=student,
+                               flow=flow,
+                               error=error)
 
     write_activity_log("upload", "wf_file", None, session["user_id"], session["T_usage"])
 
@@ -2478,7 +2523,12 @@ def mail_settings():
                                   WHERE msg.id IS NULL;")
             null_flw_assess_status = wf_db_cursor.fetchall()
 
-            return render_template(MAIL_SETTINGS_TPLT, mail_server=mail_server, tools=True, status=null_flw_assess_status, templates=mail_templates)
+            return render_template(MAIL_SETTINGS_TPLT,
+                                   mail_server=mail_server,
+                                   tools=True,
+                                   status=null_flw_assess_status,
+                                   templates=mail_templates,
+                                   admin=is_admin(session["user_id"]))
 
         elif request.form.get("mail_conf") == "users":
             if request.form.get("save_server") is not None:
@@ -2529,7 +2579,10 @@ def mail_settings():
                                   WHERE purpose = 'usr_pwd';")
             mail_server = wf_db_cursor.fetchone()
 
-            return render_template(MAIL_SETTINGS_TPLT, mail_server=mail_server, users=True)
+            return render_template(MAIL_SETTINGS_TPLT,
+                                   mail_server=mail_server,
+                                   users=True,
+                                   admin=is_admin(session["user_id"]))
 
         wf_db_cursor.close()
         wf_db.close()
@@ -2559,8 +2612,7 @@ def sos():
     # carregar opções de utilizador, em funçao dos privilégios
     return render_template(SOS_TPLT,
                            admin=is_admin(session["user_id"]),
-                           flowman=is_flowman(session["user_id"])
-                          )
+                           flowman=is_flowman(session["user_id"]))
 
 
 # TODO: criar módulo para desbloqueio unitário no SiGES
@@ -2643,12 +2695,15 @@ def reset_sync():
 
         write_activity_log("reset", "sync", key, session["user_id"], session["T_usage"])
 
-        return render_template(RESET_SYNC_TPLT, lect_year=lect_year, info=info)
+        return render_template(RESET_SYNC_TPLT,
+                               lect_year=lect_year,
+                               info=info)
 
     write_activity_log("get", "sync", None, session["user_id"], session["T_usage"])
 
     # caso contrário, carregar página de pesquisa
-    return render_template(RESET_SYNC_TPLT, lect_year=lect_year)
+    return render_template(RESET_SYNC_TPLT,
+                           lect_year=lect_year)
 
 
 # gestão de flows: extensão de tempo e remoção de participantes
@@ -2680,7 +2735,10 @@ def manage_flow():
 
             clean_results()
             
-            return render_template(MANAGE_FLOW_TPLT, download=True, file_url=csv_file["url"], file_name=csv_file["filename"])
+            return render_template(MANAGE_FLOW_TPLT,
+                                   download=True,
+                                   file_url=csv_file["url"],
+                                   file_name=csv_file["filename"])
 
         else:
             # se o utilizador não submeter o flowid, retornar mensagem de erro
@@ -2728,7 +2786,9 @@ def manage_flow():
                 else:
                     info = "não foi possível estender o tempo do flow " + flowid
 
-                return render_template(MANAGE_FLOW_TPLT, info=info, result=session["result"])
+                return render_template(MANAGE_FLOW_TPLT,
+                                       info=info,
+                                       result=session["result"])
             
             elif request.form.get("function") == "purge_flow":
                 # executar o endpoint e exibir o resultado
@@ -2742,7 +2802,9 @@ def manage_flow():
                 else:
                     info = "não foram encontrados participantes para remover do flow " + flowid
 
-                return render_template(MANAGE_FLOW_TPLT, info=info, result=None)
+                return render_template(MANAGE_FLOW_TPLT,
+                                       info=info,
+                                       result=None)
 
     write_activity_log("get", "manage_flow", None, session["user_id"], session["T_usage"])
 
@@ -2879,7 +2941,8 @@ def no_reply():
         # executar o endpoint e exibir o resultado
         write_activity_log("sent", "no_reply", None, session["user_id"], session["T_usage"])
         
-        return render_template(NOREPLY_TPLT, info="e-mail enviado com sucesso")
+        return render_template(NOREPLY_TPLT,
+                               info="e-mail enviado com sucesso")
 
     write_activity_log("start", "no_reply", None, session["user_id"], session["T_usage"])
 
@@ -2908,7 +2971,9 @@ def endpoints():
         # executar o endpoint e exibir o resultado
         write_activity_log("run", "endpoints", request.form.get("endpoint"), session["user_id"], session["T_usage"])
         
-        return render_template(API_ENDPTS_TPLT, endpoint=request.form.get("endpoint"), response=call_endpoint(request.form.get("endpoint")))
+        return render_template(API_ENDPTS_TPLT,
+                               endpoint=request.form.get("endpoint"),
+                               response=call_endpoint(request.form.get("endpoint")))
 
     write_activity_log("list", "endpoints", None, session["user_id"], session["T_usage"])
 
@@ -3055,7 +3120,9 @@ def manage_users():
 
     write_activity_log("list", "user", None, session["user_id"], session["T_usage"])
 
-    return render_template(MANAGE_USR_TPLT, users=users, userid=session["user_id"])
+    return render_template(MANAGE_USR_TPLT,
+                           users=users,
+                           userid=session["user_id"])
 
 
 # consulta de actividade na app
@@ -3095,7 +3162,9 @@ def read_activity_log():
 
             write_activity_log("list", "sys_log", None, session["user_id"], session["T_usage"])
 
-            return render_template(LOG_TPLT, log=log, sys_activity=True)
+            return render_template(LOG_TPLT,
+                                   log=log,
+                                   sys_activity=True)
 
         elif request.form.get("mail_activity"):
             # obter o registo de actividade na app
@@ -3112,7 +3181,9 @@ def read_activity_log():
 
             write_activity_log("list", "mail_log", None, session["user_id"], session["T_usage"])
 
-            return render_template(LOG_TPLT, log=log, mail_activity=True)
+            return render_template(LOG_TPLT,
+                                   log=log,
+                                   mail_activity=True)
 
         wf_db_cursor.close()
         wf_db.close()
@@ -3149,7 +3220,8 @@ def change_pwd():
         return redirect("/")
 
     # caso contrário, redireccionar para a página de alteração de password
-    return render_template(SETPWD_TPLT, change=True)
+    return render_template(SETPWD_TPLT,
+                           change=True)
 
 
 # reiniciar password
@@ -3188,7 +3260,8 @@ def reset_pwd():
         return redirect("/")
 
     # caso contrário, redireccionar para a página de alteração de password
-    return render_template(SETPWD_TPLT, reset=True)
+    return render_template(SETPWD_TPLT,
+                           reset=True)
 
 
 # menu principal
@@ -3211,8 +3284,7 @@ def menu():
                            bioman=is_bioman(session["user_id"]),
                            statsman=is_statsman(session["user_id"]),
                            toolsusr=is_toolsusr(session["user_id"]),
-                           sosusr=is_sosusr(session["user_id"])
-                          )
+                           sosusr=is_sosusr(session["user_id"]))
 
 
 # menu de escolha do sistema
@@ -3232,15 +3304,18 @@ def sys_menu():
 
         # carregar opções de utilizador, em funçao do sistema escolhido
         if request.form.get("show_data") == "full_report":
-            return render_template(SYS_MENU_TPLT, full_report=True)
+            return render_template(SYS_MENU_TPLT,
+                                   full_report=True)
         
         elif request.form.get("show_data") == "stats":
-            return render_template(SYS_MENU_TPLT, stats=True)
+            return render_template(SYS_MENU_TPLT,
+                                   stats=True)
 
     return redirect("/")
 
 
 # histórico completo no WISEflow
+# TODO: implementar estado condicionado + notificação p/ potencial colagem indevida, com base no log do Sentinel_F
 @app.route("/wf_full_report", methods=["GET", "POST"])
 @login_required
 def wf_full_report():
@@ -3395,7 +3470,11 @@ def wf_full_report():
 
             clean_results()
 
-            return render_template(WF_FULL_REPORT_TPLT, download=True, file_url=csv_file["url"], file_name=csv_file["filename"], lect_year_list=lect_year_list)
+            return render_template(WF_FULL_REPORT_TPLT,
+                                   download=True,
+                                   file_url=csv_file["url"],
+                                   file_name=csv_file["filename"],
+                                   lect_year_list=lect_year_list)
         
         else:
             clean_results()
@@ -3469,11 +3548,17 @@ def wf_full_report():
             if is_flowman(session["user_id"]) or is_admin(session["user_id"]):
                 show_act = True
 
-            return render_template(WF_FULL_REPORT_TPLT, report=session["result"], key=session["key"], show_act=show_act, show_bio=show_bio, lect_year_list=lect_year_list)
+            return render_template(WF_FULL_REPORT_TPLT,
+                                   report=session["result"],
+                                   key=session["key"],
+                                   show_act=show_act,
+                                   show_bio=show_bio,
+                                   lect_year_list=lect_year_list)
         
         else:
             clean_results()
-            return render_template(WF_FULL_REPORT_TPLT, report=None)
+            return render_template(WF_FULL_REPORT_TPLT,
+                                   report=None)
 
     wf_db_cursor.close()
     wf_db.close()
@@ -3483,7 +3568,9 @@ def wf_full_report():
     clean_results()
 
     # caso contrário, carregar página de pesquisa limpa
-    return render_template(WF_FULL_REPORT_TPLT, search=True, lect_year_list=lect_year_list)
+    return render_template(WF_FULL_REPORT_TPLT,
+                           search=True,
+                           lect_year_list=lect_year_list)
 
 
 # histórico completo no Moodle
@@ -3525,7 +3612,11 @@ def mdl_full_report():
 
             clean_results()
 
-            return render_template(MDL_FULL_REPORT_TPLT, download=True, file_url=csv_file["url"], file_name=csv_file["filename"], lect_year_list=lect_year_list)
+            return render_template(MDL_FULL_REPORT_TPLT,
+                                   download=True,
+                                   file_url=csv_file["url"],
+                                   file_name=csv_file["filename"],
+                                   lect_year_list=lect_year_list)
         
         else:
             clean_results()
@@ -3573,11 +3664,15 @@ def mdl_full_report():
         write_activity_log("list", "mdl_report", session["key"], session["user_id"], session["T_usage"])
 
         if len(session["result"]) > 0:
-            return render_template(MDL_FULL_REPORT_TPLT, report=session["result"], key=session["key"], lect_year_list=lect_year_list)
+            return render_template(MDL_FULL_REPORT_TPLT,
+                                   report=session["result"],
+                                   key=session["key"],
+                                   lect_year_list=lect_year_list)
         
         else:
             clean_results()
-            return render_template(MDL_FULL_REPORT_TPLT, report=None)
+            return render_template(MDL_FULL_REPORT_TPLT,
+                                   report=None)
 
     mdl_db_cursor.close()
     mdl_db.close()
@@ -3587,7 +3682,9 @@ def mdl_full_report():
     clean_results()
     
     # caso contrário, carregar página de pesquisa limpa
-    return render_template(MDL_FULL_REPORT_TPLT, search=True, lect_year_list=lect_year_list)
+    return render_template(MDL_FULL_REPORT_TPLT,
+                           search=True,
+                           lect_year_list=lect_year_list)
 
 
 # histórico de um estudante específico
@@ -3675,7 +3772,9 @@ def user_report():
 
             write_activity_log("list", "graph", ("std_" + str(request.form.get("student"))), session["user_id"], session["T_usage"])
 
-            return render_template(USER_GRAPH_TPLT, graph="https://mdlws.uab.pt/wiser_py/" + session["tmp_graph_file"], user_history=True)
+            return render_template(USER_GRAPH_TPLT,
+                                   graph="https://mdlws.uab.pt/wiser_py/" + session["tmp_graph_file"],
+                                   user_history=True)
 
         elif request.form.get("report") == "report_single":
             if not request.form.get("flowid"):
@@ -3725,7 +3824,11 @@ def user_report():
 
                     write_activity_log("download", "flow_submission", ("std_" + str(stdnum) + " | flow_" + str(flowid)), session["user_id"], session["T_usage"])
 
-                    return render_template(USER_REPORT_TPLT, open=True, file_url=file2export["url"], search=True, allow_export=True)
+                    return render_template(USER_REPORT_TPLT,
+                                           open=True,
+                                           file_url=file2export["url"],
+                                           search=True,
+                                           allow_export=True)
 
                 elif request.form.get("flow_data") == "full_log":
                     from_ts = int(datetime.datetime.strptime(dtfrom, "%Y-%m-%d %H:%M:%S").timestamp()) - 300
@@ -3742,7 +3845,10 @@ def user_report():
 
                     write_activity_log("export", "FLOWmonitor", ("std_" + str(stdnum) + " | flow_" + str(flowid)), session["user_id"], session["T_usage"])
 
-                    return render_template(USER_REPORT_TPLT, download=True, file_url=file2export["url"], file_name=file2export["filename"])
+                    return render_template(USER_REPORT_TPLT,
+                                           download=True,
+                                           file_url=file2export["url"],
+                                           file_name=file2export["filename"])
 
             else:
                 return error_msg("flowid não encontrado para o estudante", 404, '/user_report')
@@ -3757,7 +3863,9 @@ def user_report():
         allow_export = True
 
     # caso contrário, carregar página de pesquisa
-    return render_template(USER_REPORT_TPLT, search=True, allow_export=allow_export)
+    return render_template(USER_REPORT_TPLT,
+                           search=True,
+                           allow_export=allow_export)
 
 
 # gestão de dados biométricos
@@ -3832,18 +3940,26 @@ def user_bio():
         write_activity_log("list", "bio", ("std_" + str(std_num)), session["user_id"], session["T_usage"])
 
         if bio['success'] and "link" in bio['data']:
-            return render_template(USER_BIO_TPLT, std_id=std_id, std_num=std_num, pic=bio['data']['link'])
+            return render_template(USER_BIO_TPLT,
+                                   std_id=std_id,
+                                   std_num=std_num,
+                                   pic=bio['data']['link'])
         
         elif not bio['success']:
-            return render_template(USER_BIO_TPLT, std_id=std_id, std_num=std_num, pic=None)
+            return render_template(USER_BIO_TPLT,
+                                   std_id=std_id,
+                                   std_num=std_num,
+                                   pic=None)
 
         else:
-            return render_template(USER_BIO_TPLT, std=None)
+            return render_template(USER_BIO_TPLT,
+                                   std=None)
 
     write_activity_log("list", "bio", None, session["user_id"], session["T_usage"])
 
     # caso contrário, carregar página de pesquisa
-    return render_template(USER_BIO_TPLT, search=True)
+    return render_template(USER_BIO_TPLT,
+                           search=True)
 
 
 # indicadores estatísticos do WISEflow
@@ -3887,7 +4003,10 @@ def wf_stats():
 
             clean_results()
             
-            return render_template(WF_STATS_TPLT, download=True, file_url=csv_file["url"], file_name=csv_file["filename"])
+            return render_template(WF_STATS_TPLT,
+                                   download=True,
+                                   file_url=csv_file["url"],
+                                   file_name=csv_file["filename"])
         
         else:
             # se o utilizador não submeter o ano lectivo, retornar mensagem de erro
@@ -3921,12 +4040,17 @@ def wf_stats():
 
             write_activity_log("list", "wf_stats", session["key"], session["user_id"], session["T_usage"])
 
-            return render_template(WF_STATS_TPLT, lect_year=lect_year, sel_year=session["key"], report=session["result"])
+            return render_template(WF_STATS_TPLT,
+                                   lect_year=lect_year,
+                                   sel_year=session["key"],
+                                   report=session["result"])
 
     write_activity_log("list", "wf_stats", None, session["user_id"], session["T_usage"])
 
     # caso contrário, carregar página de pesquisa
-    return render_template(WF_STATS_TPLT, lect_year=lect_year, search=True)
+    return render_template(WF_STATS_TPLT,
+                           lect_year=lect_year,
+                           search=True)
 
 
 # indicadores estatísticos do Moodle
@@ -3970,7 +4094,9 @@ def mdl_stats():
 
             clean_results()
             
-            return render_template(MDL_STATS_TPLT, download=True, file_url=csv_file["url"], file_name=csv_file["filename"])
+            return render_template(download=True,
+                                   file_url=csv_file["url"],
+                                   file_name=csv_file["filename"])
         
         else:
             # se o utilizador não submeter o ano lectivo, retornar mensagem de erro
@@ -3993,16 +4119,20 @@ def mdl_stats():
 
             write_activity_log("list", "mdl_stats", session["key"], session["user_id"], session["T_usage"])
 
-            return render_template(MDL_STATS_TPLT, lect_year=lect_year, sel_year=session["key"], report=session["result"])
+            return render_template(MDL_STATS_TPLT,
+                                   lect_year=lect_year,
+                                   sel_year=session["key"],
+                                   report=session["result"])
 
     write_activity_log("list", "mdl_stats", None, session["user_id"], session["T_usage"])
 
     # caso contrário, carregar página de pesquisa
-    return render_template(MDL_STATS_TPLT, lect_year=lect_year, search=True)
+    return render_template(MDL_STATS_TPLT,
+                           lect_year=lect_year,
+                           search=True)
 
 
 # Queryn
-# TODO: selector de LLM
 @app.route("/queryn", methods=["GET", "POST"])
 @login_required
 def queryn():
@@ -4019,19 +4149,102 @@ def queryn():
 
     # se o utilizador chegar ao formulário via POST
     if request.method == "POST":
-        if request.form.get("prompt").strip() == "":
-            return error_msg("prompt vazia", 400, '/queryn')
+        def val_or_none(field):
+            val = request.form.get(field, "").strip()
+            return val if val != "" else None
 
-        response = ask_Queryn(request.form.get("prompt"))["answer"]
+        llm_provider = val_or_none("llm_provider")
+        llm_user = val_or_none("llm_user")
+        llm_endpoint = val_or_none("llm_endpoint")
+        llm_agent_id = val_or_none("llm_agent_id")
+        llm_api_key = val_or_none("llm_api_key")
+        llm_channel_id = val_or_none("llm_channel_id")
+        llm_model_name = val_or_none("llm_model_name")
+        llm_idx = 1 if request.form.get("llm_primary") else 2 if request.form.get("llm_secondary") else 0
+        llm_id = val_or_none("llm_id")
 
-        write_activity_log("ask", "Queryn", f"\"{request.form.get('prompt')}\"", session["user_id"], session["T_usage"])
+        wf_db = connect_db()
+        wf_db_cursor = wf_db.cursor(buffered=True)
 
-        return render_template(QUERYN_TPLT, response=response, admin=is_admin(session["user_id"]))
+        if request.form.get("send_prompt") is not None:
+            if request.form.get("prompt").strip() == "":
+                return error_msg("prompt vazia", 400, '/queryn')
+
+            response = ask_Queryn(request.form.get("prompt"))["answer"]
+
+            write_activity_log("ask", "Queryn", f"\"{request.form.get('prompt')}\"", session["user_id"], session["T_usage"])
+
+            return render_template(QUERYN_TPLT,
+                                   response=response,
+                                   admin=is_admin(session["user_id"]),
+                                   llms=get_llms())
+
+        elif request.form.get("save_llm") is not None:
+            if llm_id is not None:
+                wf_db_cursor.execute("""
+                                     UPDATE wiseflow.llm_settings
+                                     SET provider = %s,
+                                         user = %s,
+                                         endpoint = %s,
+                                         agent_id = %s,
+                                         api_key = %s,
+                                         channel_id = %s,
+                                         model_name = %s,
+                                         idx = %s
+                                     WHERE id = %s;
+                                     """,
+                                         (llm_provider,
+                                          llm_user,
+                                          llm_endpoint,
+                                          llm_agent_id,
+                                          llm_api_key,
+                                          llm_channel_id,
+                                          llm_model_name,
+                                          llm_idx,
+                                          llm_id)
+                                    )
+            else:
+                wf_db_cursor.execute("""
+                                     INSERT INTO wiseflow.llm_settings
+                                     (provider,
+                                      user,
+                                      endpoint,
+                                      agent_id,
+                                      api_key,
+                                      channel_id,
+                                      model_name,
+                                      idx)
+                                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                                     """,
+                                         (llm_provider,
+                                          llm_user,
+                                          llm_endpoint,
+                                          llm_agent_id,
+                                          llm_api_key,
+                                          llm_channel_id,
+                                          llm_model_name,
+                                          llm_idx
+                                         )
+                                    )
+            wf_db.commit()
+
+            write_activity_log("set_LLM", "Queryn", llm_provider, session["user_id"], session["T_usage"])
+
+        elif request.form.get("go") is not None and llm_id is not None:
+            wf_db_cursor.execute("DELETE FROM wiseflow.llm_settings WHERE id = %s;", (llm_id,))
+            wf_db.commit()
+
+            write_activity_log("del_LLM", "Queryn", llm_provider, session["user_id"], session["T_usage"])
+
+        wf_db_cursor.close()
+        wf_db.close()
 
     write_activity_log("visit", "Queryn", None, session["user_id"], session["T_usage"])
 
     # caso contrário, redireccionar para a página de selecção
-    return render_template(QUERYN_TPLT, admin=is_admin(session["user_id"]))
+    return render_template(QUERYN_TPLT,
+                           admin=is_admin(session["user_id"]),
+                           llms=get_llms())
 
 
 # indicadores AIDA
@@ -4083,7 +4296,10 @@ def aida():
 
             clean_results()
             
-            return render_template(AIDA_TPLT, download=True, file_url=csv_file["url"], file_name=csv_file["filename"])
+            return render_template(AIDA_TPLT,
+                                   download=True,
+                                   file_url=csv_file["url"],
+                                   file_name=csv_file["filename"])
         
         else:
             # se o utilizador não submeter o ano lectivo, retornar mensagem de erro
@@ -4163,12 +4379,18 @@ def aida():
 
             write_activity_log("list", "aida", session["key"], session["user_id"], session["T_usage"])
 
-            return render_template(AIDA_TPLT, lect_year=lect_year, key=session["key"], result=session["result"], fields=session["fields"])
+            return render_template(AIDA_TPLT,
+                                   lect_year=lect_year,
+                                   key=session["key"],
+                                   result=session["result"],
+                                   fields=session["fields"])
 
     write_activity_log("list", "aida", None, session["user_id"], session["T_usage"])
 
     # caso contrário, carregar página de pesquisa
-    return render_template(AIDA_TPLT, lect_year=lect_year, search=True)
+    return render_template(AIDA_TPLT,
+                           lect_year=lect_year,
+                           search=True)
 
 
 if __name__ == "__main__":
