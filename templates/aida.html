@@ -12,7 +12,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2025082111
+ * @version    2026042903
  * @date       2024-02-20
  *
  * This program is free software: you can redistribute it and/or modify
@@ -66,6 +66,12 @@
             <script type="text/javascript">
                 downloadFile("{{ file_url }}", "{{ file_name }}", "/aida");
             </script>
+
+        {% elif open %}
+            <script type="text/javascript">
+                openPDF("{{ file_url }}");
+            </script>
+
         {% endif %}
 
         <form action="/aida" method="post" id="aida" onsubmit="showModal()">
@@ -87,6 +93,7 @@
                     <option value="estudantes_NEEs">estudantes c/ Necessidades Educativas Especiais</option>
                     <option value="estudantes_MAO">frequência do Módulo de Ambientação Online</option>
                     <option value="folio_historico_data">histórico de datas dos e-fólios</option>
+                    <option value="iduc">IdUC (Identificação da Unidade Curricular)</option>
                     <option value="estudantes_folios">notas parcelares em avaliação contínua</option>
                     <option value="ucs_flows_tipo">tipos de fluxo por UC</option>
                     <option value="stds_full">totais por estudante</option>
@@ -149,6 +156,22 @@
                     <textarea class="form-control" id="lista_ucs" name="lista_ucs" rows="3" cols="48" placeholder="AAAAA, BBBBB, CCCCC, ..."></textarea>
                 </div>
 
+                <div class="mb-3" name="div_WF_option" id="div_WF_option" style="display: none;">
+                    <select class="form-select" id="WF_option" name="WF_option">
+                        <option value="option" selected>opção</option>
+
+                        <hr>
+
+                        <option value=1>presencial</option>
+                        <option value=0>remoto</option>
+                    </select>
+
+                    <svg class="fa-icon_optional" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.-->
+                        <path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336l24 0 0-64-24 0c-13.3 0-24-10.7-24-24s10.7-24 24-24l48 0c13.3 0 24 10.7 24 24l0 88 8 0c13.3 0 24 10.7 24 24s-10.7 24-24 24l-80 0c-13.3 0-24-10.7-24-24s10.7-24 24-24zm40-208a32 32 0 1 1 0 64 32 32 0 1 1 0-64z"/>
+                        <title>opcional</title>
+                    </svg>
+                </div>
+
                 <div class="mb-3" name="div_NEE_status" id="div_NEE_status" style="display: none;">
                     <select class="form-select" id="NEE_status" name="NEE_status">
                         <option value="status" selected>estado</option>
@@ -165,14 +188,16 @@
                     </svg>
                 </div>
 
-                <div class="mb-3" name="div_WF_option" id="div_WF_option" style="display: none;">
-                    <select class="form-select" id="WF_option" name="WF_option">
-                        <option value="option" selected>opção</option>
+                <div class="mb-3" name="div_IdUC" id="div_IdUC" style="display: none;">
+                    <select class="form-select" id="MP_type" name="MP_type">
+                        <option value="type" selected>tipologia de avaliação</option>
 
                         <hr>
 
-                        <option value=1>presencial</option>
-                        <option value=0>remoto</option>
+                        <option value=1>Tipologia 01</option>
+                        <option value=2>Tipologia 02</option>
+                        <option value=3>Tipologia 03</option>
+                        <option value=4>Tipologia 04</option>
                     </select>
 
                     <svg class="fa-icon_optional" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.-->
@@ -199,7 +224,7 @@
                     <table class="table  table-striped table-hover table-borderless results-table" id="full_report_table">
                         <thead class="table-primary results-table-header">
                             <tr>
-                                {% for column in fields %}
+                                {% for column in fields if column not in hidden_fields %}
                                     <th>{{ column }}</th>
                                 {% endfor %}
                             </tr>
@@ -208,8 +233,18 @@
                         <tbody>
                             {% for row in result %}
                                 <tr>
-                                    {% for column in fields %}
-                                        <td>{{ row[column] }}</td>
+                                    {% for column in fields if column not in hidden_fields %}
+                                        {% if "iduc" in key and column == 'ucsname' %}
+                                            <td>
+                                                <a href="{{ url_for('export_iduc_2pdf', ucsname=row[column]) }}" 
+                                                   title="exportar IdUC p/ PDF">
+                                                    {{ row[column] }}
+                                                </a>
+                                            </td>
+
+                                        {% else %}
+                                            <td>{{ row[column] }}</td>
+                                        {% endif %}
                                     {% endfor %}
                                 </tr>
                             {% endfor %}

@@ -11,7 +11,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2026030608
+ * @version    2026042903
  * @date       2024-02-20
  *
  * This program is free software: you can redistribute it and/or modify
@@ -693,6 +693,7 @@ document.addEventListener("DOMContentLoaded", function() {
             || this.value === "estudantes_UC_actividade"
             || this.value === "estudantes_UC_escolha"
             || this.value === "folio_historico_data"
+            || this.value === "iduc"
             || this.value === "ucs_flows_tipo") {
             show_param("div_courses", true);
         } else {
@@ -713,15 +714,20 @@ document.addEventListener("DOMContentLoaded", function() {
             set_Mandatory_icon("icon_courses", false);
             set_Mandatory_text("title_courses", false);
         }
+        if (this.value === "estudantes_WF_escolha") {
+            show_param("div_WF_option", true);
+        } else {
+            show_param("div_WF_option", false);
+        }
         if (this.value === "estudantes_NEEs") {
             show_param("div_NEE_status", true);
         } else {
             show_param("div_NEE_status", false);
         }
-        if (this.value === "estudantes_WF_escolha") {
-            show_param("div_WF_option", true);
+        if (this.value === "iduc") {
+            show_param("div_IdUC", true);
         } else {
-            show_param("div_WF_option", false);
+            show_param("div_IdUC", false);
         }
     });
 });

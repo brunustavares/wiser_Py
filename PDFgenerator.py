@@ -11,7 +11,7 @@
 # @copyright  Copyright (C) 2024-present Bruno Tavares
 # @license    GNU General Public License v3 or later
 #             https://www.gnu.org/licenses/gpl-3.0.html
-# @version    2026021808
+# @version    2026042903
 # @date       2026-02-06
 #
 # This program is free software: you can redistribute it and/or modify
@@ -28,6 +28,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 
+import re
 from reportlab.platypus import (
     SimpleDocTemplate,
     Paragraph,
@@ -288,7 +289,7 @@ def generate_CoverSheet(
             radius=10
         )
     )    
-    
+
     # dados da prova
     info_table = Table(
         [
@@ -314,6 +315,138 @@ def generate_CoverSheet(
     sheet.append(Paragraph(f"<b>Nome: </b> {student_name}", styles["csNormalLeft"]))
     sheet.append(Paragraph(f"<b>Número: </b> {student_number}", styles["csNormalLeft"]))
     sheet.append(Paragraph(f"<b>Nota: </b> {student_grade}", styles["csNormalLeft"]))
+
+    doc.build(
+        sheet,
+        onFirstPage=watermark,
+        onLaterPages=watermark
+    )
+
+
+# formatação da IdUC em PDF
+def format_IdUC(output_path: str, fields: dict, data: dict):
+    doc = SimpleDocTemplate(
+        output_path,
+        pagesize=A4,
+        rightMargin=50,
+        leftMargin=50,
+        topMargin=40,
+        bottomMargin=50
+    )
+
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name="ucTitle", fontSize=16, leading=20, spaceAfter=10))
+    styles.add(ParagraphStyle(name="sectionHeader", fontSize=13, spaceBefore=15, spaceAfter=8))
+    styles.add(ParagraphStyle(name="label", fontSize=10, textColor=colors.grey))
+
+    sheet = []
+
+    def val(key):
+        return str(data.get(key, "") or "")
+
+    def add_if_value(story, label, value, suffix=""):
+        if value not in ("", "0", None):
+            story.append(Paragraph(f"<b>{label}: </b> {value}{suffix}", styles["Normal"]))
+
+    def add_colored_box_to_story(story, flowables, color):
+        if not flowables:
+            return
+        
+        frame = RoundedFrame(
+            content=flowables,
+            width=doc.width - 20,   # smaller so it fits inside parent rounded block
+            padding=10,
+            radius=6,
+            fill_color=color,
+            stroke_color=colors.lightgrey
+        )
+
+        story.append(frame)
+        story.append(Spacer(1, 8))
+
+    # cabeçalho com logótipo
+    sheet.append(header_logo(doc))
+    sheet.append(Spacer(1, 20))
+
+    sheet.append(Paragraph(val("ucfname"), styles["ucTitle"]))
+    sheet.append(Paragraph(f"<b>Código:</b> {val('ucsname')}", styles["Normal"]))
+    sheet.append(Paragraph(f"<b>Docente:</b> {val('docente')}", styles["Normal"]))
+    sheet.append(Spacer(1, 15))
+
+    # Descrição
+    sheet.extend(rounded_framed_block([
+        Paragraph("<b>Descrição</b>", styles["Heading2"]),
+        Paragraph(val("sinopse"), styles["Normal"])
+    ], doc))
+
+    # Avaliação
+    estrategia_de_avaliacao = val("estrategia_de_avaliacao")
+    tipologia = int(re.search(r"\d+", estrategia_de_avaliacao).group())
+
+    avaliacao_story = [
+        Paragraph("<b>Avaliação</b>", styles["Heading2"]),
+        Paragraph(estrategia_de_avaliacao, styles["Normal"]),
+        Spacer(1, 8)
+    ]
+
+    # Tipologia 1
+    if tipologia == 1:
+        async_box = []
+        add_if_value(async_box, "Atividade 01", val("at01_valor"), " valores")
+        add_if_value(async_box, "Atividade 02", val("at02_valor"), " valores")
+        add_if_value(async_box, "Atividade 03", val("at03_valor"), " valores")
+        add_colored_box_to_story(avaliacao_story, async_box, colors.beige)
+
+        sync_box = []
+        add_if_value(sync_box, "Atividade 04", val("at04_valor"), " valores")
+        add_if_value(sync_box, "fluxo", val("at04_fluxo"))
+        add_colored_box_to_story(avaliacao_story, sync_box, colors.lightblue)
+
+        exam_box = []
+        add_if_value(exam_box, "Exame na época normal", val("exame"))
+        add_colored_box_to_story(avaliacao_story, exam_box, colors.lightgreen)
+
+    # Tipologias 2 e 3
+    if tipologia in (2, 3):
+        box = []
+        add_if_value(box, "Atividade 01", val("at01_valor"), " valores")
+        add_if_value(box, "Atividade 02", val("at02_valor"), " valores")
+        add_if_value(box, "Atividade 03", val("at03_valor"), " valores")
+        add_if_value(box, "Atividade 04", val("at04_valor"), " valores")
+        add_colored_box_to_story(avaliacao_story, box, colors.beige)
+
+    # Tipologia 4
+    if tipologia == 4:
+        async_box = []
+        add_if_value(async_box, "Atividade 01", val("at01_valor"), " valores")
+        add_colored_box_to_story(avaliacao_story, async_box, colors.beige)
+
+        sync_box = []
+        add_if_value(sync_box, "Atividade 02", val("at04_valor"), " valores")
+        add_if_value(sync_box, "fluxo", val("at04_fluxo"))
+        add_colored_box_to_story(avaliacao_story, sync_box, colors.lightblue)
+
+        exam_box = []
+        add_if_value(exam_box, "Exame na época normal", val("exame"))
+        add_colored_box_to_story(avaliacao_story, exam_box, colors.lightgreen)
+
+    # fluxo de exame
+    if val("exame_fluxo"):
+        add_colored_box_to_story(
+            avaliacao_story,
+            [Paragraph(f"<b>Fluxo de exame: </b> {val('exame_fluxo')}", styles["Normal"])],
+            colors.lightgrey
+        )
+
+    sheet.extend(rounded_framed_block(avaliacao_story, doc))
+
+    # Outros
+    sheet.extend(rounded_framed_block([
+        Paragraph("<b>Outros</b>", styles["Heading2"]),
+        Paragraph(f"<b>Bibliografia:</b> {val('bibliografia')}", styles["Normal"]),
+        Paragraph(f"<b>Dimensão do GATu:</b> {val('dimensao_do_gatu')}", styles["Normal"]),
+        Paragraph(f"<b>LIA:</b> {val('lia')}", styles["Normal"]),
+    ], doc))
 
     doc.build(
         sheet,

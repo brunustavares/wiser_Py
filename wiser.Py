@@ -11,7 +11,7 @@
 # @copyright  Copyright (C) 2024-present Bruno Tavares
 # @license    GNU General Public License v3 or later
 #             https://www.gnu.org/licenses/gpl-3.0.html
-# @version    2026030608
+# @version    2026042903
 # @date       2024-02-20
 #
 # This program is free software: you can redistribute it and/or modify
@@ -47,11 +47,12 @@ from zoneinfo import ZoneInfo
 from functools import wraps
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
-from flask import Flask, redirect, render_template, request, session
+from flask import Flask, redirect, render_template, request, session, send_file
 from flask_session import Session
 from waitress import serve
 from endpoints import call_endpoint
 from PDFgenerator import generate_CoverSheet
+from PDFgenerator import format_IdUC
 from PDFgenerator import merge_files
 from Queryn import prompt as ask_Queryn
 from email.mime.text import MIMEText
@@ -1546,7 +1547,7 @@ def sanitize(string):
 # configuração da aplicação
 app = Flask(__name__)
 
-BUILD = "2026030608"  # YYYYMMDDHH
+BUILD = "2026042903"  # YYYYMMDDHH
 
 # SECRET_KEY
 app.secret_key = "RaK7ng8-UCKWZnW6"
@@ -1823,6 +1824,24 @@ def is_sosusr(usrid):
     wf_db.close()
 
     return None if sosusr_flag == 0 else 1
+
+
+# exporta a IdUC p/ PDF
+@app.route("/export_iduc_2pdf/<ucsname>")
+def export_iduc_2pdf(ucsname):
+    dataset = session.get("result", [])
+    fields = session.get("fields")
+    
+    selected_uc = next((item for item in dataset if item["ucsname"] == ucsname), None)
+    
+    IdUC_file = f"tmp/usrID{session.get('user_id')}_IdUC-{ucsname}.pdf"
+    
+    format_IdUC(IdUC_file,
+                fields,
+                selected_uc
+               )
+    
+    return send_file(IdUC_file, as_attachment=True)
 
 
 # menu Sentinel_F
@@ -3829,6 +3848,7 @@ def user_report():
                                            file_url=file2export["url"],
                                            search=True,
                                            allow_export=True)
+                    # return send_file(file2export["filename"], as_attachment=True)
 
                 elif request.form.get("flow_data") == "full_log":
                     from_ts = int(datetime.datetime.strptime(dtfrom, "%Y-%m-%d %H:%M:%S").timestamp()) - 300
@@ -4289,6 +4309,21 @@ def aida():
 
     # se o utilizador chegar ao formulário via POST
     if request.method == "POST":
+        hide_fields = ['id',
+                       'stdid',
+                       'ucid',
+                       'docid',
+                       'iduc_ate',
+                       'sinopse',
+                       'bibliografia',
+                       'at01_valor',
+                       'at02_valor',
+                       'at03_valor',
+                       'at04_valor',
+                       'exame',
+                       'dimensao_do_gatu',
+                       'lia']
+
         if request.form.get("export") is not None and session["result"] is not None:
             csv_file = export_to_csv(session["result"], (session["result"][0].keys()), ("tmp/usrID" + str(session["user_id"]) + "_aida.csv"), True)
 
@@ -4327,6 +4362,7 @@ def aida():
                 or request.form.get("endpoint") == "estudantes_UC_escolha" \
                 or request.form.get("endpoint") == "estudantes_WF_escolha" \
                 or request.form.get("endpoint") == "folio_historico_data" \
+                or request.form.get("endpoint") == "iduc" \
                 or request.form.get("endpoint") == "ucs_flows_tipo":
                 if request.form.get("endpoint") == "estudantes_folios" \
                     or request.form.get("endpoint") == "folio_historico_data":
@@ -4337,7 +4373,8 @@ def aida():
                     if request.form.get("lista_ucs").strip() == "":
                         return error_msg("lista de UCs necessária", 400, '/aida')
 
-                if request.form.get("endpoint") != "ucs_flows_tipo":
+                if request.form.get("endpoint") != "iduc" \
+                    and request.form.get("endpoint") != "ucs_flows_tipo":
                     if request.form.get("lista_stds").strip() != "":
                         aida_endpoint += '&lista_stds=' + base64.b64encode(request.form.get("lista_stds").encode("utf-8")).decode("utf-8")
 
@@ -4353,6 +4390,16 @@ def aida():
                     else:
                         aida_endpoint += '&lista_ucs='
 
+                if request.form.get("endpoint") == "estudantes_WF_escolha":
+                    if request.form.get("WF_option") != "option":
+                        aida_endpoint += '&flow_inloco=' + request.form.get("WF_option")
+
+                        if request.form.get("WF_option") == "1":
+                            session["key"] += " | presencial"
+                        
+                        else:
+                            session["key"] += " | remoto"
+
                 elif request.form.get("endpoint") == "estudantes_NEEs":
                     if request.form.get("NEE_status") != "status":
                         aida_endpoint += '&status=' + request.form.get("NEE_status")
@@ -4363,18 +4410,13 @@ def aida():
                         else:
                             session["key"] += " | inactivo"
 
-                elif request.form.get("endpoint") == "estudantes_WF_escolha":
-                    if request.form.get("WF_option") != "option":
-                        aida_endpoint += '&flow_inloco=' + request.form.get("WF_option")
+                elif request.form.get("endpoint") == "iduc":
+                    if request.form.get("MP_type") != "type":
+                        aida_endpoint += '&estrategia_de_avaliacao=' + request.form.get("MP_type")
 
-                        if request.form.get("WF_option") == "1":
-                            session["key"] += " | presencial"
-                        
-                        else:
-                            session["key"] += " | remoto"
+                        session["key"] += " | Tipologia 0" + request.form.get("MP_type")
 
             session["result"] = requests.get(aida_endpoint).json()
-
             session["fields"] = list(session["result"][0].keys()) if session["result"] else []
 
             write_activity_log("list", "aida", session["key"], session["user_id"], session["T_usage"])
@@ -4383,7 +4425,8 @@ def aida():
                                    lect_year=lect_year,
                                    key=session["key"],
                                    result=session["result"],
-                                   fields=session["fields"])
+                                   fields=session["fields"],
+                                   hidden_fields=hide_fields)
 
     write_activity_log("list", "aida", None, session["user_id"], session["T_usage"])
 
@@ -4415,3 +4458,4 @@ if __name__ == "__main__":
 
         # Flask
     # app.run(host="0.0.0.0", port=5000, debug=False)
+    
