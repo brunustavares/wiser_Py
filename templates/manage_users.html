@@ -118,6 +118,7 @@
                         <th>primeiro<br>login</th>
                         <th>último<br>login</th>
                         <th>sessão<br>total</th>
+                        <th>suspenso</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -184,6 +185,12 @@
                             <td>{{ row[9] }}</td>
 
                             <td>{{ row[10] }}</td>
+
+                            <td><input type="checkbox" id="suspended{{ row[0] }}" name="suspended{{ row[0] }}"
+                                {% if row[11] == 1 %} checked {% endif %}
+                                {% if row[1] == "admin" or row[0] == userid %} disabled {% endif %}
+                                onchange="update_users('{{ row[0] }}')">
+                            </td>
 
                             <td>
                                 {% if row[1] != "admin" and row[0] != userid %}

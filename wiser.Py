@@ -324,7 +324,8 @@ def build_query(sys=None, lect_year=None, student=None, date=None, bio=None, sta
                             sosusr, \
                             FROM_UNIXTIME(firstlogin), \
                             FROM_UNIXTIME(lastlogin), \
-                            IF((T_usage/60) > 60, CONCAT(ROUND(T_usage/60/60, 0), 'hr'), CONCAT(ROUND(T_usage/60, 0), 'min')) \
+                            IF((T_usage/60) > 60, CONCAT(ROUND(T_usage/60/60, 0), 'hr'), CONCAT(ROUND(T_usage/60, 0), 'min')), \
+                            suspended \
                      FROM wiseflow.users \
                      ORDER BY username ASC;"
 
@@ -1661,7 +1662,8 @@ def login():
         # verificar se o username existe
         wf_db_cursor.execute("SELECT * \
                               FROM wiseflow.users \
-                              WHERE username = %s;",
+                              WHERE username = %s \
+                                  AND suspended = 0;",
                              (request.form.get("username"), ))
         user = wf_db_cursor.fetchall()
 
@@ -3126,6 +3128,13 @@ def manage_users():
                                       SET sosusr = %s \
                                       WHERE id = %s;",
                                      (request.form.get("sosusr"), request.form.get("usrid"), ))
+                wf_db.commit()
+
+            if request.form.get("suspended"):
+                wf_db_cursor.execute("UPDATE users \
+                                      SET suspended = %s \
+                                      WHERE id = %s",
+                                     (request.form.get("suspended"), request.form.get("usrid"), ))
                 wf_db.commit()
 
             write_activity_log("set_permissions", "user", None, session["user_id"], session["T_usage"], request.form.get("usrid"))

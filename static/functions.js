@@ -413,6 +413,7 @@ function update_users(usrid) {
     let statsman = document.getElementById("statsman".concat(usrid));
     let toolsusr = document.getElementById("toolsusr".concat(usrid));
     let sosusr = document.getElementById("sosusr".concat(usrid));
+    let suspended = document.getElementById("suspended".concat(usrid));
     let params = {};
 
     params["usrid"] = usrid;
@@ -428,6 +429,8 @@ function update_users(usrid) {
     if (toolsusr.checked) { params["toolsusr"] = "1"; } else { params["toolsusr"] = "0"; }
 
     if (sosusr.checked && toolsusr.checked) { params["sosusr"] = "1"; } else { params["sosusr"] = "0"; }
+
+    if (suspended.checked) { params["suspended"] = "1"; } else { params["suspended"] = "0"; }
 
     post("manage_users", params);
 }
