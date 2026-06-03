@@ -10,7 +10,7 @@
  * @copyright  Copyright (C) 2025-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2026022408
+ * @version    2026051912
  * @date       2025-10-31
  *
  * This program is free software: you can redistribute it and/or modify
@@ -181,29 +181,60 @@ function build_email_wrapper($content_html) {
     $logo_border = 2;
     $logo_vml_size = $logo_size + ($logo_border * 2);
 
-    $wrapper = "<table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0' style='width:100%; background-color:" . $bg_main . "; margin:0; padding:24px 0; mso-table-lspace:0pt; mso-table-rspace:0pt;'>
+    $wrapper = "<table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0'
+                       style='width:100%; margin:0; padding:24px 0; mso-table-lspace:0pt; mso-table-rspace:0pt;
+                              background-color:" . $bg_main . ";'>
                     <tr>
                         <td align='center' style='padding:24px 12px;'>
-                            <!--[if mso]>
-                            <v:roundrect xmlns:v='urn:schemas-microsoft-com:vml' arcsize='3%' strokecolor='" . $border . "' strokeweight='1px' fillcolor='" . $bg_card . "' style='width:900px; mso-width-percent:1000;'>
-                            <v:textbox inset='0,0,0,0'>
-                            <![endif]-->
-                            <!--[if !mso]><!-- -->
-                            <table role='presentation' cellpadding='0' cellspacing='0' border='0' width='100%' style='width:100%; max-width:900px; background-color:" . $bg_card . "; border:1px solid " . $border . "; border-radius:12px; mso-table-lspace:0pt; mso-table-rspace:0pt;'>
-                            <!--<![endif]-->
+
+                        <!--[if mso]>
+                            <v:roundrect xmlns:v='urn:schemas-microsoft-com:vml'
+                                         xmlns:w='urn:schemas-microsoft-com:office:word'
+                                         arcsize='3%'
+                                         strokecolor='" . $border . "'
+                                         strokeweight='1px'
+                                         fillcolor='" . $bg_card . "'
+                                         style='width:900px; mso-width-percent:1000;'>
+                                <w:anchorlock/>
+                                <v:textbox inset='0,0,0,0' style='mso-fit-shape-to-text:t'>
+                                    <table role='presentation' width='900' cellpadding='0' cellspacing='0' border='0'
+                                           style='width:900px;'>
+                        <![endif]-->
+
+                        <!--[if !mso]><!-- -->
+                            <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0'
+                                   style='width:100%; max-width:900px; border-radius:12px; mso-table-lspace:0pt; mso-table-rspace:0pt;
+                                          border:1px solid " . $border . "; background-color:" . $bg_card . ";'>
+                        <!--<![endif]-->
+
                                 <tr>
                                     <td style='padding:18px 20px; border-bottom:1px solid " . $border . ";'>
-                                        <table role='presentation' cellpadding='0' cellspacing='0' border='0' width='100%'>
+                                        <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0'>
                                             <tr>
                                                 <td width='" . $logo_vml_size . "' valign='middle' style='padding-right:12px;'>
+
                                                     <!--[if mso]>
-                                                    <v:oval xmlns:v='urn:schemas-microsoft-com:vml' strokecolor='" . $accent . "' strokeweight='" . $logo_border . "px' fill='t' style='width:" . $logo_vml_size . "px; height:" . $logo_vml_size . "px;'>
-                                                        <v:fill src='cid:sentinelfavatar' type='frame' />
-                                                    </v:oval>
+                                                        <table role='presentation' align='center' cellpadding='0' cellspacing='0' border='0'>
+                                                            <tr>
+                                                                <td align='left' valign='middle' width='" . $logo_vml_size. "' height='" . $logo_vml_size. "'
+                                                                    style='margin:3px;'>
+                                                                    <v:oval xmlns:v='urn:schemas-microsoft-com:vml'
+                                                                            strokecolor='" . $accent. "'
+                                                                            strokeweight='" . $logo_border. "px'
+                                                                            fill='t'
+                                                                            style='width:" . $logo_vml_size. "px; height:" . $logo_vml_size. "px;'>
+                                                                        <v:fill src='cid:sentinelfavatar' type='frame'/>
+                                                                    </v:oval>
+                                                                </td>
+                                                            </tr>
+                                                        </table>
                                                     <![endif]-->
+
                                                     <!--[if !mso]><!-- -->
-                                                    <img src='cid:sentinelfavatar' width='100' height='100' style='display:block; border:0; outline:none; text-decoration:none; border-radius:50%; border:2px solid " . $accent . "; -ms-interpolation-mode:bicubic;' alt='Sentinel_F'>
+                                                        <img src='cid:sentinelfavatar' width='100' height='100'
+                                                             style='display:block; border:0; outline:none; text-decoration:none; border-radius:50%; border:2px solid " . $accent . "; -ms-interpolation-mode:bicubic;' alt='Sentinel_F'>
                                                     <!--<![endif]-->
+
                                                 </td>
                                             </tr>
                                         </table>
@@ -211,16 +242,20 @@ function build_email_wrapper($content_html) {
                                 </tr>
                                 <tr>
                                     <td style='padding:20px; font-family: Segoe UI, Arial, sans-serif; color:" . $text_main . ";'>
-                                        " . $content_html . "
+                                    " . $content_html . "
                                     </td>
                                 </tr>
-                            <!--[if !mso]><!-- -->
+
+                        <!--[if !mso]><!-- -->
                             </table>
-                            <!--<![endif]-->
-                            <!--[if mso]>
-                            </v:textbox>
+                        <!--<![endif]-->
+
+                        <!--[if mso]>
+                                    </table>
+                                </v:textbox>
                             </v:roundrect>
-                            <![endif]-->
+                        <![endif]-->
+
                         </td>
                     </tr>
                 </table>";
@@ -271,6 +306,21 @@ if (!empty($mode)
                         . $slctqry);
 
     $admin = (string)mysqli_fetch_assoc($result)['admin'];
+
+    $slctqry = "SELECT MAX(CASE WHEN setting = 'manageTO' THEN value END) AS manageTO,
+                       MAX(CASE WHEN setting = 'manageCC' THEN value END) AS manageCC
+                FROM wiseflow.sentinelf_settings;";
+
+    $result = mysqli_query($conBDInt, $slctqry)
+                  or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_settings': " . mysqli_error($conBDInt)
+                        . $nl . $nl
+                        . $slctqry);
+
+    $manage = mysqli_fetch_assoc($result);
+
+    $manageTO = array_map('trim', explode(';', $manage['manageTO']));
+    $manageCC = array_map('trim', explode(';', $manage['manageCC']));
+
     $email_styles = get_email_table_styles();
 
     $email->setFrom('Sentinel_F@uab.pt', 'Sentinel_F');
@@ -279,20 +329,6 @@ if (!empty($mode)
     if ($mode == "monitor") {
         // obtenção dos parâmetros transversais do curl
         $curlopt_base = set_curl_params("wf", time());
-
-        $slctqry = "SELECT MAX(CASE WHEN setting = 'manageTO' THEN value END) AS manageTO,
-                           MAX(CASE WHEN setting = 'manageCC' THEN value END) AS manageCC
-                    FROM wiseflow.sentinelf_settings;";
-
-        $result = mysqli_query($conBDInt, $slctqry)
-                      or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_settings': " . mysqli_error($conBDInt)
-                            . $nl . $nl
-                            . $slctqry);
-
-        $manage = mysqli_fetch_assoc($result);
-
-        $manageTO = array_map('trim', explode(';', $manage['manageTO']));
-        $manageCC = array_map('trim', explode(';', $manage['manageCC']));
 
         // obtenção da lista de flows em realização
         $slctqry = "SELECT subtitle,
@@ -513,9 +549,7 @@ if (!empty($mode)
                     $events = mysqli_fetch_all($new_events, MYSQLI_ASSOC);
 
                     $html_table = '';
-
                     $html_table .= "<table border='0' cellspacing='0' cellpadding='0' style='" . $email_styles['table'] . "'>";
-
                     $html_table .= "<thead>
                                         <tr>
                                             <th style='" . $email_styles['th'] . "'>flow</th>
@@ -527,6 +561,7 @@ if (!empty($mode)
                                     </thead><tbody>";
 
                     $row_index = 0;
+
                     foreach ($events as $event) {
                         $slctqry = "SELECT flowid,
                                            subtitle
@@ -593,11 +628,8 @@ if (!empty($mode)
                     printf("Registados " . count($events) . " novos eventos não catalogados" . $nl);
 
                     $email->AddAddress($admin);
-
                     $email->Subject = 'ALERTA: novos eventos registados';
-
                     $email->Body = build_email_wrapper($html_table);
-
                     $email->send();
                 
                     printf("Notificação de administração enviada" . $nl);
@@ -977,9 +1009,7 @@ if (!empty($mode)
                 });
 
                 $html_table = '';
-
                 $html_table .= "<table border='0' cellspacing='0' cellpadding='0' style='" . $email_styles['table'] . "'>";
-
                 $html_table .= "<thead>
                                     <tr>
                                         <th style='" . $email_styles['th'] . "'>flow</th>
@@ -992,6 +1022,7 @@ if (!empty($mode)
                                 </thead><tbody>";
 
                 $row_index = 0;
+
                 foreach ($events as $event) {
                     $row_style = ($row_index % 2 == 0) ? $email_styles['row_even'] : $email_styles['row_odd'];
                     $html_table .= "<tr style='" . $row_style . "'>
@@ -1048,9 +1079,7 @@ if (!empty($mode)
                 foreach ($manageCC as $CC) { $email->AddCC($CC); }
 
                 $email->Subject = 'ALERTA: eventos relevantes detectados';
-
                 $email->Body = build_email_wrapper($html_table);
-
                 $email->send();
             
                 printf("Notificação de gestão enviada" . $nl);
@@ -1104,6 +1133,8 @@ if (!empty($mode)
             $tmp_table_exists = (int)$row['table_exists'];
 
             if ($tmp_table_exists == 1) {
+                $events = [];
+
                 // síntese de eventos reportados no período
                 $slctqry = "SELECT flw.subtitle,
                                    flw.flowid,
@@ -1125,14 +1156,10 @@ if (!empty($mode)
                                     . $slctqry);
 
                 if (mysqli_num_rows($report) > 0) {
-                    $html_table = '';
-
-                    $html_table .= "<table border='0' cellspacing='0' cellpadding='0' style='" . $email_styles['table'] . "'>";
-
-                    $events = [];
-
                     $events = mysqli_fetch_all($report, MYSQLI_ASSOC);
 
+                    $html_table = '';
+                    $html_table .= "<table border='0' cellspacing='0' cellpadding='0' style='" . $email_styles['table'] . "'>";
                     $html_table .= "<thead>
                                         <tr>
                                             <th style='" . $email_styles['th'] . "'>flow</th>
@@ -1165,9 +1192,7 @@ if (!empty($mode)
                     foreach ($manageCC as $CC) { $email->AddCC($CC); }
 
                     $email->Subject = 'INFO: síntese de eventos reportados no período';
-
                     $email->Body = build_email_wrapper($html_table);
-
                     $email->send();
                 
                     printf("Síntese enviada" . $nl);
@@ -1196,7 +1221,141 @@ if (!empty($mode)
         }
 
     } elseif ($mode == "report") {
-        // enviar relatório de gestão
+        $events = [];
+        
+        // enviar relatórios parcelares p/ docentes
+        $slctqry = "SELECT r.subtitle AS subtitle,
+                           r.flowid AS flowid,
+                           CONCAT(r.firstname, ' ', r.lastname) AS std_name,
+                           r.std_num AS std_num,
+                           r.email AS std_email,
+                           CONCAT(r.course, ai.TURMA_MOODLE) AS turma,
+                           r.dict AS evento,
+                           r.T AS T,
+                           CAST(r.timestamp AS DATE) AS data,
+                           CONCAT(t.firstname, ' ', t.lastname) AS t_name,
+                           t.email AS t_email
+                    FROM (
+                          SELECT f.lectyear AS lectyear,
+                                 sfr.timestamp AS timestamp,
+                                 f.subtitle AS subtitle,
+                                 f.flowid AS flowid,
+                                 SUBSTR(f.subtitle, 1, 5) AS course,
+                                 s.firstname AS firstname,
+                                 s.lastname AS lastname,
+                                 s.std_num AS std_num,
+                                 s.email AS email,
+                                 sfr.type AS type,
+                                 sfe.dict AS dict,
+                                 COUNT(sfr.type) AS T
+                          FROM sentinelf_reported sfr
+                              JOIN sentinelf_event_types sfe ON sfe.type = sfr.type
+                              JOIN students s ON s.stdid = sfr.stdid
+                              JOIN flows f ON f.flowid = sfr.flowid
+                          WHERE sfe.red_flag = 1
+                          GROUP BY f.subtitle, s.std_num, sfr.type
+                         ) r
+                        JOIN vw_teacher_2wiseflow t ON (t.cd_discip = r.course AND t.lectyear = r.lectyear)
+                        JOIN lead.alunos_inscricoes ai ON (ai.CD_DISCIP = r.course AND ai.CD_ALUNO = r.std_num AND ai.CD_LECTIVO = r.lectyear)
+                    WHERE r.timestamp = CURDATE()
+                    GROUP BY r.course, r.std_num, r.type
+                    ORDER BY t_email, r.course, r.subtitle, r.std_num, r.timestamp;";
+
+        $red_flags = mysqli_query($conBDInt, $slctqry)
+                         or die("Ñ foi possível executar a query que identifica as 'red_flags': " . mysqli_error($conBDInt)
+                               . $nl . $nl
+                               . $slctqry);
+
+        if (mysqli_num_rows($red_flags) > 0) {
+            $events = mysqli_fetch_all($red_flags, MYSQLI_ASSOC);
+
+            $reportTO = "";
+
+            foreach ($manageTO as $TO) { $email->AddCC($TO); }
+            foreach ($manageCC as $CC) { $email->AddCC($CC); }
+
+            $email->Subject = date("Y/M_d") . ': eventos relevantes';
+            $header = "";
+            // TODO: passar texto p/ parâmetro na wiser.Py
+            $footer = "<span style='font-size: small;'>
+                           <strong>Nota:</strong> O <em>Sentinel_F</em> é um agente automatizado de monitorização, que analisa os registos (logs) produzidos durante a realização das provas na WISEflow. Através dessa análise contínua dos eventos registados pelos sistemas envolvidos, é possível&nbsp;identificar e sinalizar ocorrências potencialmente relevantes, entre as quais:
+                           <ul>
+                               <li>aumentos súbitos de caracteres digitados, que podem corresponder a operações de colagem de texto ou outros comportamentos que justifiquem uma análise adicional;</li>
+                               <li>acessos à PlataformAbERTA durante a realização da prova, cabendo ao docente verificar se esses acessos são compatíveis com as regras definidas para a avaliação.</li>
+                           </ul>
+                           Importa sublinhar que o <em>Sentinel_F</em> não determina, nem comprova a existência de fraude académica. O agente limita-se a identificar eventos potencialmente relevantes com base nos dados registados pelos sistemas institucionais, cabendo aos docentes a respectiva análise contextual e a tomada de decisões. <strong><u>Trata-se, portanto, de uma ferramenta de apoio à supervisão humana e não de um mecanismo automatizado de decisão</u></strong>.</span>";
+
+            foreach ($events as $event) {
+                if ($reportTO !== $event['t_email']) {
+                    if ($reportTO !== "") {
+                        $html_table .= "</tbody></table>";
+
+                        $email->AddAddress($reportTO);
+                        $email->Body = $header . build_email_wrapper($html_table) . $footer;
+                        $email->send();
+                        $email->clearAddresses();
+
+                    }
+
+                    $reportTO = $event['t_email'];
+                    // TODO: passar texto p/ parâmetro na wiser.Py
+                    $header = "Caro(a) Professor(a) <strong>" . $event['t_name'] . "</strong>,
+                               <br><br>
+                               Foram detectados eventos potencialmente relevantes, na(s) prova(s) elencada(s) infra:";
+
+                    $html_table = '';
+                    $html_table .= "<table border='0' cellspacing='0' cellpadding='0' style='" . $email_styles['table'] . "'>";
+                    $html_table .= "<thead>
+                                        <tr>
+                                            <th style='" . $email_styles['th'] . "'>fluxo</th>
+                                            <th style='" . $email_styles['th'] . "'>estudante</th>
+                                            <th style='" . $email_styles['th'] . "'>turma</th>
+                                            <th style='" . $email_styles['th'] . "'>evento</th>
+                                            <th style='" . $email_styles['th'] . "'>ocorrências(N)</th>
+                                        </tr>
+                                    </thead><tbody>";
+
+                    $row_index = 0;
+
+                }
+
+                $row_style = ($row_index % 2 == 0) ? $email_styles['row_even'] : $email_styles['row_odd'];
+                $html_table .= "<tr style='" . $row_style . "'>
+                                    <td style='" . $email_styles['td_primary'] . "'>
+                                        <a style='" . $email_styles['link'] . "'
+                                           href='https://europe.wiseflow.net/manager/display.php?id=" . htmlspecialchars($event['flowid']) . "'>"
+                                          . htmlspecialchars($event['subtitle']) . "
+                                        </a>
+                                    </td>
+                                    <td style='" . $email_styles['td'] . "'>" . htmlspecialchars($event['std_num']) . "</td>
+                                    <td style='" . $email_styles['td'] . "'>" . htmlspecialchars($event['turma']) . "</td>
+                                    <td style='" . $email_styles['td_accent'] . "'>" . htmlspecialchars($event['evento']) . "</td>
+                                    <td style='" . $email_styles['td_center'] . "'>" . htmlspecialchars($event['T']) . "</td>
+                                </tr>";
+                $row_index++;
+          
+            }
+
+            // enviar último relatório parcial
+            if ($reportTO !== "") {
+                $html_table .= "</tbody></table>";
+
+                $email->AddAddress($reportTO);
+                $email->Body = $header . build_email_wrapper($html_table) . $footer;
+                $email->send();
+                $email->clearAddresses();
+            }
+
+            printf("Relatórios parcelares enviados" . $nl);
+
+            unset($events);
+
+        } else {
+            printf("Sem eventos relevantes para relatório" . $nl);
+
+        }
+
+        // enviar relatórios de gestão
         $slctqry = "SELECT value AS reportTO
                     FROM wiseflow.sentinelf_settings
                     WHERE setting = 'reportTO';";
@@ -1245,8 +1404,8 @@ if (!empty($mode)
         if (mysqli_num_rows($report) > 0
             || mysqli_num_rows($empty) > 0) {
             $html_table = '';
-
             $html_table .= "<table border='0' cellspacing='0' cellpadding='0' style='" . $email_styles['table'] . "'>";
+
             $row_index = 0;
 
             $events = [];
@@ -1320,9 +1479,7 @@ if (!empty($mode)
             foreach ($reportTO as $TO) { $email->AddAddress($TO); }
 
             $email->Subject = date("Y/M_d") . ': eventos relevantes';
-
             $email->Body = build_email_wrapper($html_table);
-
             $email->send();
         
             printf("Relatório de gestão enviado" . $nl);
