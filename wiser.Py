@@ -3080,7 +3080,7 @@ def manage_users():
         elif request.form.get("del") is not None:
             wf_db_cursor.execute("DELETE \
                                   FROM users \
-                                  WHERE username = %s",
+                                  WHERE username = %s;",
                                  (request.form.get("del"), ))
             wf_db.commit()
 
@@ -3133,7 +3133,7 @@ def manage_users():
             if request.form.get("suspended"):
                 wf_db_cursor.execute("UPDATE users \
                                       SET suspended = %s \
-                                      WHERE id = %s",
+                                      WHERE id = %s;",
                                      (request.form.get("suspended"), request.form.get("usrid"), ))
                 wf_db.commit()
 
