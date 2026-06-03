@@ -101,7 +101,7 @@ $(document).ready(function() {
     $('#manage_users_table').DataTable({
         // ordenação de colunas
         "columnDefs": [
-            { "orderable": false, "targets": [1, 2, 3, 4, 5, 6, 7, 11] }
+            { "orderable": false, "targets": [1, 2, 3, 4, 5, 6, 7, 11, 12] }
         ],
         language: {
             // personalizar botões de paginação: usar símbolos em vez de texto
