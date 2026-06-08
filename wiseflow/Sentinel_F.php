@@ -1257,7 +1257,7 @@ if (!empty($mode)
                          ) r
                         JOIN vw_teacher_2wiseflow t ON (t.cd_discip = r.course AND t.lectyear = r.lectyear)
                         JOIN lead.alunos_inscricoes ai ON (ai.CD_DISCIP = r.course AND ai.CD_ALUNO = r.std_num AND ai.CD_LECTIVO = r.lectyear)
-                    WHERE r.timestamp = CURDATE()
+                    WHERE r.timestamp >= CURDATE()
                     GROUP BY r.course, r.std_num, r.type
                     ORDER BY t_email, r.course, r.subtitle, r.std_num, r.timestamp;";
 
