@@ -355,8 +355,8 @@ function checkwftoken($start_time) {
                 if (!empty($result)) {
                     $flowpart = array_merge($flowpart, $result);
 
-                    if (count($result) >= $limit) {
-                        $offset += $limit;
+                    if (count($result) == $limit) {
+                        $offset += $limit - 1;
 
                     } else {
                         $repeat = false;
