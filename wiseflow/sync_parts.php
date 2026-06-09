@@ -433,11 +433,11 @@ $curlopt_base = set_curl_params(time());
             if (!empty($result)) {
                 $flow_parts = array_merge($flow_parts, $result);
 
-                if (count($result) == $limit) {
-                    $offset += $limit - 1;
+                if (count($result) < $limit) {
+                    $repeat = false;
 
                 } else {
-                    $repeat = false;
+                    $offset += $limit;
 
                 }
 
