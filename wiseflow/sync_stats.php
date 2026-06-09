@@ -147,7 +147,8 @@ function checkwftoken($start_time) {
                 FROM wiseflow.flows wf_flw
                 WHERE wf_flw.dtto < NOW()
 				    AND wf_flw.log = 0
-                ORDER BY wf_flw.dtto ASC, wf_flw.flowid ASC;";
+                ORDER BY RAND()
+                LIMIT 5;";
 
     $flwlogs = mysqli_query($conBDInt, $qrylogs)
                    or die("Ñ foi possível consultar a tabela 'wiseflow.flows': " . mysqli_error($conBDInt) . $nl);
