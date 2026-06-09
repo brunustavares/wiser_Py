@@ -336,7 +336,7 @@ if (!empty($mode)
                            dtfrom,
                            dtto
                     FROM wiseflow.flows
-                    WHERE NOW() BETWEEN dtfrom AND dtto + INTERVAL 45 MINUTE
+                    WHERE NOW() BETWEEN dtfrom AND dtto + INTERVAL 60 MINUTE
                     ORDER BY dtfrom, dtto, subtitle;";
 
         $running_flows = mysqli_query($conBDInt, $slctqry)
