@@ -437,7 +437,7 @@ $curlopt_base = set_curl_params(time());
                     $repeat = false;
 
                 } else {
-                    $offset += $limit;
+                    $offset += $limit - 1;
 
                 }
 

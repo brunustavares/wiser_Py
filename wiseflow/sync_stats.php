@@ -359,7 +359,7 @@ function checkwftoken($start_time) {
                         $repeat = false;
 
                     } else {
-                        $offset += $limit;
+                        $offset += $limit - 1;
 
                     }
 
