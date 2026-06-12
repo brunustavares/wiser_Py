@@ -1,50 +1,23 @@
 {
-  "tables": {
-    "projects": {
-      "purpose": "Project records for departments and fiscal year.",
-      "prefer_for": ["project list", "project by year", "project timeline"],
-      "key_columns": ["project_id", "fiscal_year", "department_id", "project_type", "phase"],
-      "date_columns": ["start_date", "end_date"]
-    },
-    "project_assignments": {
-      "purpose": "Assignment records of employees to projects.",
-      "key_columns": ["employee_id", "project_id", "assignment_id"],
-      "date_columns": ["assigned_at", "completed_at", "reviewed_at", "approved_at", "created_at"]
-    },
-    "employees": {
-      "purpose": "Employee identity and HR registration data.",
-      "key_columns": ["employee_number", "employee_id"]
+  "entity": "<human-readable entity name>",
+  "description": "<what this entity represents in the domain>",
+  "columns": {
+    "<column_name>": {
+      "role": "<identifier | foreign_key | status_flag | timestamp | metric | text | lookup | etc.>",
+      "description": "<meaning of this field>",
+      "type": "<sql_type>",
+      "nullable": true/false
     }
   },
-  "views": {
-    "vw_projects_due_7days": {
-      "purpose": "Projects reaching deadline in the next 7 days (pre-filtered).",
-      "prefer_for": ["next 7 days", "upcoming deadlines", "scheduled tasks"]
-    },
-    "vw_manager_directory": {
-      "purpose": "Managers with department and year information.",
-      "prefer_for": ["managers", "supervisors", "team leads"]
-    },
-    "vw_project_status_overview": {
-      "purpose": "Submitted deliverables and project status information.",
-      "prefer_for": ["status overview", "deliverables submitted", "completion state"]
-    }
-  },
-  "joins": [
+  "relationships": [
     {
-      "left": "project_assignments.project_id",
-      "right": "projects.project_id",
-      "note": "Connect assignment records to project metadata"
-    },
-    {
-      "left": "project_assignments.employee_id",
-      "right": "employees.employee_id",
-      "note": "Connect assignment records to employee"
+      "type": "one-to-many | many-to-one | one-to-one | many-to-many",
+      "from": "<table.column>",
+      "to": "<table.column>",
+      "description": "<semantic meaning of the relationship>"
     }
   ],
-  "synonyms": {
-    "employee": ["worker", "staff", "team member"],
-    "department": ["division", "unit", "branch"],
-    "deadline": ["due date", "cutoff", "delivery date"]
-  }
+  "business_rules": [
+    "<inferred rule based on constraints, naming, or structure>"
+  ]
 }
