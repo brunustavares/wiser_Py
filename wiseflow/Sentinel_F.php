@@ -10,7 +10,7 @@
  * @copyright  Copyright (C) 2025-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2026051912
+ * @version    2026061207
  * @date       2025-10-31
  *
  * This program is free software: you can redistribute it and/or modify
@@ -1164,6 +1164,35 @@ if (!empty($mode)
                 if (mysqli_num_rows($report) > 0) {
                     $events = mysqli_fetch_all($report, MYSQLI_ASSOC);
 
+                    $file_name      = "Sentinel_F-" . date("YmdHis") . ".csv";
+                    $file_path_qry  = "c://temp//" . $file_name;
+                    $file_path_php  = "c:\\temp\\" . $file_name;
+
+                    $exprtqry = "SELECT 'flow',
+                                        'std_num',
+                                        'tipo',
+                                        'numero_eventos'
+                                 UNION ALL
+                                (SELECT flw.subtitle,
+                                        std.std_num,
+                                        rep.type,
+                                        COUNT(DISTINCT rep.timestamp) AS N
+                                 FROM wiseflow.sentinelf_reported rep
+                                     INNER JOIN wiseflow.flows flw ON flw.flowid = rep.flowid
+                                     INNER JOIN wiseflow.students std ON std.stdid = rep.stdid
+                                     INNER JOIN wiseflow.sentinelf_tmp tmp ON (tmp.flowid = rep.flowid AND tmp.stdid  = rep.stdid)
+                                 WHERE DATE(rep.report) = CURDATE()
+                                 GROUP BY flw.flowid, std.stdid, rep.type
+                                 ORDER BY flw.flowid, std.stdid, rep.type)
+                                 INTO OUTFILE '" . $file_path_qry . "'
+                                      FIELDS TERMINATED BY ';' OPTIONALLY ENCLOSED BY '\"'
+                                      LINES TERMINATED BY '\r\n';";
+
+                    mysqli_query($conBDInt, $exprtqry)
+                        or die("Ñ foi possível exportar os dados: " . mysqli_error($conBDInt) . "\n\n");
+
+                    $email->addAttachment($file_path_php);
+
                     $html_table = '';
                     $html_table .= "<table border='0' cellspacing='0' cellpadding='0' style='" . $email_styles['table'] . "'>";
                     $html_table .= "<thead>
@@ -1199,10 +1228,32 @@ if (!empty($mode)
 
                     $email->Subject = 'INFO: síntese de eventos reportados no período';
                     $email->Body = build_email_wrapper($html_table);
-                    $email->send();
-                
-                    printf("Síntese enviada" . $nl);
+                    if ($email->Send()) {
+                        printf("INFO: Síntese enviada" . $nl);
 
+                        sleep(5);
+
+                        if (file_exists($file_path_php)) {
+                            echo exec('del '. $file_path_php);
+
+                            if (!file_exists($file_path_php)) {
+                                printf("INFO: Ficheiro eliminado" . $nl);
+
+                            } else {
+                                printf("ALERTA: Ficheiro NAO eliminado" . $nl);
+
+                            }
+
+                        } else {
+                            printf("INFO: Ficheiro inexistente" . $nl);
+
+                        }
+
+                    } else {
+                        printf("ALERTA: Mensagem NAO enviada | erro: " . $email->ErrorInfo . $nl);
+
+                    }
+                
                     unset($events);
 
                 } else {
