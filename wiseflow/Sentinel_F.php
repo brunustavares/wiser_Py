@@ -1349,10 +1349,11 @@ if (!empty($mode)
                 $email->AddAddress($reportTO);
                 $email->Body = $header . build_email_wrapper($html_table) . $footer;
                 $email->send();
-                $email->clearAddresses();
             }
 
             printf("Relatórios parcelares enviados" . $nl);
+
+            $email->clearAllRecipients();
 
             unset($events);
 
