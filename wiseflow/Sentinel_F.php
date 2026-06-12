@@ -887,8 +887,14 @@ if (!empty($mode)
 
                     $slctqry = "SELECT stdid,
                                        std_num
-                                FROM wiseflow.students
-                                WHERE stdid = " . intval($event['stdid']) . ";";
+                                FROM wiseflow.students s
+                                WHERE stdid = " . intval($event['stdid']) . "
+                                    AND NOT EXISTS (
+                                                    SELECT 1
+                                                    FROM wiseflow.sentinelf_tmp p
+                                                    WHERE p.stdid = s.stdid
+                                                        AND p.type = 'PAPER_HANDED_IN'
+                                                   );";
 
                     $std_info = mysqli_query($conBDInt, $slctqry)
                                     or die("Ñ foi possível consultar a tabela 'wiseflow.students': " . mysqli_error($conBDInt)
