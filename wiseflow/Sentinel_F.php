@@ -10,7 +10,7 @@
  * @copyright  Copyright (C) 2025-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2026061207
+ * @version    2026061611
  * @date       2025-10-31
  *
  * This program is free software: you can redistribute it and/or modify
@@ -68,7 +68,7 @@ if (Is_cli()) {
  *
  * @return array curlopt_base
  */
-function set_curl_params($sys, $start_time = null)
+function set_curl_params($sys, $start_time=null)
 {
     if ($sys == "wf") {
         $auth_chain = checkwftoken($start_time);
@@ -284,6 +284,86 @@ function get_email_table_styles() {
         "row_odd" => "background-color:#1C2430;",
         "payload" => "font-family: Consolas, monospace; font-size:12px; line-height:1.4; white-space:pre-wrap; word-break:break-word; color:#9AA3AE; margin:0;"
     );
+}
+
+/**
+ * Exportação de registos para CSV a enviar por email
+ *
+ * @return string file_name
+ */
+function export_2_CSV($conBDInt, $mode, $reportTO=null) {
+    $file_name      = "Sentinel_F-" . date("YmdHis") . ".csv";
+    $file_path_qry  = "c://temp//" . $file_name;
+    $file_path_php  = "c:\\temp\\" . $file_name;
+
+    if ($mode == "monitor") {
+        $slctqry = "SELECT 'flow',
+                           'std_num',
+                           'tipo',
+                           'numero_eventos'
+                    UNION ALL
+                   (SELECT flw.subtitle,
+                           std.std_num,
+                           rep.type,
+                           COUNT(DISTINCT rep.timestamp) AS N
+                    FROM wiseflow.sentinelf_reported rep
+                        INNER JOIN wiseflow.flows flw ON flw.flowid = rep.flowid
+                        INNER JOIN wiseflow.students std ON std.stdid = rep.stdid
+                        INNER JOIN wiseflow.sentinelf_tmp tmp ON (tmp.flowid = rep.flowid AND tmp.stdid  = rep.stdid)
+                    WHERE DATE(rep.report) = CURDATE()
+                    GROUP BY flw.flowid, std.stdid, rep.type
+                    ORDER BY flw.flowid, std.stdid, rep.type) ";
+
+    } elseif ($mode == "report") {
+        $slctqry = "SELECT 'flow',
+                           'std_numero',
+                           'std_nome',
+                           'turma',
+                           'evento',
+                           'ocorrencias(N)'
+                    UNION ALL
+                   (SELECT r.subtitle AS subtitle,
+                           r.std_num AS std_num,
+                           CONCAT(r.firstname, ' ', r.lastname) AS std_name,
+                           CONCAT(r.course, ai.TURMA_MOODLE) AS turma,
+                           r.dict AS evento,
+                           r.T AS T
+                    FROM (
+                          SELECT f.lectyear AS lectyear,
+                                 sfr.timestamp AS timestamp,
+                                 f.subtitle AS subtitle,
+                                 SUBSTR(f.subtitle, 1, 5) AS course,
+                                 s.firstname AS firstname,
+                                 s.lastname AS lastname,
+                                 s.std_num AS std_num,
+                                 sfr.type AS type,
+                                 sfe.dict AS dict,
+                                 COUNT(sfr.type) AS T
+                          FROM sentinelf_reported sfr
+                              JOIN sentinelf_event_types sfe ON sfe.type = sfr.type
+                              JOIN students s ON s.stdid = sfr.stdid
+                              JOIN flows f ON f.flowid = sfr.flowid
+                          WHERE sfe.red_flag = 1
+                          GROUP BY f.subtitle, s.std_num, sfr.type
+                         ) r
+                        JOIN vw_teacher_2wiseflow t ON (t.cd_discip = r.course AND t.lectyear = r.lectyear)
+                        JOIN lead.alunos_inscricoes ai ON (ai.CD_DISCIP = r.course AND ai.CD_ALUNO = r.std_num AND ai.CD_LECTIVO = r.lectyear)
+                    WHERE r.timestamp >= CURDATE()
+						AND t.email = '" . $reportTO . "'
+                    GROUP BY r.course, r.std_num, r.type
+                    ORDER BY t.email, r.course, r.subtitle, r.std_num, r.timestamp) ";
+
+    }
+
+    $exprtqry = $slctqry . "INTO OUTFILE '" . $file_path_qry . "'
+                            FIELDS TERMINATED BY ';' OPTIONALLY ENCLOSED BY '\"'
+                            LINES TERMINATED BY '\r\n';";
+
+    mysqli_query($conBDInt, $exprtqry)
+        or die("Ñ foi possível exportar os dados: " . mysqli_error($conBDInt) . "\n\n");
+
+    return $file_path_php;
+
 }
 
 $mode = getopt("m:", ["mode:"]);
@@ -1164,34 +1244,8 @@ if (!empty($mode)
                 if (mysqli_num_rows($report) > 0) {
                     $events = mysqli_fetch_all($report, MYSQLI_ASSOC);
 
-                    $file_name      = "Sentinel_F-" . date("YmdHis") . ".csv";
-                    $file_path_qry  = "c://temp//" . $file_name;
-                    $file_path_php  = "c:\\temp\\" . $file_name;
-
-                    $exprtqry = "SELECT 'flow',
-                                        'std_num',
-                                        'tipo',
-                                        'numero_eventos'
-                                 UNION ALL
-                                (SELECT flw.subtitle,
-                                        std.std_num,
-                                        rep.type,
-                                        COUNT(DISTINCT rep.timestamp) AS N
-                                 FROM wiseflow.sentinelf_reported rep
-                                     INNER JOIN wiseflow.flows flw ON flw.flowid = rep.flowid
-                                     INNER JOIN wiseflow.students std ON std.stdid = rep.stdid
-                                     INNER JOIN wiseflow.sentinelf_tmp tmp ON (tmp.flowid = rep.flowid AND tmp.stdid  = rep.stdid)
-                                 WHERE DATE(rep.report) = CURDATE()
-                                 GROUP BY flw.flowid, std.stdid, rep.type
-                                 ORDER BY flw.flowid, std.stdid, rep.type)
-                                 INTO OUTFILE '" . $file_path_qry . "'
-                                      FIELDS TERMINATED BY ';' OPTIONALLY ENCLOSED BY '\"'
-                                      LINES TERMINATED BY '\r\n';";
-
-                    mysqli_query($conBDInt, $exprtqry)
-                        or die("Ñ foi possível exportar os dados: " . mysqli_error($conBDInt) . "\n\n");
-
-                    $email->addAttachment($file_path_php);
+                    $CSV_file = export_2_CSV($conBDInt, $mode);
+                    $email->addAttachment($CSV_file);
 
                     $html_table = '';
                     $html_table .= "<table border='0' cellspacing='0' cellpadding='0' style='" . $email_styles['table'] . "'>";
@@ -1233,10 +1287,10 @@ if (!empty($mode)
 
                         sleep(5);
 
-                        if (file_exists($file_path_php)) {
-                            echo exec('del '. $file_path_php);
+                        if (file_exists($CSV_file)) {
+                            echo exec('del '. $CSV_file);
 
-                            if (!file_exists($file_path_php)) {
+                            if (!file_exists($CSV_file)) {
                                 printf("INFO: Ficheiro eliminado" . $nl);
 
                             } else {
@@ -1253,7 +1307,7 @@ if (!empty($mode)
                         printf("ALERTA: Mensagem NAO enviada | erro: " . $email->ErrorInfo . $nl);
 
                     }
-                
+
                     unset($events);
 
                 } else {
@@ -1316,7 +1370,7 @@ if (!empty($mode)
                         JOIN lead.alunos_inscricoes ai ON (ai.CD_DISCIP = r.course AND ai.CD_ALUNO = r.std_num AND ai.CD_LECTIVO = r.lectyear)
                     WHERE r.timestamp >= CURDATE()
                     GROUP BY r.course, r.std_num, r.type
-                    ORDER BY t_email, r.course, r.subtitle, r.std_num, r.timestamp;";
+                    ORDER BY t.email, r.course, r.subtitle, r.std_num, r.timestamp;";
 
         $red_flags = mysqli_query($conBDInt, $slctqry)
                          or die("Ñ foi possível executar a query que identifica as 'red_flags': " . mysqli_error($conBDInt)
@@ -1345,12 +1399,41 @@ if (!empty($mode)
             foreach ($events as $event) {
                 if ($reportTO !== $event['t_email']) {
                     if ($reportTO !== "") {
+                        $CSV_file = export_2_CSV($conBDInt, $mode, $reportTO);
+                        $email->addAttachment($CSV_file);
+
                         $html_table .= "</tbody></table>";
 
                         $email->AddAddress($reportTO);
                         $email->Body = $header . build_email_wrapper($html_table) . $footer;
-                        $email->send();
+                        if ($email->Send()) {
+                            printf("INFO: Síntese enviada" . $nl);
+
+                            sleep(5);
+
+                            if (file_exists($CSV_file)) {
+                                echo exec('del '. $CSV_file);
+
+                                if (!file_exists($CSV_file)) {
+                                    printf("INFO: Ficheiro eliminado" . $nl);
+
+                                } else {
+                                    printf("ALERTA: Ficheiro NAO eliminado" . $nl);
+
+                                }
+
+                            } else {
+                                printf("INFO: Ficheiro inexistente" . $nl);
+
+                            }
+
+                        } else {
+                            printf("ALERTA: Mensagem NAO enviada | erro: " . $email->ErrorInfo . $nl);
+
+                        }
+
                         $email->clearAddresses();
+                        $email->clearAttachments();
 
                     }
 
@@ -1395,16 +1478,45 @@ if (!empty($mode)
 
             // enviar último relatório parcial
             if ($reportTO !== "") {
+                $CSV_file = export_2_CSV($conBDInt, $mode, $reportTO);
+                $email->addAttachment($CSV_file);
+
                 $html_table .= "</tbody></table>";
 
                 $email->AddAddress($reportTO);
                 $email->Body = $header . build_email_wrapper($html_table) . $footer;
-                $email->send();
+                if ($email->Send()) {
+                    printf("INFO: Síntese enviada" . $nl);
+
+                    sleep(5);
+
+                    if (file_exists($CSV_file)) {
+                        echo exec('del '. $CSV_file);
+
+                        if (!file_exists($CSV_file)) {
+                            printf("INFO: Ficheiro eliminado" . $nl);
+
+                        } else {
+                            printf("ALERTA: Ficheiro NAO eliminado" . $nl);
+
+                        }
+
+                    } else {
+                        printf("INFO: Ficheiro inexistente" . $nl);
+
+                    }
+
+                } else {
+                    printf("ALERTA: Mensagem NAO enviada | erro: " . $email->ErrorInfo . $nl);
+
+                }
+
             }
 
             printf("Relatórios parcelares enviados" . $nl);
 
             $email->clearAllRecipients();
+            $email->clearAttachments();
 
             unset($events);
 
@@ -1551,7 +1663,7 @@ if (!empty($mode)
 
         // eliminar eventos obsoletos (mais de 1 ano)
         $purge_old_events = "DELETE FROM wiseflow.sentinelf_events
-                             WHERE timestamp < NOW() - INTERVAL 365 DAY";
+                             WHERE timestamp < NOW() - INTERVAL 180 DAY";
 
         mysqli_query($conBDInt, $purge_old_events)
             or die("Ñ foi possível actualizar a tabela 'wiseflow.sentinelf_events': " . mysqli_error($conBDInt)

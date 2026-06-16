@@ -24,7 +24,7 @@ It was originally developed for [Universidade Aberta (UAb)](https://portal.uab.p
 - **End-of-Session Summaries**: When the last active exam for the day concludes, a summary of all events reported during that monitoring period is automatically sent to management.
 - **Daily Summaries & No-Show Reporting**: Generates and emails a daily summary report that includes a count of all relevant events detected and a list of any scheduled exams that had no student participation.
 - **JSON Payload Normalization**: Includes a function to validate and standardize JSON payloads before database insertion, ensuring data consistency.
-- **Database Maintenance**: Automatically purges event data older than one year to keep the database size manageable.
+- **Database Maintenance**: Automatically purges event data older than six months to keep the database size manageable.
 
 ## Dependencies
 
@@ -107,7 +107,7 @@ php sentinel_f.php -m report
     - It identifies scheduled exams (flows) that concluded today but had zero student participation (`SUM(dtass IS NOT NULL) = 0`).
     - If there are events or empty flows, it constructs a summary email and sends it to the management recipients defined in the `reportTO` setting.
 3.  **Database Purge**:
-    - Finally, the script deletes obsolete event records from `sentinelf_events` that are older than 365 days to maintain database performance.
+    - Finally, the script deletes obsolete event records from `sentinelf_events` that are older than 180 days to maintain database performance.
 
 ## How It Operates
 
