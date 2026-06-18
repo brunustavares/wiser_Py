@@ -11,7 +11,7 @@
 # @copyright  Copyright (C) 2024-present Bruno Tavares
 # @license    GNU General Public License v3 or later
 #             https://www.gnu.org/licenses/gpl-3.0.html
-# @version    2026042903
+# @version    2026061809
 # @date       2026-02-06
 #
 # This program is free software: you can redistribute it and/or modify
@@ -376,7 +376,7 @@ def format_IdUC(output_path: str, fields: dict, data: dict):
     # Descrição
     sheet.extend(rounded_framed_block([
         Paragraph("<b>Descrição</b>", styles["Heading2"]),
-        Paragraph(val("sinopse"), styles["Normal"])
+        Paragraph(clean_html_for_reportlab(val("sinopse")), styles["Normal"])
     ], doc))
 
     # Avaliação
@@ -453,6 +453,20 @@ def format_IdUC(output_path: str, fields: dict, data: dict):
         onFirstPage=watermark,
         onLaterPages=watermark
     )
+
+
+# limpeza de HTML para ReportLab
+def clean_html_for_reportlab(html_text: str) -> str:
+    if not html_text:
+        return ""
+    
+    cleaned = re.sub(r'</p>|<br\s*/?>', '<br/>', html_text, flags=re.IGNORECASE)
+    
+    cleaned = re.sub(r'<[^>]+>', '', cleaned)
+    
+    cleaned = re.sub(r'(<br/>)+$', '', cleaned).strip()
+    
+    return cleaned
 
 
 # conversão de imagem para PDF

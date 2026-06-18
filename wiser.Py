@@ -674,8 +674,8 @@ def send_mail(server, sender, subject, body, dest=None, bcc=[], log=None, port=N
 
 
 # exportação de dados para CSV
-def export_to_csv(result, fields, filename, dictionary=False):
-    with open(filename, 'w', newline='') as file:
+def export_2_CSV(result, fields, filename, dictionary=False):
+    with open(filename, 'w', newline='', encoding='utf-8-sig') as file:
         writer = csv.DictWriter(file, fieldnames=fields, delimiter=";")
         writer.writeheader()
 
@@ -683,12 +683,12 @@ def export_to_csv(result, fields, filename, dictionary=False):
             data = []
 
             for row in result:
-                dictionary = {}
+                row_dict = {}
 
                 for i, col in enumerate(fields):
-                    dictionary[col] = row[i]
+                    row_dict[col] = row[i]
 
-                data.append(dictionary)
+                data.append(row_dict)
 
             for row in data:
                 writer.writerow(row)
@@ -2750,7 +2750,7 @@ def manage_flow():
     # se o utilizador chegar ao formulário via POST
     if request.method == "POST":
         if request.form.get("export") is not None and session["result"] is not None:
-            csv_file = export_to_csv(session["result"], session["fields"], ("tmp/usrID" + str(session["user_id"]) + "_" + session["key"] + "_xtraTime.csv"))
+            csv_file = export_2_CSV(session["result"], session["fields"], ("tmp/usrID" + str(session["user_id"]) + "_" + session["key"] + "_xtraTime.csv"))
 
             write_activity_log("export", "flow_xtraTime", session["key"], session["user_id"], session["T_usage"])
 
@@ -3489,7 +3489,7 @@ def wf_full_report():
                     send_mail(server, sender, subject, body, dest, bcc, log, port, username, password)
 
         elif request.form.get("export") is not None and session["result"] is not None:
-            csv_file = export_to_csv(session["result"], session["fields"], ("tmp/usrID" + str(session["user_id"]) + "_wf_full_report.csv"))
+            csv_file = export_2_CSV(session["result"], session["fields"], ("tmp/usrID" + str(session["user_id"]) + "_wf_full_report.csv"))
 
             wf_db_cursor.close()
             wf_db.close()
@@ -3631,7 +3631,7 @@ def mdl_full_report():
     # se o utilizador chegar ao formulário via POST
     if request.method == "POST":
         if request.form.get("export") is not None and session["result"] is not None:
-            csv_file = export_to_csv(session["result"], session["fields"], ("tmp/usrID" + str(session["user_id"]) + "_mdl_full_report.csv"))
+            csv_file = export_2_CSV(session["result"], session["fields"], ("tmp/usrID" + str(session["user_id"]) + "_mdl_full_report.csv"))
 
             mdl_db_cursor.close()
             mdl_db.close()
@@ -3870,7 +3870,7 @@ def user_report():
                         event['flowId'] = str(row[7])
                         event['userId'] = str(row[2])
 
-                    file2export = export_to_csv(events, (events[0].keys()), ("tmp/usrID" + str(session["user_id"]) + "_" + str(row[7]) + "-log.csv"), True)
+                    file2export = export_2_CSV(events, (events[0].keys()), ("tmp/usrID" + str(session["user_id"]) + "_" + str(row[7]) + "-log.csv"), True)
 
                     write_activity_log("export", "FLOWmonitor", ("std_" + str(stdnum) + " | flow_" + str(flowid)), session["user_id"], session["T_usage"])
 
@@ -4026,7 +4026,7 @@ def wf_stats():
     # se o utilizador chegar ao formulário via POST
     if request.method == "POST":
         if request.form.get("export") is not None and session["result"] is not None:
-            csv_file = export_to_csv(session["result"], session["fields"], ("tmp/usrID" + str(session["user_id"]) + "_wf_stats.csv"))
+            csv_file = export_2_CSV(session["result"], session["fields"], ("tmp/usrID" + str(session["user_id"]) + "_wf_stats.csv"))
 
             write_activity_log("export", "wf_stats", session["key"], session["user_id"], session["T_usage"])
 
@@ -4117,7 +4117,7 @@ def mdl_stats():
     # se o utilizador chegar ao formulário via POST
     if request.method == "POST":
         if request.form.get("export") is not None and session["result"] is not None:
-            csv_file = export_to_csv(session["result"], session["fields"], ("tmp/usrID" + str(session["user_id"]) + "_mdl_stats.csv"))
+            csv_file = export_2_CSV(session["result"], session["fields"], ("tmp/usrID" + str(session["user_id"]) + "_mdl_stats.csv"))
 
             write_activity_log("export", "mdl_stats", session["key"], session["user_id"], session["T_usage"])
 
@@ -4334,7 +4334,7 @@ def aida():
                        'lia']
 
         if request.form.get("export") is not None and session["result"] is not None:
-            csv_file = export_to_csv(session["result"], (session["result"][0].keys()), ("tmp/usrID" + str(session["user_id"]) + "_aida.csv"), True)
+            csv_file = export_2_CSV(session["result"], (session["result"][0].keys()), ("tmp/usrID" + str(session["user_id"]) + "_aida.csv"), True)
 
             write_activity_log("export", "aida", session["key"], session["user_id"], session["T_usage"])
 
