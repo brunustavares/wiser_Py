@@ -43,7 +43,7 @@
                 <tbody class="table-primary menu-table-body">
                     <tr class="menu-table-body">
                         <th>
-                            <form action="/sys_menu" method="post">
+                            <form action="/stats" method="post">
                                 <input type="hidden" id="show_data" name="show_data" value="full_report">
                                 <button class="nav-link" type="submit">
                                     <img src="static/img/all_data.jpg" class="menu-button" alt="dados completos">
@@ -115,7 +115,7 @@
 
                         {% if admin or statsman %}
                             <th>
-                                <form action="/sys_menu" method="post">
+                                <form action="/stats" method="post">
                                     <input type="hidden" id="show_data" name="show_data" value="stats">
                                     <button class="nav-link" type="submit">
                                         <img src="static/img/stats.jpg" class="menu-button" alt="indicadores">

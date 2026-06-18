@@ -62,7 +62,7 @@ from jinja2 import Template
 # templates
 LOGIN_TPLT = "login.html"
 MENU_TPLT = "menu.html"
-SYS_MENU_TPLT = "sys_menu.html"
+STATS_TPLT = "stats.html"
 WF_FULL_REPORT_TPLT = "wf_full_report.html"
 MDL_FULL_REPORT_TPLT = "mdl_full_report.html"
 USER_REPORT_TPLT = "user_report.html"
@@ -3316,9 +3316,9 @@ def menu():
 
 
 # menu de escolha do sistema
-@app.route("/sys_menu", methods=["GET", "POST"])
+@app.route("/stats", methods=["GET", "POST"])
 @login_required
-def sys_menu():
+def stats():
     session["T_usage"] += (int(datetime.datetime.now().timestamp() - session["time"]))
     session["time"] = int(datetime.datetime.now().timestamp())
 
@@ -3328,15 +3328,15 @@ def sys_menu():
     
     # se o utilizador chegar ao formulário via POST
     if request.method == "POST":
-        write_activity_log("list", "sys_menu", None, session["user_id"], session["T_usage"])
+        write_activity_log("list", "stats", None, session["user_id"], session["T_usage"])
 
         # carregar opções de utilizador, em funçao do sistema escolhido
         if request.form.get("show_data") == "full_report":
-            return render_template(SYS_MENU_TPLT,
+            return render_template(STATS_TPLT,
                                    full_report=True)
         
         elif request.form.get("show_data") == "stats":
-            return render_template(SYS_MENU_TPLT,
+            return render_template(STATS_TPLT,
                                    stats=True)
 
     return redirect("/")
