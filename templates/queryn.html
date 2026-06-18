@@ -12,7 +12,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2026030608
+ * @version    2026061809
  * @date       2026-02-27
  *
  * This program is free software: you can redistribute it and/or modify
@@ -185,7 +185,7 @@
             {% endif %}
 
             <div class="mb-3 llm-div show" id="llm_prompt">
-                <textarea class="form-control" id="prompt" name="prompt" rows="5" cols="50" type="longtext" class="form-control" placeholder="elaborar o pedido (ex: 'quantos estudantes realizaram fluxos em todos os anos? formata os resultados numa tabela HTML, agrupada por ano')"></textarea>
+                <textarea class="form-control" id="prompt" name="prompt" rows="5" cols="50" type="longtext" onkeydown="submitOnEnter(event)" placeholder="elaborar o pedido (ex: 'quantos estudantes realizaram fluxos em todos os anos? formata os resultados numa tabela HTML, agrupada por ano')"></textarea>
 
                 <br>
 

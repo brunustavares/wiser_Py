@@ -11,7 +11,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2026042903
+ * @version    2026061809
  * @date       2024-02-20
  *
  * This program is free software: you can redistribute it and/or modify
@@ -570,6 +570,19 @@ function post(form, params=null) {
     document.body.appendChild(hiddenForm);
 
     hiddenForm.submit();
+}
+
+// função para submeter a prompt na Queryn com a tecla Enter
+function submitOnEnter(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        
+        const submitButton = document.getElementById('send_prompt');
+        
+        if (submitButton) {
+            submitButton.click();
+        }
+    }
 }
 
 // visibilidade da div de configuração

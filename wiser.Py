@@ -11,7 +11,7 @@
 # @copyright  Copyright (C) 2024-present Bruno Tavares
 # @license    GNU General Public License v3 or later
 #             https://www.gnu.org/licenses/gpl-3.0.html
-# @version    2026042903
+# @version    2026061809
 # @date       2024-02-20
 #
 # This program is free software: you can redistribute it and/or modify
@@ -1548,7 +1548,7 @@ def sanitize(string):
 # configuração da aplicação
 app = Flask(__name__)
 
-BUILD = "2026042903"  # YYYYMMDDHH
+BUILD = "2026061809"  # YYYYMMDDHH
 
 # SECRET_KEY
 app.secret_key = "RaK7ng8-UCKWZnW6"
