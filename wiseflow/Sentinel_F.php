@@ -753,6 +753,157 @@ if (!empty($mode)
 
                     }
 
+                // acessos à PlataformAbERTA
+                $slctqry = "SELECT report
+                            FROM wiseflow.sentinelf_event_types
+                            WHERE type = 'PLATAFORMABERTA_ACCESS';";
+
+                $evt_report = mysqli_query($conBDInt, $slctqry)
+                                  or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_event_types': " . mysqli_error($conBDInt)
+                                        . $nl . $nl
+                                        . $slctqry);
+
+                $mdl_report = (int)mysqli_fetch_array($evt_report)['report'];
+
+                if ($mdl_report == 1) {
+                    $slctqry = "SELECT s.stdid,
+                                       s.std_num,
+                                       f.flowid,
+                                       f.subtitle
+                                FROM wiseflow.sentinelf_tmp p
+                                    INNER JOIN wiseflow.flows f ON f.flowid = p.flowid
+                                    INNER JOIN wiseflow.students s ON s.stdid = p.stdid
+                                WHERE NOT EXISTS (
+                                                  SELECT 1
+                                                  FROM wiseflow.sentinelf_tmp p
+                                                  WHERE p.stdid = s.stdid
+                                                      AND p.type = 'PAPER_HANDED_IN'
+                                                 )
+                                GROUP BY p.stdid
+                                ORDER BY f.subtitle , s.std_num;";
+
+                    $result = mysqli_query($conBDInt, $slctqry)
+                                  or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_tmp': " . mysqli_error($conBDInt)
+                                        . $nl . $nl
+                                        . $slctqry);
+
+                    if (mysqli_num_rows($result) > 0) {
+                        $records = mysqli_fetch_all($result, MYSQLI_ASSOC);
+
+                        $students = [];
+                        $comma_separated_courses = '';
+
+                        $student_lookup = [];
+
+                        foreach ($records as $rec) {
+                            if (!in_array($rec['std_num'], $students)) {
+                                $students[] = $rec['std_num'];
+
+                                $student_lookup[$rec['std_num']] = [
+                                                                    'stdid'    => $rec['stdid'],
+                                                                    'flowid'   => $rec['flowid'],
+                                                                    'subtitle' => $rec['subtitle']
+                                                                   ];
+
+                            }
+
+                            if (strpos($comma_separated_courses, substr($rec['subtitle'], 0, 5)) === false) {
+                                $comma_separated_courses .= (empty($comma_separated_courses) ? '' : ', ') . substr($rec['subtitle'], 0, 5);
+                            }
+
+                        }
+
+                        $student_batches = array_chunk($students, 15);
+
+                        $new_events = array();
+                        $added = array();
+
+                        foreach ($student_batches as $index => $batch) {
+                            $comma_separated_students = implode(', ', $batch);
+                            
+                            $curlopt = array_replace(
+                                                     set_curl_params("mdl"),
+                                                     array(
+                                                           CURLOPT_URL => $mdl_wsURL . '?wstoken=' . $mdl_token,
+                                                           CURLOPT_POSTFIELDS => 'wsfunction=local_aida_estudantes_UC_acesso' .
+                                                                                 '&moodlewsrestformat=json' .
+                                                                                 '&lista_stds=' . base64_encode($comma_separated_students) .
+                                                                                 '&lista_ucs=' . base64_encode($comma_separated_courses) .
+                                                                                 '&de_ate=' . (string)date("Ymd") . '_' . (string)date("Ymd"),
+                                                           CURLOPT_CUSTOMREQUEST => 'POST',
+                                                     )
+                                                    );
+
+                            $curl = curl_init();
+
+                            curl_setopt_array($curl, $curlopt);
+
+                            $response = curl_exec($curl);
+                            // $errNo = curl_errno($curl);
+                            // $err = curl_error($curl);
+
+                            $data = json_decode($response, true);
+
+                            if (!empty($data)) {
+                                foreach ($data as $record) {
+                                    if ((strtotime($record['lastaccess']) >= $dtfrom)
+                                    && (strtotime($record['lastaccess']) <= $dtto)) {
+                                        $std_num = $record['stdnum'];
+
+                                        if (isset($student_lookup[$std_num])) {
+                                            $local_data = $student_lookup[$std_num];
+                                            
+                                            $key = $local_data['flowid'] . '_' . $local_data['stdid'] . '_' . $record['ucid'] . strtotime($record['lastaccess']);
+
+                                            if (!isset($added[$key])) {
+                                                $new_events[] = array(
+                                                                      'id'        => '00000000',
+                                                                      'flowid'    => $local_data['flowid'],
+                                                                      'subtitle'  => $local_data['subtitle'],
+                                                                      'stdid'     => $local_data['stdid'],
+                                                                      'std_num'   => $std_num,
+                                                                      'timestamp' => $record['lastaccess'],
+                                                                      'type'      => 'PLATAFORMABERTA_ACCESS',
+                                                                      'payload'   => $record['ucsname']
+                                                                     );
+
+                                                $added[$key] = true;
+
+                                            }
+
+                                        }
+
+                                    }
+
+                                }
+
+                            }
+
+                            curl_close($curl);
+                            unset($response);
+                            unset($data);
+
+                        }
+
+                        if (!empty($new_events)) {
+                            $events = array_merge($events, $new_events);
+                            
+                            printf("Identificados " . count($new_events) . " acessos à PlataformAbERTA" . $nl);
+                            
+                        } else {
+                            printf("Sem acessos à PlataformAbERTA" . $nl);
+                            
+                        }
+
+                    } else {
+                        printf("Sem acessos à PlataformAbERTA" . $nl);
+
+                    }
+
+                    unset($result);
+
+                }
+
                 // eventos compostos
                     // aumento súbito de caracteres digitados
                     $slctqry = "SELECT t.id,
@@ -942,9 +1093,6 @@ if (!empty($mode)
             }
 
             if (count($events) > 0) {
-                $students = '';
-                $courses = '';
-
                 foreach ($events as &$event) {
                     $slctqry = "SELECT flowid,
                                        subtitle
@@ -959,11 +1107,6 @@ if (!empty($mode)
                     $flow_row = mysqli_fetch_array($flow_info);
 
                     $event['subtitle'] = $flow_row['subtitle'];
-
-                    if (strpos($courses, substr($event['subtitle'], 0, 5)) === false) {
-                        $courses .= (empty($courses) ? '' : ', ') . substr($event['subtitle'], 0, 5);
-                        
-                    }
 
                     $slctqry = "SELECT stdid,
                                        std_num
@@ -985,109 +1128,9 @@ if (!empty($mode)
 
                     $event['std_num'] = $std_row['std_num'];
 
-                    if (strpos($students, $event['std_num']) === false) {
-                        $students .= (empty($students) ? '' : ', ') . $event['std_num'];
-
-                    }
-
                 }
 
                 unset($event);
-
-                // verificar acesso à PlataformAbERTA, durante a prova
-                $slctqry = "SELECT report
-                            FROM wiseflow.sentinelf_event_types
-                            WHERE type = 'PLATAFORMABERTA_ACCESS';";
-
-                $evt_report = mysqli_query($conBDInt, $slctqry)
-                                  or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_event_types': " . mysqli_error($conBDInt)
-                                        . $nl . $nl
-                                        . $slctqry);
-
-                $mdl_report = (int)mysqli_fetch_array($evt_report)['report'];
-
-                if ($mdl_report == 1) {
-                    // TODO: dividir em múltiplos requests, se necessário
-                    $curlopt = array_replace(
-                                             set_curl_params("mdl"),
-                                             array(
-                                                   CURLOPT_URL => $mdl_wsURL . '?wstoken=' . $mdl_token,
-                                                   CURLOPT_POSTFIELDS => 'wsfunction=local_aida_estudantes_UC_acesso' .
-                                                                         '&moodlewsrestformat=json' .
-                                                                         '&lista_stds=' . base64_encode($students) .
-                                                                         '&lista_ucs=' . base64_encode($courses) .
-                                                                         '&de_ate=' . (string)date("Ymd") . '_' . (string)date("Ymd"),
-                                                   CURLOPT_CUSTOMREQUEST => 'POST',
-                                             )
-                                            );
-
-                    $curl = curl_init();
-
-                    curl_setopt_array($curl, $curlopt);
-
-                    $response = curl_exec($curl);
-                    // $errNo = curl_errno($curl);
-                    // $err = curl_error($curl);
-
-                    $data = json_decode($response, true);
-
-                    if (!empty($data)) {
-                        $new_events = array();
-                        $added = array();
-
-                        foreach ($data as $record) {
-                            if ((strtotime($record['lastaccess']) >= $dtfrom)
-                            && (strtotime($record['lastaccess']) <= $dtto)) {
-                                foreach ($events as $event) {
-                                    if ($event['std_num'] === $record['stdnum']) {
-                                        $key = $event['flowid'] . '_' . $event['stdid'] . '_' . $record['ucid'] . strtotime($record['lastaccess']);
-
-                                        if (!isset($added[$key])) {
-                                            $new_events[] = array(
-                                                                  'id' => '00000000',
-                                                                  'flowid' => $event['flowid'],
-                                                                  'subtitle' => $event['subtitle'],
-                                                                  'stdid' => $event['stdid'],
-                                                                  'std_num' => $record['stdnum'],
-                                                                  'timestamp' => $record['lastaccess'],
-                                                                  'type' => 'PLATAFORMABERTA_ACCESS',
-                                                                  'payload' => $record['ucsname']
-                                                            );
-
-                                            $added[$key] = true;
-
-                                        }
-
-                                        break;
-
-                                    }
-
-                                }
-
-                            }
-
-                        }
-
-                        if (!empty($new_events)) {
-                            $events = array_merge($events, $new_events);
-                            
-                            printf("Identificados " . count($new_events) . " acessos à PlataformAbERTA" . $nl);
-                            
-                        } else {
-                            printf("Sem acessos à PlataformAbERTA" . $nl);
-                            
-                        }
-
-                    } else {
-                        printf("Sem acessos à PlataformAbERTA" . $nl);
-                        
-                    }
-
-                    curl_close($curl);
-                    unset($response);
-                    unset($data);
-                            
-                }
 
                 usort($events, function($a, $b) {
                     return strtotime($a['timestamp']) <=> strtotime($b['timestamp']);
