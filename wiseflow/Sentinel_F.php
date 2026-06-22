@@ -10,7 +10,7 @@
  * @copyright  Copyright (C) 2025-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2026061611
+ * @version    2026062207
  * @date       2025-10-31
  *
  * This program is free software: you can redistribute it and/or modify
@@ -771,14 +771,16 @@ if (!empty($mode)
                                        f.flowid,
                                        f.subtitle
                                 FROM wiseflow.sentinelf_tmp p
-                                    INNER JOIN wiseflow.flows f ON f.flowid = p.flowid
                                     INNER JOIN wiseflow.students s ON s.stdid = p.stdid
-                                WHERE NOT EXISTS (
-                                                  SELECT 1
-                                                  FROM wiseflow.sentinelf_tmp p
-                                                  WHERE p.stdid = s.stdid
-                                                      AND p.type = 'PAPER_HANDED_IN'
-                                                 )
+                                    INNER JOIN wiseflow.flows f ON f.flowid = p.flowid
+                                    INNER JOIN wiseflow.flows_templates t ON t.id = f.template
+                                WHERE t.flowtype_name <> 'FLOWassign'
+									AND NOT EXISTS (
+                                                    SELECT 1
+                                                    FROM wiseflow.sentinelf_tmp p
+                                                    WHERE p.stdid = s.stdid
+														AND p.type = 'PAPER_HANDED_IN'
+                                                   )
                                 GROUP BY p.stdid
                                 ORDER BY f.subtitle , s.std_num;";
 
