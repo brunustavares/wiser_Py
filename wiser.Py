@@ -3417,9 +3417,9 @@ def wf_full_report():
                                           FROM wiseflow.flows AS flw \
 	                                          INNER JOIN wiseflow.vw_teacher_2wiseflow AS t ON t.cd_discip = SUBSTR(subtitle, 1, 5) \
                                           WHERE flowid = %s \
-                                          GROUP BY flw.subtitle;",
+                                          GROUP BY flw.subtitle, t.email;",
                                          (flowid, ))
-                    flow_info = wf_db_cursor.fetchone()
+                    flow_info = wf_db_cursor.fetchall()
 
                     wf_db_cursor.execute("SELECT std_num, CONCAT(firstname, ' ', lastname) AS std_name, email \
                                           FROM wiseflow.students \
@@ -3454,35 +3454,33 @@ def wf_full_report():
                     bcc_manager = 'sle@uab.pt'
 
                     if "anulação" in msg_template[1]:
-                        # bcc = [flow_info[3], sender]
-                        bcc = [flow_info[3], bcc_manager]
+                        bcc = [row[3] for row in flow_info] + [bcc_manager]
                         subject = "anulação"
 
                     elif "advertência" in msg_template[1]:
-                        # bcc = [sender]
                         bcc = [bcc_manager]
                         subject = "advertência"
 
                     else:
                         subject = "estado atualizado"
 
-                    subject += ": " + flow_info[1] + " (" + flow_info[0] + ")"
+                    subject += ": " + flow_info[0][1] + " (" + flow_info[0][0] + ")"
 
                     body = msg_template[2]
                     if "{{flow_title}}" in body:
-                        body = body.replace("{{flow_title}}", flow_info[1])
+                        body = body.replace("{{flow_title}}", flow_info[0][1])
 
                     if "{{flow_subtitle}}" in body:
-                        body = body.replace("{{flow_subtitle}}", flow_info[0])
+                        body = body.replace("{{flow_subtitle}}", flow_info[0][0])
 
                     if "{{estudante}}" in body:
                         body = body.replace("{{estudante}}", (std_info[1] + " (" + str(std_info[0]) + ")"))
 
                     if "{{UC}}" in body:
-                        body = body.replace("{{UC}}", flow_info[1][flow_info[1].index("-") + 2:])
+                        body = body.replace("{{UC}}", flow_info[0][1][flow_info[0][1].index("-") + 2:])
 
                     if "{{timestamp}}" in body:
-                        body = body.replace("{{timestamp}}", str(flow_info[2]))
+                        body = body.replace("{{timestamp}}", str(flow_info[0][2]))
 
                     log = [msg_template[0], ("std_" + str(std_num)), session["user_id"]]
 
@@ -3832,21 +3830,21 @@ def user_report():
                                                                                               AND SUBSTR(ft.lectyear, 3, 2) = SUBSTR(f.subtitle, 7, 2)) \
                                               INNER JOIN wiseflow.teachers t ON t.username = ft.username \
                                           WHERE f.flowid = %s \
-                                          GROUP BY flowid;",
+                                          GROUP BY flowid, t.username;",
                                         (flowid, ))
-                    flow_info = wf_db_cursor.fetchone()
+                    flow_info = wf_db_cursor.fetchall()
 
-                    if flow_info[1] == "E":
+                    if flow_info[0][1] == "E":
                         flowscale = "12 valores"
-                    elif flow_info[1] == "X":
+                    elif flow_info[0][1] == "X":
                         flowscale = "20 valores"
-                    if flow_info[2] == "N":
+                    if flow_info[0][2] == "N":
                         flowseason = "Época Normal"
-                    elif flow_info[2] == "R":
+                    elif flow_info[0][2] == "R":
                         flowseason = "Época de Recurso"
-                    elif flow_info[2] == "E":
+                    elif flow_info[0][2] == "E":
                         flowseason = "Época Especial"
-                    flowteacher = flow_info[3]
+                    flowteacher = ", ".join([row[3] for row in flow_info])
                     
                     file2export = get_wf_subs(stdid, stdnum, stdname, flowid, flowtitle, flowsubtitle, flowtype, flowscale, flowseason, flowteacher, dtfrom, dtto)
 

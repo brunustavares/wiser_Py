@@ -1411,10 +1411,10 @@ if (!empty($mode)
                           WHERE sfe.red_flag = 1
                           GROUP BY f.subtitle, s.std_num, sfr.type
                          ) r
-                        JOIN vw_teacher_2wiseflow t ON (t.cd_discip = r.course AND t.lectyear = r.lectyear)
                         JOIN lead.alunos_inscricoes ai ON (ai.CD_DISCIP = r.course AND ai.CD_ALUNO = r.std_num AND ai.CD_LECTIVO = r.lectyear)
+                        JOIN vw_teacher_2wiseflow t ON (t.cd_discip = r.course AND t.lectyear = r.lectyear AND t.turmas = SUBSTR(ai.TURMA_MOODLE, 5, 2))
                     WHERE r.timestamp >= CURDATE()
-                    GROUP BY r.course, r.std_num, r.type
+                    GROUP BY r.course, t.email, r.std_num, r.type
                     ORDER BY t.email, r.course, r.subtitle, r.std_num, r.timestamp;";
 
         $red_flags = mysqli_query($conBDInt, $slctqry)
