@@ -10,7 +10,7 @@
  * @copyright  Copyright (C) 2023-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2023122002
+ * @version    2026062407
  * @date       2023-01-26
  *
  * This program is free software: you can redistribute it and/or modify
@@ -323,6 +323,8 @@ function checkwftoken($start_time) {
             $limit = 100;
             $repeat = true;
 
+            echo "a recolher eventos do flow " . $flowid . "...";
+
             while ($repeat) {
                 $offseturl = $url . "?offset=" . (string)$offset . "&limit=" . (string)$limit;
 
@@ -577,6 +579,8 @@ function checkwftoken($start_time) {
 
             mysqli_query($conBDInt, $updtqry)
                 or die("Ñ foi possível actualizar a tabela 'wiseflow.flows': " . mysqli_error($conBDInt) . $nl);
+
+            echo " | concluído com sucesso!" . $nl;
 
         }
 
