@@ -404,7 +404,7 @@ if (!empty($mode)
     $email_styles = get_email_table_styles();
 
     $email->setFrom('Sentinel_F@uab.pt', 'Sentinel_F');
-    $email->addEmbeddedImage('../static/img/Sentinel_F.jpg', 'sentinelfavatar', 'Sentinel_F.jpg');
+    $sentinelfavatar = '../static/img/Sentinel_F.jpg';
     
     if ($mode == "monitor") {
         // obtenção dos parâmetros transversais do curl
@@ -709,6 +709,7 @@ if (!empty($mode)
 
                     $email->AddAddress($admin);
                     $email->Subject = 'ALERTA: novos eventos registados';
+                    $email->addEmbeddedImage($sentinelfavatar, 'sentinelfavatar', basename($sentinelfavatar));
                     $email->Body = build_email_wrapper($html_table);
                     $email->send();
                 
@@ -1208,8 +1209,8 @@ if (!empty($mode)
 
                 foreach ($manageTO as $TO) { $email->AddAddress($TO); }
                 foreach ($manageCC as $CC) { $email->AddCC($CC); }
-
                 $email->Subject = 'ALERTA: eventos relevantes detectados';
+                $email->addEmbeddedImage($sentinelfavatar, 'sentinelfavatar', basename($sentinelfavatar));
                 $email->Body = build_email_wrapper($html_table);
                 $email->send();
             
@@ -1324,8 +1325,8 @@ if (!empty($mode)
 
                     foreach ($manageTO as $TO) { $email->AddAddress($TO); }
                     foreach ($manageCC as $CC) { $email->AddCC($CC); }
-
                     $email->Subject = 'INFO: síntese de eventos reportados no período';
+                    $email->addEmbeddedImage($sentinelfavatar, 'sentinelfavatar', basename($sentinelfavatar));
                     $email->Body = build_email_wrapper($html_table);
                     if ($email->Send()) {
                         printf("INFO: Síntese enviada" . $nl);
@@ -1450,6 +1451,7 @@ if (!empty($mode)
                         $html_table .= "</tbody></table>";
 
                         $email->AddAddress($reportTO);
+                        $email->addEmbeddedImage($sentinelfavatar, 'sentinelfavatar', basename($sentinelfavatar));
                         $email->Body = $header . build_email_wrapper($html_table) . $footer;
                         if ($email->Send()) {
                             printf("INFO: Síntese enviada" . $nl);
@@ -1529,6 +1531,7 @@ if (!empty($mode)
                 $html_table .= "</tbody></table>";
 
                 $email->AddAddress($reportTO);
+                $email->addEmbeddedImage($sentinelfavatar, 'sentinelfavatar', basename($sentinelfavatar));
                 $email->Body = $header . build_email_wrapper($html_table) . $footer;
                 if ($email->Send()) {
                     printf("INFO: Síntese enviada" . $nl);
@@ -1692,8 +1695,8 @@ if (!empty($mode)
             $html_table .= "</tbody></table>";
 
             foreach ($reportTO as $TO) { $email->AddAddress($TO); }
-
             $email->Subject = date("Y/M_d") . ': eventos relevantes';
+            $email->addEmbeddedImage($sentinelfavatar, 'sentinelfavatar', basename($sentinelfavatar));
             $email->Body = build_email_wrapper($html_table);
             $email->send();
         
