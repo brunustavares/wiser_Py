@@ -10,7 +10,7 @@
  * @copyright  Copyright (C) 2023-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2025020702
+ * @version    2026062609
  * @date       2023-01-05
  *
  * This program is free software: you can redistribute it and/or modify
@@ -615,11 +615,11 @@ $curlopt_base = set_curl_params(time());
                                         DATA;
 
                                 $curlopt = array_replace($curlopt_base,
-                                                        array(
-                                                              CURLOPT_URL => $url,
-                                                              CURLOPT_CUSTOMREQUEST => 'PATCH',
-                                                              CURLOPT_POSTFIELDS => $data,
-                                                             )
+                                                         array(
+                                                               CURLOPT_URL => $url,
+                                                               CURLOPT_CUSTOMREQUEST => 'PATCH',
+                                                               CURLOPT_POSTFIELDS => $data,
+                                                              )
                                                         );
 
                                 $curl = curl_init();
@@ -904,6 +904,46 @@ $curlopt_base = set_curl_params(time());
                         foreach ($docs as &$doc) {
                             if ($reviewer['user']['userId'] == $doc['docid']) {
                                 $doc['revid'] = $reviewer['reviewerId'];
+
+                                // verificar e remover opção de alocação a todos os participantes
+                                if ($reviewer['isAllocatedToAll'] == "true") {
+                                    $httpcode = 0;
+                                    while ($httpcode <> 200) {
+                                        $url = $base_url . "flows/" . $row['flowid'] . "/reviewers" . "/" . $reviewer['reviewerId'];
+
+                                        $data = <<<DATA
+                                                       {
+                                                        "isAllocatedToAll": false,
+                                                        "hasAccessToAssessmentInformation": true,
+                                                        "canDecideOnFinalGrade": true
+                                                       }
+                                                DATA;
+
+                                        $curlopt = array_replace(
+                                                                 $curlopt_base,
+                                                                 array(
+                                                                       CURLOPT_URL => $url,
+                                                                       CURLOPT_CUSTOMREQUEST => 'PATCH',
+                                                                       CURLOPT_POSTFIELDS => $data,
+                                                                      )
+                                                                );
+
+                                        $curl = curl_init();
+
+                                        curl_setopt_array($curl, $curlopt);
+
+                                        $response = curl_exec($curl);
+                                        // $errNo = curl_errno($curl);
+                                        // $err = curl_error($curl);
+
+                                        $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
+                                    }
+
+                                    curl_close($curl);
+                                    unset($response);
+
+                                }
                             
                             }
 
