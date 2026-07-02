@@ -413,7 +413,9 @@ function checkwftoken($start_time) {
                         $updtqry = "UPDATE wiseflow.flows_assess
                                     SET dtass = from_unixtime(" . $flw_sub['handedInDate'] . ")
                                     WHERE flowid = '" . $flowid . "'
-                                        AND partid = '" . $flw_std['participantId'] . "';";
+                                        AND partid = '" . $flw_std['participantId'] . "'
+                                        AND (dtass IS NULL
+                                            OR dtass < from_unixtime(" . $flw_sub['handedInDate'] . "));";
 
                         mysqli_query($conBDInt, $updtqry)
                             or die("Ñ foi possível actualizar a tabela 'wiseflow.flows_assess': " . mysqli_error($conBDInt) . $nl);
