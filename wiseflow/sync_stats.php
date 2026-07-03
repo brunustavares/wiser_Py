@@ -485,8 +485,11 @@ function checkwftoken($start_time) {
                                 && count($result['data']) > 0) {
                                 foreach($result['data'] as $rec) {
                                     // construir array com dados-chave
-                                    array_push($tmp, array('flowid'=>$rec['flowId'], 'similarity'=>$rec['similarity']));
+                                    if (isset($rec['flowId']) &&
+                                        $rec['flowId'] == $flowid) {
+                                        array_push($tmp, array('flowid'=>$rec['flowId'], 'similarity'=>$rec['similarity']));
 
+                                    }
                                 }
 
                                 // caso o número de amostras seja superior a 100, repete o ciclo e recolhe mais amostras
