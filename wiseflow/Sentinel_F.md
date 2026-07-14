@@ -18,23 +18,28 @@ It was originally developed for [Universidade Aberta (UAb)](https://portal.uab.p
 - **New Event Discovery**: Automatically detects and catalogues new, previously unseen event types from the API.
 - **Administrative Alerts**: Sends email notifications to administrators when new event types are discovered, allowing for their review and classification.
 - **Relevant Event Reporting**: Identifies and reports on specific, pre-defined "relevant" events to management, providing timely alerts on critical student activities.
+- **Late Arrival Enforcement**: After a configurable tolerance period, identifies students with no participation events, deactivates their access in WISEflow, and registers `LATE_ARRIVAL` alerts.
 - **Typing Speed Anomaly Detection**: Monitors `CHARACTERS_TYPED` events to identify sudden, unusual increases in typing speed, which could indicate suspicious activity.
-- **Prolonged Inactivity Detection**: Detects and reports instances where students exhibit prolonged periods of inactivity during a flow, based on event timestamps, excluding students who have already submitted their work.
+- **Prolonged Inactivity Detection**: Detects and reports long gaps between consecutive events for the same student, excluding students who have already submitted their work in that flow.
+- **Early Submission Detection**: Detects `PAPER_HANDED_IN` events that occur before a configurable minimum elapsed time and reports them as `EARLY_HANDIN`.
 - **LMS Access Verification**: Cross-references student activity with Moodle logs to detect if students accessed course materials during an exam.
-- **End-of-Session Summaries**: When the last active exam for the day concludes, a summary of all events reported during that monitoring period is automatically sent to management.
-- **Daily Summaries & No-Show Reporting**: Generates and emails a daily summary report that includes a count of all relevant events detected and a list of any scheduled exams that had no student participation.
+- **End-of-Session Summaries**: When no flows remain in progress, a summary of all events reported during the monitoring period is automatically sent to management, with a CSV attachment.
+- **Teacher Daily Reports**: Generates per-teacher daily reports for `red_flag` events, including CSV attachments and a disclaimer that the tool supports, but does not replace, human review.
+- **Management Daily Summaries & No-Show Reporting**: Generates and emails a daily summary report that includes a count of reported event types and a list of scheduled exams that had no student participation.
 - **JSON Payload Normalization**: Includes a function to validate and standardize JSON payloads before database insertion, ensuring data consistency.
-- **Database Maintenance**: Automatically purges event data older than six months to keep the database size manageable.
+- **Database Maintenance**: Automatically purges event data older than 180 days to keep the database size manageable.
 
 ## Dependencies
 
 - **`auth_lib_bdint.php`**: This file is crucial as it contains all the necessary configurations for:
   - Database connections (`connect2bdint`).
   - WISEflow API credentials and token management functions (`getwftoken`, `encrypt_token`, `decrypt_token`).
+  - Moodle / PlataformAbERTA web service credentials (`$mdl_wsURL`, `$mdl_token`).
   - PHPMailer library and email server (SMTP) settings, including the sender email (`Sentinel_F@uab.pt`).
 - **PHP**: A PHP environment with the `mysqli` and `curl` extensions enabled.
 - **Database**: A MySQL or MariaDB database with the `wiseflow` schema as referenced in the queries. The script also creates and uses a temporary table `sentinelf_tmp` for efficient analysis during `monitor` mode execution.
-  - Ensure the `wiseflow` database and its tables (`sentinelf_settings`, `flows`, `sentinelf_events`, `sentinelf_event_types`, `students`) exist and are accessible.
+  - Ensure the `wiseflow` database and its tables/views (`sentinelf_settings`, `flows`, `flows_assess`, `flows_templates`, `sentinelf_events`, `sentinelf_event_types`, `sentinelf_reported`, `students`, `vw_teacher_2wiseflow`) exist and are accessible.
+  - The `lead.alunos_inscricoes` table is also required for teacher-facing reports.
 
 ## Database Schema
 
@@ -42,10 +47,14 @@ The script relies on several tables within the `wiseflow` database schema:
 
 - `sentinelf_settings`: Stores configuration values for the script's operation, such as administrator email, management email lists (`manageTO`, `manageCC`), and the timestamp of the last execution (`lastrun`).
 - `flows`: Contains information about the WISEflow flows, including their IDs, start times (`dtfrom`), and end times (`dtto`).
+- `flows_assess`: Maps flow participants and is used to identify assigned students and deactivate absent ones after the late-arrival tolerance expires.
+- `flows_templates`: Used to distinguish assignment flows from other flow types when evaluating LMS access and inactivity.
 - `sentinelf_events`: The main table where all fetched student participation events are logged. It includes the flow ID, student ID, timestamp, event type, the full JSON payload of the event, and a `report` column to track if an event has been reported.
 - `sentinelf_event_types`: Acts as a catalogue for event types. It determines whether an event type should be included in management reports (`report` column) and whether it counts as a critical event (`red_flag` column) to trigger teacher alerts. This table is also used to store reference values for composite event detection, such as inactivity thresholds.
 - `sentinelf_reported`: Stores a history of events that have been reported to management, used to generate end-of-session synthesis reports.
 - `students`: A table mapping WISEflow student IDs (`stdid`) to their student numbers (`std_num`).
+- `vw_teacher_2wiseflow`: Associates flows or courses with teachers so that teacher-facing daily reports can be addressed correctly.
+- `lead.alunos_inscricoes`: Provides class enrollment data used to resolve each student's `turma` in daily teacher reports.
 
 ## Execution
 
@@ -64,25 +73,30 @@ php sentinel_f.php -m monitor
 **Workflow:**
 
 1.  **Authentication**: It checks for a valid API token in `./auth.tkn`. If the token is missing or expiring within 3 minutes, it requests a new one using functions from `auth_lib_bdint.php`.
-2.  **Fetch Running Flows**: It queries the `wiseflow.flows` table to get a list of flows that are currently active or have ended within the last 45 minutes.
+2.  **Fetch Running Flows**: It queries the `wiseflow.flows` table to get a list of flows that are currently active or whose end time is at most 60 minutes in the past.
 3.  **Fetch Events**: For each running flow, it makes a POST request to the `/participation-events` WISEflow API endpoint.
     - It uses the `lastrun` timestamp from the settings to fetch only the events that have occurred since the script was last executed.
-    - The API response is paginated, and the script iterates through all pages to retrieve all events within the time window.
+  - For each flow, it requests events from the greater of `lastrun` or `dtfrom` up to `dtto + 30 minutes`.
+  - The API response is paginated, and the script iterates through all pages to retrieve all events within the time window.
 4.  **Store Events**: Each event is inserted as a new row into the `wiseflow.sentinelf_events` table. The query uses `INSERT IGNORE` to prevent duplicates.
 5.  **Analyze Recent Events**: It creates a temporary table, `sentinelf_tmp`, and populates it with events from the last 30 minutes that have not yet been reported. This improves the performance of subsequent analysis queries.
-6.  **Detect and Notify New Event Types**:
+6.  **Late Arrival Control**:
+  - If the `LATE_ARRIVAL` event type is configured with a tolerance and the current execution falls within the first 5 minutes after that tolerance expires, the script identifies assigned students with no captured events.
+  - It deactivates those participants through the WISEflow API and stages `LATE_ARRIVAL` events for reporting.
+7.  **Detect and Notify New Event Types**:
     - The script queries `sentinelf_tmp` for events that have a `type` not present in `wiseflow.sentinelf_event_types`.
     - If new types are found, they are automatically inserted into `sentinelf_event_types` with the `report` flag set to `1` (defaulting to being reportable), ensuring they are considered for future alerts.
     - An email is sent to the administrator (defined by the `admin` setting) containing a table of these new events for review.
-7.  **Detect and Notify Relevant Events**:
+8.  **Detect and Notify Relevant Events**:
     - **Elementary Events**: It queries `sentinelf_tmp` for simple events that are marked as reportable (`evt_tp.report = 1`) and have not been reported yet (`evts.report IS NULL`).
     - **Typing Speed Analysis**: It also analyzes `CHARACTERS_TYPED` events to detect anomalous spikes in typing speed. It calculates the characters per second between consecutive events for a student and compares it against a threshold defined in `sentinelf_event_types`.
-    - **Inactivity Detection**: The script identifies prolonged periods of student inactivity. It calculates the time difference between the current execution and the student's last event. If this period exceeds a configurable threshold (defined in `sentinelf_event_types` for the `INACTIVITY` event type), an alert is generated. This check excludes students who have already handed in their paper.
+  - **Inactivity Detection**: The script identifies prolonged inactivity by calculating the time gap between consecutive events for the same student and comparing it with the `INACTIVITY` threshold stored in `sentinelf_event_types`. It excludes assignment flows and students who had already handed in the paper before that gap.
+  - **Early Submission Detection**: It converts qualifying `PAPER_HANDED_IN` events into `EARLY_HANDIN` alerts when the submission occurs before the configured threshold measured from `dtfrom`.
     - **LMS Access Check**: If enabled in the configuration (`PLATAFORMABERTA_ACCESS`), the script queries the Moodle web service to check if any of the monitored students accessed course pages during the exam window. These events are merged with the WISEflow events.
     - If any of these relevant events are found, it constructs a single HTML email with a table of all such events and sends it to the management mailing lists (`manageTO` and `manageCC`).
-    - It then updates the `report` column for the sent events to prevent them from being reported again.
-8.  **Update Last Run Time**: After processing all flows, it updates the `lastrun` setting with the current timestamp.
-9.  **End-of-Session Summary**: If no flows are currently running, the script sends a summary of all events reported during the day's monitoring session, and then removes the temporary analysis table.
+  - It records those events in `sentinelf_reported`, marks the corresponding source rows as reported, and later timestamps the delivered alerts.
+9.  **Update Last Run Time**: After processing all flows, it updates the `lastrun` setting with the current timestamp.
+10. **End-of-Session Summary**: If no flows are currently running, the script compiles a synthesis of the day’s reported events, sends it to management with a CSV attachment, deletes the generated CSV file, and then removes the temporary analysis table.
 
 ### `report` Mode
 
@@ -99,11 +113,12 @@ php sentinel_f.php -m report
 1.  **Teacher Notifications (Red Flags)**:
     - The script identifies critical events (marked as `red_flag = 1` in `sentinelf_event_types`) that occurred today.
     - It maps these events to the respective course teachers (using the `vw_teacher_2wiseflow` view) and student class enrollments (`lead.alunos_inscricoes`).
-    - For each teacher, it generates and sends a personalized email report detailing the academic flow, student number, class, event description, and total occurrences ($N$).
+  - For each teacher, it generates and sends a personalized email report detailing the academic flow, student number, class, event description, and summarized occurrences. Standard events are formatted as `xN`, while `EARLY_HANDIN` is formatted in minutes.
     - Management emails (`manageTO` and `manageCC`) are copied (CC) on these messages.
+  - Each teacher email includes a CSV attachment containing that recipient's filtered report rows.
     - Each email includes an explanatory disclaimer stating that `Sentinel_F` is an automated support tool for human supervision and does not prove academic fraud on its own.
 2.  **Management Daily Summary Report**:
-    - The script fetches the daily count of all reported events grouped by type.
+  - The script fetches the daily count of all reported events grouped by type.
     - It identifies scheduled exams (flows) that concluded today but had zero student participation (`SUM(dtass IS NOT NULL) = 0`).
     - If there are events or empty flows, it constructs a summary email and sends it to the management recipients defined in the `reportTO` setting.
 3.  **Database Purge**:
@@ -115,11 +130,13 @@ The script acts as a bridge between the WISEflow API and a local database, addin
 
 - **Stateless Authentication**: The API token is stored on the filesystem (`auth.tkn`), allowing different script executions to share the same session, minimizing the number of authentication requests. The token is encrypted for security.
 
-- **Dynamic Event Analysis**: The script includes specific SQL logic to detect complex patterns like sudden typing speed increases and prolonged inactivity, which are crucial for monitoring student engagement and potential issues. It uses a temporary table for efficient analysis of recent events.
+- **Dynamic Event Analysis**: The script includes specific SQL logic to detect complex patterns such as sudden typing speed increases, prolonged inactivity, early hand-ins, and late arrivals. It uses a temporary table for efficient analysis of recent events.
 
 - **Incremental Fetching**: By storing a `lastrun` timestamp, the script avoids re-processing the entire event history for a flow on every run. This makes the monitoring process efficient and scalable.
 
 - **Dynamic Event Handling**: The system is designed to adapt to new event types introduced by WISEflow. Instead of failing, it catalogues them and alerts an administrator, ensuring the system can be updated without code changes.
+
+- **Report Output Normalization**: For summary emails and CSV exports, the script converts raw event histories into presentation-oriented values such as `xN` counts or rounded `min` values for `EARLY_HANDIN`.
 
 - **Separation of Concerns**:
   - **`monitor` mode** is for immediate operational awareness. It answers the question: "What is happening _right now_ that I need to know about?"
@@ -158,6 +175,13 @@ The agent defines several helper functions to manage its operations, API calls, 
 - **`get_email_table_styles()`**:
   - **Description**: Returns an associative array of inline CSS style strings. These styles are applied directly to HTML table elements (`table`, `th`, `td`, links, rows, payloads) to maintain a consistent dark-theme appearance across various email clients.
   - **Returns**: `array<string, string>` (associative array of element-to-CSS-style mappings).
+- **`export_2_CSV($conBDInt, $mode, $reportTO = null)`**:
+  - **Parameters**:
+    - `$conBDInt` (mysqli): Active database connection.
+    - `$mode` (string): Either `monitor` or `report`, determining the export query.
+    - `$reportTO` (string, optional): Teacher email filter used in `report` mode.
+  - **Description**: Generates a CSV file in `C:\temp` using `SELECT ... INTO OUTFILE`. In `monitor` mode it exports summarized events for the monitoring synthesis; in `report` mode it exports teacher-filtered `red_flag` rows.
+  - **Returns**: `string` (the Windows filesystem path to the generated CSV file).
 
 ## Licenses
 

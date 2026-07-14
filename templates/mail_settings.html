@@ -75,7 +75,7 @@
             <input type="hidden" id="mail_conf" name="mail_conf" {% if tools %} value="tools" {% elif users %} value="users" {% endif %}>
             <input type="hidden" id="mail_server_id" name="mail_server_id" {% if mail_server %} value="{{ mail_server[0] }}" {% else %} value="" {% endif %}>
 
-            <div id="mail_server_settings" {% if tools %} class="mb-3 server-div" {% elif users %} class="mb-3 server-div.show"{% endif %}>
+            <div id="mail_server_settings" {% if tools %} class="mb-3 server-div" {% elif users %} class="mb-3 server-div show"{% endif %}>
                 <div class="mb-3">
                     <input autocomplete="off" class="form-control mx-auto w-auto mail-server" id="server" name="server" placeholder="Servidor" type="text" {% if mail_server[2] %} value="{{ mail_server[2] }}" {% else %} value="" {% endif %}
                         onchange="checkUpdtReqs('mail_server', null, {'prev_server':'{{ prev_server }}', 'prev_port':'{{ prev_port }}', 'prev_username':'{{ prev_username }}', 'prev_password':'{{ prev_password }}', 'prev_mailbox':'{{ prev_mailbox }}'})">

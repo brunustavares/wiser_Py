@@ -11,7 +11,7 @@
 # @copyright  Copyright (C) 2024-present Bruno Tavares
 # @license    GNU General Public License v3 or later
 #             https://www.gnu.org/licenses/gpl-3.0.html
-# @version    2026061809
+# @version    2026071307
 # @date       2024-02-20
 #
 # This program is free software: you can redistribute it and/or modify
@@ -1548,7 +1548,7 @@ def sanitize(string):
 # configuração da aplicação
 app = Flask(__name__)
 
-BUILD = "2026061809"  # YYYYMMDDHH
+BUILD = "2026071307"  # YYYYMMDDHH
 
 # SECRET_KEY
 app.secret_key = "RaK7ng8-UCKWZnW6"
@@ -1949,12 +1949,14 @@ def sentinelf_events_2check():
                 if payload == None or payload.strip() == "":
                     payload = None
                 report = 1 if f"report{row_id}" in request.form else 0
+                red_flag = 1 if f"red_flag{row_id}" in request.form else 0
+                dict = request.form.get(f"dict{row_id}")
 
                 if evt_type is not None:
                     wf_db_cursor.execute("UPDATE wiseflow.sentinelf_event_types \
-                                          SET type=%s, payload=%s, report=%s \
+                                          SET type=%s, payload=%s, report=%s, red_flag=%s, dict=%s \
                                           WHERE id=%s",
-                                         (evt_type, payload, report, row_id, ))
+                                         (evt_type, payload, report, red_flag, dict, row_id, ))
                     wf_db.commit()
 
                     i += wf_db_cursor.rowcount

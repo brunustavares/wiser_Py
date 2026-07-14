@@ -10,7 +10,7 @@
  * @copyright  Copyright (C) 2025-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2026062207
+ * @version    2026071407
  * @date       2025-10-31
  *
  * This program is free software: you can redistribute it and/or modify
@@ -297,37 +297,119 @@ function export_2_CSV($conBDInt, $mode, $reportTO=null) {
     $file_path_php  = "c:\\temp\\" . $file_name;
 
     if ($mode == "monitor") {
+        // $slctqry = "SELECT 'flow',
+        //                    'std_num',
+        //                    'tipo',
+        //                    'eventos'
+        //             UNION ALL
+        //            (SELECT flw.subtitle,
+        //                    std.std_num,
+        //                    rep.type,
+        //                    COUNT(DISTINCT rep.timestamp) AS N
+        //             FROM wiseflow.sentinelf_reported rep
+        //                 INNER JOIN wiseflow.flows flw ON flw.flowid = rep.flowid
+        //                 INNER JOIN wiseflow.students std ON std.stdid = rep.stdid
+        //                 INNER JOIN wiseflow.sentinelf_tmp tmp ON (tmp.flowid = rep.flowid AND tmp.stdid  = rep.stdid)
+        //             WHERE DATE(rep.report) = CURDATE()
+        //             GROUP BY flw.flowid, std.stdid, rep.type
+        //             ORDER BY flw.flowid, std.stdid, rep.type) ";
+
         $slctqry = "SELECT 'flow',
                            'std_num',
                            'tipo',
-                           'numero_eventos'
+                           'eventos'
                     UNION ALL
                    (SELECT flw.subtitle,
                            std.std_num,
-                           rep.type,
-                           COUNT(DISTINCT rep.timestamp) AS N
-                    FROM wiseflow.sentinelf_reported rep
-                        INNER JOIN wiseflow.flows flw ON flw.flowid = rep.flowid
-                        INNER JOIN wiseflow.students std ON std.stdid = rep.stdid
-                        INNER JOIN wiseflow.sentinelf_tmp tmp ON (tmp.flowid = rep.flowid AND tmp.stdid  = rep.stdid)
-                    WHERE DATE(rep.report) = CURDATE()
-                    GROUP BY flw.flowid, std.stdid, rep.type
-                    ORDER BY flw.flowid, std.stdid, rep.type) ";
+                           r.type,
+                           r.evts
+                    FROM (
+                          SELECT rep.flowid,
+                                 rep.stdid,
+                                 rep.type,
+                                 CONCAT('x', COUNT(DISTINCT rep.timestamp)) AS evts
+                          FROM wiseflow.sentinelf_reported rep
+                          WHERE rep.type <> 'EARLY_HANDIN'
+                              AND DATE(rep.report) = CURDATE()
+                          GROUP BY rep.flowid, rep.stdid, rep.type
+                          UNION ALL
+                          SELECT rep.flowid,
+                                 rep.stdid,
+                                 rep.type,
+                                 CONCAT(
+                                        ROUND(
+                                              CAST(
+                                                   JSON_UNQUOTE(
+                                                                JSON_EXTRACT(
+                                                                             JSON_UNQUOTE(rep.payload), '$.early_handin'
+                                                                            )
+                                                               ) AS UNSIGNED
+                                                  ) / 60, 0
+                                             ), 'min'
+                                       ) AS evts
+                          FROM wiseflow.sentinelf_reported rep
+                          WHERE rep.type = 'EARLY_HANDIN'
+                              AND DATE(rep.report) = CURDATE()
+                          GROUP BY rep.flowid, rep.stdid, rep.type
+                         ) AS r
+                        INNER JOIN wiseflow.flows flw ON flw.flowid = r.flowid
+                        INNER JOIN wiseflow.students std ON std.stdid = r.stdid
+                        INNER JOIN wiseflow.sentinelf_tmp tmp ON tmp.flowid = r.flowid AND tmp.stdid = r.stdid
+                        GROUP BY flw.flowid, std.stdid, r.type
+                        ORDER BY flw.flowid, std.stdid, r.type) ";
 
     } elseif ($mode == "report") {
+        // $slctqry = "SELECT 'flow',
+        //                    'std_numero',
+        //                    'std_nome',
+        //                    'turma',
+        //                    'evento',
+        //                    'ocorrencias(N)'
+        //             UNION ALL
+        //            (SELECT r.subtitle AS subtitle,
+        //                    r.std_num AS std_num,
+        //                    CONCAT(r.firstname, ' ', r.lastname) AS std_name,
+        //                    CONCAT(r.course, ai.TURMA_MOODLE) AS turma,
+        //                    r.dict AS evento,
+        //                    r.T AS T
+        //             FROM (
+        //                   SELECT f.lectyear AS lectyear,
+        //                          sfr.timestamp AS timestamp,
+        //                          f.subtitle AS subtitle,
+        //                          SUBSTR(f.subtitle, 1, 5) AS course,
+        //                          s.firstname AS firstname,
+        //                          s.lastname AS lastname,
+        //                          s.std_num AS std_num,
+        //                          sfr.type AS type,
+        //                          sfe.dict AS dict,
+        //                          COUNT(sfr.type) AS T
+        //                   FROM sentinelf_reported sfr
+        //                       JOIN sentinelf_event_types sfe ON sfe.type = sfr.type
+        //                       JOIN students s ON s.stdid = sfr.stdid
+        //                       JOIN flows f ON f.flowid = sfr.flowid
+        //                   WHERE sfe.red_flag = 1
+        //                   GROUP BY f.subtitle, s.std_num, sfr.type
+        //                  ) r
+        //                 JOIN vw_teacher_2wiseflow t ON (t.cd_discip = r.course AND t.lectyear = r.lectyear)
+        //                 JOIN lead.alunos_inscricoes ai ON (ai.CD_DISCIP = r.course AND ai.CD_ALUNO = r.std_num AND ai.CD_LECTIVO = r.lectyear)
+        //             WHERE r.timestamp >= CURDATE()
+		// 				AND t.email = '" . $reportTO . "'
+        //             GROUP BY r.course, r.std_num, r.type
+        //             ORDER BY t.email, r.course, r.subtitle, r.std_num, r.timestamp) ";
+
         $slctqry = "SELECT 'flow',
                            'std_numero',
                            'std_nome',
                            'turma',
                            'evento',
-                           'ocorrencias(N)'
+                           'ocorrencias'
                     UNION ALL
                    (SELECT r.subtitle AS subtitle,
                            r.std_num AS std_num,
                            CONCAT(r.firstname, ' ', r.lastname) AS std_name,
                            CONCAT(r.course, ai.TURMA_MOODLE) AS turma,
                            r.dict AS evento,
-                           r.T AS T
+                           r.evts AS evts
                     FROM (
                           SELECT f.lectyear AS lectyear,
                                  sfr.timestamp AS timestamp,
@@ -338,18 +420,48 @@ function export_2_CSV($conBDInt, $mode, $reportTO=null) {
                                  s.std_num AS std_num,
                                  sfr.type AS type,
                                  sfe.dict AS dict,
-                                 COUNT(sfr.type) AS T
+                                 CONCAT('x', COUNT(sfr.type)) AS evts
                           FROM sentinelf_reported sfr
                               JOIN sentinelf_event_types sfe ON sfe.type = sfr.type
                               JOIN students s ON s.stdid = sfr.stdid
                               JOIN flows f ON f.flowid = sfr.flowid
-                          WHERE sfe.red_flag = 1
-                          GROUP BY f.subtitle, s.std_num, sfr.type
+                          WHERE DATE(sfr.timestamp) = CURDATE()
+                              AND sfe.type <> 'EARLY_HANDIN'
+                              AND sfe.red_flag = 1
+                          GROUP BY f.subtitle, s.std_num, sfr.type, f.lectyear, s.firstname, s.lastname, sfe.dict
+                          UNION ALL
+                          SELECT f.lectyear AS lectyear,
+                                 sfr.timestamp AS timestamp,
+                                 f.subtitle AS subtitle,
+                                 SUBSTR(f.subtitle, 1, 5) AS course,
+                                 s.firstname AS firstname,
+                                 s.lastname AS lastname,
+                                 s.std_num AS std_num,
+                                 sfr.type AS type,
+                                 sfe.dict AS dict,
+                                 CONCAT(
+                                        ROUND(
+                                              CAST(
+                                                   JSON_UNQUOTE(
+                                                                JSON_EXTRACT(
+                                                                             JSON_UNQUOTE(sfr.payload), '$.early_handin'
+                                                                            )
+                                                               ) AS UNSIGNED
+                                                  ) / 60, 0
+                                             ), 'min'
+                                       ) AS evts
+                          FROM sentinelf_reported sfr
+                              JOIN sentinelf_event_types sfe ON sfe.type = sfr.type
+                              JOIN students s ON s.stdid = sfr.stdid
+                              JOIN flows f ON f.flowid = sfr.flowid
+                          WHERE DATE(sfr.timestamp) = CURDATE()
+                              AND sfe.type = 'EARLY_HANDIN'
+                              AND sfe.red_flag = 1
+                          GROUP BY f.subtitle, s.std_num, sfr.type, f.lectyear, s.firstname, s.lastname, sfe.dict, sfr.payload
                          ) r
                         JOIN vw_teacher_2wiseflow t ON (t.cd_discip = r.course AND t.lectyear = r.lectyear)
                         JOIN lead.alunos_inscricoes ai ON (ai.CD_DISCIP = r.course AND ai.CD_ALUNO = r.std_num AND ai.CD_LECTIVO = r.lectyear)
-                    WHERE r.timestamp >= CURDATE()
-						AND t.email = '" . $reportTO . "'
+                    WHERE t.email = '" . $reportTO . "'
                     GROUP BY r.course, r.std_num, r.type
                     ORDER BY t.email, r.course, r.subtitle, r.std_num, r.timestamp) ";
 
@@ -456,6 +568,36 @@ if (!empty($mode)
 
                 }
                 $dtto = strtotime($row['dtto']) + (30 * 60);
+
+                // ler tolerância na tabela de eventos
+                $tolerance = "SELECT CAST(
+                                          JSON_UNQUOTE(
+                                                       JSON_EXTRACT(
+                                                                    JSON_UNQUOTE(evt_tp.payload), '$.late_arrival'
+                                                                   )
+                                                      ) AS UNSIGNED
+                                         ) AS seconds
+                              FROM wiseflow.sentinelf_event_types evt_tp
+                              WHERE evt_tp.type = 'LATE_ARRIVAL'
+                                  AND evt_tp.report = 1;";
+
+                $result = mysqli_query($conBDInt, $tolerance)
+                              or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_event_types': " . mysqli_error($conBDInt)
+                                    . $nl . $nl
+                                    . $tolerance);
+
+                if (mysqli_num_rows($result) > 0) {
+                    $fetched_row = mysqli_fetch_assoc($result);
+    
+                    $seconds = (int)$fetched_row['seconds'];
+                    $minutes = ($seconds > 0) ? (int)($seconds / 60) : 0;
+
+                    $late_arrival = strtotime($row['dtfrom'] . " + {$minutes} minutes");
+
+                } else {
+                    $late_arrival = 0;
+
+                }
 
                 $events = [];
 
@@ -607,7 +749,81 @@ if (!empty($mode)
 
                 } while (mysqli_more_results($conBDInt) && mysqli_next_result($conBDInt));
 
+                $absent_stds = [];
                 $events = [];
+
+                // vedar acesso dos estudantes após tolerância
+                if (time() >= $late_arrival
+                    && time() < ($late_arrival + 300)) {
+                    $slctqry = "SELECT fa.flowid,
+                                       fa.stdid,
+                                       fa.partid,
+                                       NOW() AS timestamp,
+                                       'LATE_ARRIVAL' AS type,
+                                       '\"{}\"' AS payload
+                                FROM wiseflow.flows_assess fa
+                                    INNER JOIN wiseflow.flows f ON f.flowid = fa.flowid
+                                    LEFT JOIN wiseflow.sentinelf_tmp evts ON (evts.stdid = fa.stdid
+                                        AND evts.flowid = fa.flowid)
+                                WHERE (f.dtfrom <= NOW()
+                                        AND f.dtto >= NOW())
+                                    AND evts.id IS NULL
+                                GROUP BY fa.stdid;";
+
+                    $result = mysqli_query($conBDInt, $slctqry)
+                                  or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_tmp': " . mysqli_error($conBDInt)
+                                        . $nl . $nl
+                                        . $slctqry);
+
+                    if (mysqli_num_rows($result) > 0) {
+                        while ($absence = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
+                            $httpcode = 0;
+                            while ($httpcode <> 200) {
+                                $url = $base_url . "flow/" . $absence['flowid'] . "/participants" . "/" . $absence['partid'] . "/activated";
+
+                                $data = <<<DATA
+                                               {
+                                                "activated": false
+                                               }
+                                        DATA;
+
+                                $curlopt = array_replace(
+                                                         $curlopt_base,
+                                                         array(
+                                                               CURLOPT_URL => $url,
+                                                               CURLOPT_CUSTOMREQUEST => 'PUT',
+                                                               CURLOPT_POSTFIELDS => $data,
+                                                              )
+                                                        );
+
+                                $curl = curl_init();
+
+                                curl_setopt_array($curl, $curlopt);
+
+                                $response = curl_exec($curl);
+                                // $errNo = curl_errno($curl);
+                                // $err = curl_error($curl);
+
+                                $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
+                            }
+
+                            curl_close($curl);
+                            unset($response);
+
+                            unset($absence['partid']);
+                            $absent_stds[] = $absence;
+
+                        }
+
+                        printf("Inibidos " . count($absent_stds) . " estudantes ausentes" . $nl);
+
+                    } else {
+                        printf("Sem estudantes ausentes para inibir" . $nl);
+
+                    }
+
+                }
 
                 // detectar eventos não catalogados, registá-los na BD e enviar notificação de administração
                 $slctqry = "SELECT evts.flowid,
@@ -725,6 +941,12 @@ if (!empty($mode)
                 $events = [];
 
                 // detectar eventos relevantes e enviar notificação de gestão
+                // estudantes ausentes após tolerância
+                if (count($absent_stds) > 0) {
+                    $events = array_merge($events, $absent_stds);
+
+                }
+
                 // eventos elementares
                     $slctqry = "SELECT evts.id,
                                        evts.flowid,
@@ -850,7 +1072,7 @@ if (!empty($mode)
                             if (!empty($data)) {
                                 foreach ($data as $record) {
                                     if ((strtotime($record['lastaccess']) >= $dtfrom)
-                                    && (strtotime($record['lastaccess']) <= $dtto)) {
+                                        && (strtotime($record['lastaccess']) <= $dtto)) {
                                         $std_num = $record['stdnum'];
 
                                         if (isset($student_lookup[$std_num])) {
@@ -1010,7 +1232,7 @@ if (!empty($mode)
 
                     }
 
-                    // detecção de inactividade prolongada
+                    // inactividade prolongada
                     $slctqry = "WITH inactivity_calc AS (
                                                          SELECT e.id,
                                                                 e.flowid,
@@ -1040,7 +1262,7 @@ if (!empty($mode)
                                                                                                SECOND,
                                                                                                LAG(e.timestamp) OVER (PARTITION BY e.stdid ORDER BY e.timestamp),
                                                                                                e.timestamp
-                                                                                               ),
+                                                                                              ),
                                                                                  0
                                                                                 ),
                                                                        '}\"'
@@ -1085,6 +1307,60 @@ if (!empty($mode)
 
                     } else {
                         printf("Sem inactividades prolongadas" . $nl);
+
+                    }
+
+                    // submissão prematura
+                    $slctqry = "WITH early_handin_cte AS (
+                                                          SELECT CAST(
+                                                                      JSON_UNQUOTE(
+                                                                                   JSON_EXTRACT(
+                                                                                                JSON_UNQUOTE(evt_tp.payload), '$.early_handin'
+                                                                                               )
+                                                                                  ) AS UNSIGNED
+                                                                     ) AS seconds,
+                                                                 evt_tp.report AS report
+                                                          FROM wiseflow.sentinelf_event_types evt_tp
+                                                          WHERE evt_tp.type = 'EARLY_HANDIN'
+                                                          LIMIT 1 
+                                                         )
+                                SELECT evts.id,
+                                       evts.flowid,
+                                       evts.stdid,
+                                       evts.timestamp,
+                                       'EARLY_HANDIN' AS type,
+                                       CONCAT(
+                                              '\"{\\\"early_handin\\\": ',
+                                              COALESCE(
+                                                       TIMESTAMPDIFF(
+                                                                     SECOND,
+                                                                     f.dtfrom,evts.timestamp
+                                                                    ),
+                                                       0
+                                                      ),
+                                              '}\"'
+                                             ) AS payload,
+                                       evts.report AS reported
+                                FROM wiseflow.sentinelf_tmp evts
+                                    INNER JOIN wiseflow.flows f ON f.flowid = evts.flowid
+                                    CROSS JOIN early_handin_cte eh
+                                WHERE evts.type = 'PAPER_HANDED_IN'
+                                    AND eh.report = 1
+                                    AND evts.report IS NULL
+                                    AND evts.timestamp <= DATE_ADD(f.dtfrom, INTERVAL eh.seconds SECOND);";
+
+                    $new_events = mysqli_query($conBDInt, $slctqry)
+                                      or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_tmp': " . mysqli_error($conBDInt)
+                                            . $nl . $nl
+                                            . $slctqry);
+
+                    if (mysqli_num_rows($new_events) > 0) {
+                        $events = array_merge($events, mysqli_fetch_all($new_events, MYSQLI_ASSOC));
+
+                        printf("Identificadas " . mysqli_num_rows($new_events) . " submissões prematuras" . $nl);
+
+                    } else {
+                        printf("Sem submissões prematuras" . $nl);
 
                     }
 
@@ -1219,12 +1495,12 @@ if (!empty($mode)
                 // registar hora da notificação no evento
                 $set_alert = "UPDATE wiseflow.sentinelf_reported
                               SET report = NOW()
-                              WHERE report IS NOT NULL
-                                  AND report = 0;
+                              WHERE (report IS NOT NULL
+                                  AND report = 0);
                               UPDATE wiseflow.sentinelf_events
                               SET report = NOW()
-                              WHERE report IS NOT NULL
-                                  AND report = 0;";
+                              WHERE (report IS NOT NULL
+                                  AND report = 0);";
 
                 mysqli_multi_query($conBDInt, $set_alert)
                     or die("Ñ foi possível actualizar a tabela 'wiseflow.sentinelf_reported' e/ou 'wiseflow.sentinelf_events': " . mysqli_error($conBDInt)
@@ -1268,19 +1544,60 @@ if (!empty($mode)
                 $events = [];
 
                 // síntese de eventos reportados no período
+                // $slctqry = "SELECT flw.subtitle,
+                //                    flw.flowid,
+                //                    std.std_num,
+                //                    std.stdid,
+                //                    rep.type,
+                //                    COUNT(DISTINCT rep.timestamp) AS N
+                //             FROM wiseflow.sentinelf_reported rep
+                //                 INNER JOIN wiseflow.flows flw ON flw.flowid = rep.flowid
+                //                 INNER JOIN wiseflow.students std ON std.stdid = rep.stdid
+                //                 INNER JOIN wiseflow.sentinelf_tmp tmp ON (tmp.flowid = rep.flowid AND tmp.stdid  = rep.stdid)
+                //             WHERE DATE(rep.report) = CURDATE()
+                //             GROUP BY flw.flowid, std.stdid, rep.type
+                //             ORDER BY flw.flowid, std.stdid, rep.type;";
+
                 $slctqry = "SELECT flw.subtitle,
                                    flw.flowid,
                                    std.std_num,
                                    std.stdid,
-                                   rep.type,
-                                   COUNT(DISTINCT rep.timestamp) AS N
-                            FROM wiseflow.sentinelf_reported rep
-                                INNER JOIN wiseflow.flows flw ON flw.flowid = rep.flowid
-                                INNER JOIN wiseflow.students std ON std.stdid = rep.stdid
-                                INNER JOIN wiseflow.sentinelf_tmp tmp ON (tmp.flowid = rep.flowid AND tmp.stdid  = rep.stdid)
-                            WHERE DATE(rep.report) = CURDATE()
-                            GROUP BY flw.flowid, std.stdid, rep.type
-                            ORDER BY flw.flowid, std.stdid, rep.type;";
+                                   r.type,
+                                   r.evts
+                            FROM (
+                                  SELECT rep.flowid,
+                                         rep.stdid,
+                                         rep.type,
+                                         CONCAT('x', COUNT(DISTINCT rep.timestamp)) AS evts
+                                  FROM wiseflow.sentinelf_reported rep
+                                  WHERE rep.type <> 'EARLY_HANDIN'
+                                      AND DATE(rep.report) = CURDATE()
+                                  GROUP BY rep.flowid, rep.stdid, rep.type
+                                  UNION ALL
+                                  SELECT rep.flowid,
+                                         rep.stdid,
+                                         rep.type,
+                                         CONCAT(
+                                                ROUND(
+                                                      CAST(
+                                                           JSON_UNQUOTE(
+                                                                        JSON_EXTRACT(
+                                                                                     JSON_UNQUOTE(rep.payload), '$.early_handin'
+                                                                                    )
+                                                                       ) AS UNSIGNED
+                                                          ) / 60, 0
+                                                     ), 'min'
+                                               ) AS evts
+                                  FROM wiseflow.sentinelf_reported rep
+                                  WHERE rep.type = 'EARLY_HANDIN'
+                                      AND DATE(rep.report) = CURDATE()
+                                  GROUP BY rep.flowid, rep.stdid, rep.type
+                                 ) AS r
+                                INNER JOIN wiseflow.flows flw ON flw.flowid = r.flowid
+                                INNER JOIN wiseflow.students std ON std.stdid = r.stdid
+                                INNER JOIN wiseflow.sentinelf_tmp tmp ON tmp.flowid = r.flowid AND tmp.stdid = r.stdid
+                                GROUP BY flw.flowid, std.stdid, r.type
+                                ORDER BY flw.flowid, std.stdid, r.type;";
 
                 $report = mysqli_query($conBDInt, $slctqry)
                               or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_reported': " . mysqli_error($conBDInt)
@@ -1300,7 +1617,7 @@ if (!empty($mode)
                                             <th style='" . $email_styles['th'] . "'>flow</th>
                                             <th style='" . $email_styles['th'] . "'>std_num</th>
                                             <th style='" . $email_styles['th'] . "'>tipo</th>
-                                            <th style='" . $email_styles['th'] . "'>número de eventos</th>
+                                            <th style='" . $email_styles['th'] . "'>eventos</th>
                                         </tr>
                                     </thead><tbody>";
 
@@ -1381,40 +1698,122 @@ if (!empty($mode)
         $events = [];
         
         // enviar relatórios parcelares p/ docentes
-        $slctqry = "SELECT r.subtitle AS subtitle,
+        // $slctqry = "SELECT r.subtitle AS subtitle,
+        //                    r.flowid AS flowid,
+        //                    CONCAT(r.firstname, ' ', r.lastname) AS std_name,
+        //                    r.std_num AS std_num,
+        //                    r.email AS std_email,
+        //                    CONCAT(r.course, ai.TURMA_MOODLE) AS turma,
+        //                    r.dict AS evento,
+        //                    r.T AS T,
+        //                    CAST(r.timestamp AS DATE) AS data,
+        //                    CONCAT(t.firstname, ' ', t.lastname) AS t_name,
+        //                    t.email AS t_email
+        //             FROM (
+        //                   SELECT f.lectyear AS lectyear,
+        //                          sfr.timestamp AS timestamp,
+        //                          f.subtitle AS subtitle,
+        //                          f.flowid AS flowid,
+        //                          SUBSTR(f.subtitle, 1, 5) AS course,
+        //                          s.firstname AS firstname,
+        //                          s.lastname AS lastname,
+        //                          s.std_num AS std_num,
+        //                          s.email AS email,
+        //                          sfr.type AS type,
+        //                          sfe.dict AS dict,
+        //                          COUNT(sfr.type) AS T
+        //                   FROM sentinelf_reported sfr
+        //                       JOIN sentinelf_event_types sfe ON sfe.type = sfr.type
+        //                       JOIN students s ON s.stdid = sfr.stdid
+        //                       JOIN flows f ON f.flowid = sfr.flowid
+        //                   WHERE sfe.red_flag = 1
+        //                       AND sfr.timestamp >= CURDATE()
+        //                   GROUP BY f.subtitle, s.std_num, sfr.type
+        //                  ) r
+        //                 JOIN lead.alunos_inscricoes ai ON (ai.CD_DISCIP = r.course AND ai.CD_ALUNO = r.std_num AND ai.CD_LECTIVO = r.lectyear)
+        //                 JOIN vw_teacher_2wiseflow t ON (t.cd_discip = r.course AND t.lectyear = r.lectyear AND t.turmas = SUBSTR(ai.TURMA_MOODLE, 5, 2))
+        //             GROUP BY r.course, t.email, r.std_num, r.type
+        //             ORDER BY t.email, r.course, r.subtitle, r.std_num, r.timestamp;";
+
+        $slctqry = "WITH base_reported AS (
+                                           SELECT sfr.flowid,
+                                                  sfr.stdid,
+                                                  sfr.type,
+                                                  sfr.timestamp,
+                                                  sfr.payload
+                                           FROM sentinelf_reported sfr
+                                           WHERE sfr.timestamp >= CURDATE()
+                                               AND sfr.type <> 'EARLY_HANDIN'
+                                          ),
+                         red_flags AS (
+                                       SELECT type, dict
+                                       FROM sentinelf_event_types
+                                       WHERE red_flag = 1
+                                      ),
+                         r AS (
+                               SELECT f.lectyear AS lectyear,
+                                      sfr.timestamp AS timestamp,
+                                      f.subtitle AS subtitle,
+                                      f.flowid AS flowid,
+                                      LEFT(f.subtitle, 5) AS course,
+                                      s.firstname AS firstname,
+                                      s.lastname AS lastname,
+                                      s.std_num AS std_num,
+                                      s.email AS email,
+                                      sfr.type AS type,
+                                      sfe.dict AS dict,
+                                      CONCAT('x', COUNT(sfr.type)) AS evts
+                               FROM base_reported sfr
+                                   JOIN red_flags sfe ON sfe.type = sfr.type
+                                   JOIN students s ON s.stdid = sfr.stdid
+                                   JOIN flows f ON f.flowid = sfr.flowid
+                               WHERE sfr.type <> 'EARLY_HANDIN'
+                               GROUP BY f.subtitle, s.std_num, sfr.type, f.lectyear, f.flowid, s.firstname, s.lastname, s.email, sfe.dict, sfr.timestamp
+                               UNION ALL
+                               SELECT f.lectyear AS lectyear,
+                                      sfr.timestamp AS timestamp,
+                                      f.subtitle AS subtitle,
+                                      f.flowid AS flowid,
+                                      LEFT(f.subtitle, 5) AS course,
+                                      s.firstname AS firstname,
+                                      s.lastname AS lastname,
+                                      s.std_num AS std_num,
+                                      s.email AS email,
+                                      sfr.type AS type,
+                                      sfe.dict AS dict,
+                                      CONCAT(
+                                             ROUND(
+                                                   CAST(
+                                                        JSON_UNQUOTE(
+                                                                     JSON_EXTRACT(
+                                                                                  JSON_UNQUOTE(sfr.payload), '$.early_handin'
+                                                                                 )
+                                                                    ) AS UNSIGNED
+                                                       ) / 60, 0
+                                                  ), 'min'
+                                            ) AS evts
+                               FROM sentinelf_reported sfr
+                                   JOIN red_flags sfe ON sfe.type = sfr.type
+                                   JOIN students s ON s.stdid = sfr.stdid
+                                   JOIN flows f ON f.flowid = sfr.flowid
+                                   WHERE sfr.type = 'EARLY_HANDIN'
+                                       AND sfr.timestamp >= CURDATE()
+                                   GROUP BY f.subtitle, s.std_num, sfr.type, f.lectyear, f.flowid, s.firstname, s.lastname, s.email, sfe.dict, sfr.timestamp, sfr.payload
+                              )
+                    SELECT r.subtitle AS subtitle,
                            r.flowid AS flowid,
                            CONCAT(r.firstname, ' ', r.lastname) AS std_name,
                            r.std_num AS std_num,
                            r.email AS std_email,
                            CONCAT(r.course, ai.TURMA_MOODLE) AS turma,
                            r.dict AS evento,
-                           r.T AS T,
+                           r.evts AS evts,
                            CAST(r.timestamp AS DATE) AS data,
                            CONCAT(t.firstname, ' ', t.lastname) AS t_name,
                            t.email AS t_email
-                    FROM (
-                          SELECT f.lectyear AS lectyear,
-                                 sfr.timestamp AS timestamp,
-                                 f.subtitle AS subtitle,
-                                 f.flowid AS flowid,
-                                 SUBSTR(f.subtitle, 1, 5) AS course,
-                                 s.firstname AS firstname,
-                                 s.lastname AS lastname,
-                                 s.std_num AS std_num,
-                                 s.email AS email,
-                                 sfr.type AS type,
-                                 sfe.dict AS dict,
-                                 COUNT(sfr.type) AS T
-                          FROM sentinelf_reported sfr
-                              JOIN sentinelf_event_types sfe ON sfe.type = sfr.type
-                              JOIN students s ON s.stdid = sfr.stdid
-                              JOIN flows f ON f.flowid = sfr.flowid
-                          WHERE sfe.red_flag = 1
-                          GROUP BY f.subtitle, s.std_num, sfr.type
-                         ) r
+                    FROM r
                         JOIN lead.alunos_inscricoes ai ON (ai.CD_DISCIP = r.course AND ai.CD_ALUNO = r.std_num AND ai.CD_LECTIVO = r.lectyear)
                         JOIN vw_teacher_2wiseflow t ON (t.cd_discip = r.course AND t.lectyear = r.lectyear AND t.turmas = SUBSTR(ai.TURMA_MOODLE, 5, 2))
-                    WHERE r.timestamp >= CURDATE()
                     GROUP BY r.course, t.email, r.std_num, r.type
                     ORDER BY t.email, r.course, r.subtitle, r.std_num, r.timestamp;";
 
@@ -1498,7 +1897,7 @@ if (!empty($mode)
                                             <th style='" . $email_styles['th'] . "'>estudante</th>
                                             <th style='" . $email_styles['th'] . "'>turma</th>
                                             <th style='" . $email_styles['th'] . "'>evento</th>
-                                            <th style='" . $email_styles['th'] . "'>ocorrências(N)</th>
+                                            <th style='" . $email_styles['th'] . "'>ocorrências</th>
                                         </tr>
                                     </thead><tbody>";
 
@@ -1587,10 +1986,9 @@ if (!empty($mode)
 
         // eventos reportados no dia
         $slctqry = "SELECT r.type,
-                           COUNT(*) AS N
+                           CONCAT('x', COUNT(*)) AS N
                     FROM wiseflow.sentinelf_reported r
-                    WHERE r.report >= CURDATE()
-                        AND r.report < CURDATE() + INTERVAL 1 DAY
+                    WHERE DATE(r.report) = CURDATE()
                     GROUP BY type
                     ORDER BY type ASC;";
 
@@ -1637,7 +2035,7 @@ if (!empty($mode)
                                     </tr>
                                     <tr>
                                         <th style='" . $email_styles['th'] . "'>tipo</th>
-                                        <th style='" . $email_styles['th_center'] . "'>número</th>
+                                        <th style='" . $email_styles['th_center'] . "'>ocorrências</th>
                                     </tr>
                                 </thead><tbody>";
 

@@ -12,7 +12,7 @@
  * @copyright  Copyright (C) 2024-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2025111411
+ * @version    2026071307
  * @date       2025-11-14
  *
  * This program is free software: you can redistribute it and/or modify
@@ -86,6 +86,8 @@
                         <th>type</th>
                         <th>payload</th>
                         <th>report</th>
+                        <th>red_flag</th>
+                        <th>dict</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -100,6 +102,12 @@
                             <td><input type="checkbox" id="report{{ row[0] }}" name="report{{ row[0] }}"
                                 {% if row[3] == 1 %} checked {% endif %}>
                             </td>
+
+                            <td><input type="checkbox" id="red_flag{{ row[0] }}" name="red_flag{{ row[0] }}"
+                                {% if row[4] == 1 %} checked {% endif %}>
+                            </td>
+
+                            <td class="sentinelf_main_table-dict" ><input class="sentinelf_main_table-input" type="text" id="dict{{ row[0] }}" name="dict{{ row[0] }}" {% if row[5] != None %} value="{{ row[5] }}" {% else %} value="" {% endif %}></td>
 
                             <td>
                                 <button type="button" class="event-delete-button" data-toggle="modal" data-target="#go_conf" onclick="send_event_info('{{ row[1] }}')">
