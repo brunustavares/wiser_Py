@@ -291,7 +291,7 @@ function checkwftoken($start_time) {
 
     if (mysqli_num_rows($newstdts) > 0) {
         // inserir novos estudantes na tabela de controlo
-        $isrtqry = "INSERT INTO wiseflow.students(firstname, lastname, std_num, email)
+        $isrtqry = "INSERT IGNORE INTO wiseflow.students(firstname, lastname, std_num, email)
                     SELECT *
                     FROM wiseflow.vw_newstdts_2wiseflow
                     ORDER BY std_num

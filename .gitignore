@@ -12,4 +12,5 @@ wiseflow/*.bat
 templates/wiserPy_CSVtemplate.xlsm
 *.bat
 SyncToy*
+tech_handover.md
 wiserPy.md

@@ -1632,7 +1632,7 @@ if (!empty($mode)
                                             </td>
                                             <td style='" . $email_styles['td'] . "'>" . htmlspecialchars($event['std_num']) . "</td>
                                             <td style='" . $email_styles['td_accent'] . "'>" . htmlspecialchars($event['type']) . "</td>
-                                            <td style='" . $email_styles['td_center'] . "'>" . htmlspecialchars($event['N']) . "</td>
+                                            <td style='" . $email_styles['td_center'] . "'>" . htmlspecialchars($event['evts']) . "</td>
                                         </tr>";
                         $row_index++;
 
@@ -1768,7 +1768,7 @@ if (!empty($mode)
                                    JOIN students s ON s.stdid = sfr.stdid
                                    JOIN flows f ON f.flowid = sfr.flowid
                                WHERE sfr.type <> 'EARLY_HANDIN'
-                               GROUP BY f.subtitle, s.std_num, sfr.type, f.lectyear, f.flowid, s.firstname, s.lastname, s.email, sfe.dict, sfr.timestamp
+                               GROUP BY f.subtitle, s.std_num, sfr.type, f.lectyear, s.firstname, s.lastname, s.email, sfe.dict
                                UNION ALL
                                SELECT f.lectyear AS lectyear,
                                       sfr.timestamp AS timestamp,
@@ -1798,7 +1798,7 @@ if (!empty($mode)
                                    JOIN flows f ON f.flowid = sfr.flowid
                                    WHERE sfr.type = 'EARLY_HANDIN'
                                        AND sfr.timestamp >= CURDATE()
-                                   GROUP BY f.subtitle, s.std_num, sfr.type, f.lectyear, f.flowid, s.firstname, s.lastname, s.email, sfe.dict, sfr.timestamp, sfr.payload
+                                   GROUP BY f.subtitle, s.std_num, sfr.type, f.lectyear, s.firstname, s.lastname, s.email, sfe.dict
                               )
                     SELECT r.subtitle AS subtitle,
                            r.flowid AS flowid,
@@ -1916,7 +1916,7 @@ if (!empty($mode)
                                     <td style='" . $email_styles['td'] . "'>" . htmlspecialchars($event['std_num']) . "</td>
                                     <td style='" . $email_styles['td'] . "'>" . htmlspecialchars($event['turma']) . "</td>
                                     <td style='" . $email_styles['td_accent'] . "'>" . htmlspecialchars($event['evento']) . "</td>
-                                    <td style='" . $email_styles['td_center'] . "'>" . htmlspecialchars($event['T']) . "</td>
+                                    <td style='" . $email_styles['td_center'] . "'>" . htmlspecialchars($event['evts']) . "</td>
                                 </tr>";
                 $row_index++;
           
