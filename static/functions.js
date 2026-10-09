@@ -710,7 +710,8 @@ document.addEventListener("DOMContentLoaded", function() {
             || this.value === "estudantes_UC_escolha"
             || this.value === "folio_historico_data"
             || this.value === "iduc"
-            || this.value === "ucs_flows_tipo") {
+            || this.value === "ucs_flows_tipo"
+            || this.value === "ucs_gatus") {
             show_param("div_courses", true);
         } else {
             show_param("div_courses", false);

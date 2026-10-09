@@ -4372,7 +4372,8 @@ def aida():
                 or request.form.get("endpoint") == "estudantes_WF_escolha" \
                 or request.form.get("endpoint") == "folio_historico_data" \
                 or request.form.get("endpoint") == "iduc" \
-                or request.form.get("endpoint") == "ucs_flows_tipo":
+                or request.form.get("endpoint") == "ucs_flows_tipo" \
+                or request.form.get("endpoint") == "ucs_gatus":
                 if request.form.get("endpoint") == "estudantes_folios" \
                     or request.form.get("endpoint") == "folio_historico_data":
                     if request.form.get("endpoint") == "folio_historico_data":
@@ -4383,7 +4384,8 @@ def aida():
                         return error_msg("lista de UCs necessária", 400, '/aida')
 
                 if request.form.get("endpoint") != "iduc" \
-                    and request.form.get("endpoint") != "ucs_flows_tipo":
+                    and request.form.get("endpoint") != "ucs_flows_tipo" \
+                    and request.form.get("endpoint") != "ucs_gatus":
                     if request.form.get("lista_stds").strip() != "":
                         aida_endpoint += '&lista_stds=' + base64.b64encode(request.form.get("lista_stds").encode("utf-8")).decode("utf-8")
 
