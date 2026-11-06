@@ -2,9 +2,11 @@
   <img src="static/img/Queryn.jpg" alt="Queryn Logo" width="300">
 </p>
 
-# Queryn Features and Architecture
+# Queryn
 
-Queryn is an advanced data retrieval engine designed to bridge the gap between natural language user requests and the underlying MySQL database (specifically for the WISEflow/Moodle context). It utilizes a Retrieval-Augmented Generation (RAG) architecture to safely generate SQL, execute it, and summarize the results in plain language.
+`Queryn` is an advanced data retrieval engine designed to bridge the gap between natural language user requests and the underlying MySQL database (specifically for the WISEflow/Moodle context). It utilizes a Retrieval-Augmented Generation (RAG) architecture to safely generate SQL, execute it, and summarize the results in plain language.
+
+It was originally developed for [Universidade Aberta (UAb)](https://portal.uab.pt/), as a module of the [`wiser.Py`](./README.md) suite.
 
 ## Core Features
 

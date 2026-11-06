@@ -10,7 +10,7 @@
  * @copyright  Copyright (C) 2025-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2026071407
+ * @version    2026110603
  * @date       2025-10-31
  *
  * This program is free software: you can redistribute it and/or modify
@@ -975,6 +975,76 @@ if (!empty($mode)
                         printf("Sem eventos elementares relevantes" . $nl);
 
                     }
+
+                // vedar acesso dos estudantes por uso da pausa
+                $slctqry = "SELECT evts.id,
+                                   evts.flowid,
+                                   evts.stdid,
+                                   fa.partid,
+                                   evts.timestamp
+                            FROM wiseflow.sentinelf_tmp evts
+                                INNER JOIN wiseflow.sentinelf_event_types evt_tp ON (evt_tp.type = evts.type AND evt_tp.payload = evts.payload)
+                                INNER JOIN wiseflow.flows_assess fa ON (fa.stdid = evts.stdid AND fa.flowid = evts.flowid)
+                            WHERE evts.timestamp >= NOW() - INTERVAL 30 MINUTE
+                                AND evts.type = 'PARTICIPATION_PAUSE'
+                                AND evts.payload = '{\"x\": {\"state\": \"PAUSED\"}}'
+                                AND evt_tp.report = 1
+                                AND evts.report IS NULL
+                            ORDER BY evts.timestamp ASC;";
+
+                $result = mysqli_query($conBDInt, $slctqry)
+                                or die("Ñ foi possível consultar a tabela 'wiseflow.sentinelf_tmp': " . mysqli_error($conBDInt)
+                                    . $nl . $nl
+                                    . $slctqry);
+
+                if (mysqli_num_rows($result) > 0) {
+                    $stds_pause = 0;
+
+                    while ($pause = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
+                        $httpcode = 0;
+                        while ($httpcode <> 200) {
+                            $url = $base_url . "flow/" . $pause['flowid'] . "/participants" . "/" . $pause['partid'] . "/activated";
+
+                            $data = <<<DATA
+                                           {
+                                            "activated": false
+                                           }
+                                    DATA;
+
+                            $curlopt = array_replace(
+                                                     $curlopt_base,
+                                                     array(
+                                                           CURLOPT_URL => $url,
+                                                           CURLOPT_CUSTOMREQUEST => 'PUT',
+                                                           CURLOPT_POSTFIELDS => $data,
+                                                     )
+                                                    );
+
+                            $curl = curl_init();
+
+                            curl_setopt_array($curl, $curlopt);
+
+                            $response = curl_exec($curl);
+                            // $errNo = curl_errno($curl);
+                            // $err = curl_error($curl);
+
+                            $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
+                        }
+
+                        curl_close($curl);
+                        unset($response);
+
+                        $stds_pause++;
+
+                    }
+
+                    printf("Inibidos " . $stds_pause . " estudantes por uso da pausa" . $nl);
+
+                } else {
+                    printf("Sem estudantes para inibir por uso da pausa" . $nl);
+
+                }
 
                 // acessos à PlataformAbERTA
                 $slctqry = "SELECT report

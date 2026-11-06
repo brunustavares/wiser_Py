@@ -8,7 +8,7 @@
 
 The script can be executed in two primary modes: `monitor` for real-time monitoring and `report` for generating daily summaries.
 
-It was originally developed for [Universidade Aberta (UAb)](https://portal.uab.pt/).
+It was originally developed for [Universidade Aberta (UAb)](https://portal.uab.pt/), as a module of the [`wiser.Py`](../README.md) suite.
 
 ## Features
 
