@@ -15,7 +15,7 @@ It was originally developed for [Universidade Aberta (UAb)](https://portal.uab.p
 
 ### Data Reporting and Visualization
 *   **Comprehensive Reports**: Generate detailed reports on student participation, grades, and biometric data from both WISEflow and Moodle.
-    *   **Actionable Insights**: Directly manage assessment statuses (e.g., annulment, warnings) and trigger automated email notifications to students from the report view.
+    *   **Assessment Status and Notifications**: Manage WISEflow participation statuses, including warnings and annulments. When you choose to notify the student and a template is configured, the report sends the student an email and BCCs the course teachers and `dgpa@uab.pt`. The subject identifies a suspension, warning, or general status update and includes the flow title and subtitle.
     *   **Data Export**: Export report data and statistical indicators to CSV format for external analysis.
 *   **Student-Specific History**: View a complete academic history for any student, including a graphical representation of their biometric verification scores across assessments.
     *   **Submission Export**: Download a student's submission for a specific assessment as a single merged PDF file. The system automatically generates and prepends a cover sheet containing the assessment details.
@@ -27,10 +27,11 @@ It was originally developed for [Universidade Aberta (UAb)](https://portal.uab.p
     *   **Semantic Awareness**: Incorporates semantic descriptors to provide the LLM with context about table relationships, field meanings, and business logic.
     *   **Safety Guardrails**: Implements strict query validation to prevent destructive operations (e.g., `DROP`, `DELETE`) and ensure read-only access.
     *   **Natural Language Answers**: Summarizes query results into human-readable responses.
-*   **AIDA Indicators**: Interface with the AIDA web service to retrieve specialized academic indicators.
+    *   **Model Settings**: Administrators can add, edit, and remove model configurations and designate primary and secondary providers. See the [Queryn documentation](Queryn.md).
+*   **AIDA Indicators**: Query the AIDA web service for academic data, including student activity, assessment choices, flow types and GATus by course unit (UC), and course-unit identification (IdUC). Filter WISEflow choices by in-person or remote assessment and IdUC results by assessment typology. Export results to CSV or download an individual IdUC as a PDF from the course-unit name in the results.
 
 ### System Administration and Management
-*   **User Management**: Administrators can create, delete, and manage application users and their specific permissions (e.g., `admin`, `flowman`, `bioman`).
+*   **User Management**: Administrators can create, suspend, reactivate, and delete application accounts and manage their permissions (e.g., `admin`, `flowman`, `bioman`). Suspended accounts cannot sign in.
 *   **Password Control**: Secure user authentication with password hashing, mandatory password changes on first login, and password reset functionality.
 *   **Activity Logging**: All significant user actions are logged for auditing and monitoring purposes. Logs are automatically purged after one year.
 
@@ -38,7 +39,22 @@ It was originally developed for [Universidade Aberta (UAb)](https://portal.uab.p
 *   **Endpoint Execution**: Manually trigger synchronization scripts that handle data flows between systems. This includes:
     *   **WISEflow Sync**: Synchronize students (`sync_users`), flows (`sync_flows`), participants (`sync_parts`), and activity statistics (`sync_stats`). These scripts are orchestrated by the Python application but are implemented in PHP.
     *   **Moodle Sync**: Collect submissions (`sync_subs`) and grades (`sync_grades`) from PlataformAbERTA (currently marked as discontinued in the UI).
-*   **Calendar Management**: Upload a CSV file to bulk-create assessment schedules (flows) in the system. Integrates with Moodle Web Service to automatically determine flow types.
+*   **Assessment Calendar**: Use a CSV to bulk-create, reschedule, or delete assessment records in BDInt. Review the proposed operations before applying them.
+
+#### Importing the assessment calendar
+
+1. Open **Tools → calendário de provas** and download the spreadsheet template from the calendar page if needed. Prepare a UTF-8 CSV with semicolons as field separators. The first six columns are academic year, course code, assessment type (`X` for an exam or `E` for an e-fólio Global), assessment period, start date and time (`YYYY-MM-DD HH:MM:SS`), and duration in minutes. The optional header is recognized when its first cell is `lectyear`, `ano_lectivo`, or `ano`.
+2. Select the CSV and click **Carregar dados**. The preview matches records by course code, academic year, assessment type, and assessment period.
+
+   | Code | Color | Operation |
+   | --- | --- | --- |
+   | `C` | Green | Create a new assessment record. |
+   | `M` | Orange | Update the start time and duration of an existing record. The end time is recalculated from those values. |
+   | `D` | Red | Delete the matching record. To request deletion, enter January 1 at midnight in the start field, using `YYYY-01-01 00:00:00`. |
+
+3. Review the rows and click **Confirmar dados** to apply the changes in BDInt. WISEflow synchronization runs separately through the flow synchronization endpoint.
+
+The importer first looks up the flow type for the course, academic year, and assessment type through AIDA. If AIDA returns no matching type or is unavailable, the importer looks for an existing BDInt flow with the same course, year, and assessment type, prioritizing periods `N` and `X`. It defaults to `FLOWlock` when neither source provides a type.
 
 ### WISEflow API Integration Details
 The application orchestrates several PHP scripts to perform detailed synchronization tasks with the WISEflow API. The logic is primarily driven by views in the integration database (`BDInt`), which determine what data needs to be created, updated, or removed in WISEflow.
@@ -77,15 +93,13 @@ The application orchestrates several PHP scripts to perform detailed synchroniza
 *   **Grade Sync Reset (SOS Module)**: Manually reset the synchronization status of grades for specific courses and students, forcing a new sync attempt to the SiGES academic system.
 *   **Biometric Data Management**: View and manage student reference photos used for biometric identity verification in WISEflow.
 *   **Event Monitoring (Sentinel_F Module)**:
-    *   Configure and manage specific WISEflow participation event types to monitor (e.g., `FACIAL_RECOGNITION`, `PAPER_HANDED_IN`).
-    *   View logs of monitored events for specific dates, showing the flow, student, and event details.
-    *   **Student Analysis**: Analyze reported events per student with interactive graphical visualizations to identify patterns.
-    *   Manage settings for the Sentinel_F module, including recipient mailboxes for notifications.
-    *   This feature appears to be for administrators to closely track critical events within assessment flows.
+    *   Administrators can configure which WISEflow participation events appear in reports and flag critical event types for teacher notifications.
+    *   Review the full event log or filter reported events by date. Use the interactive student chart to review reported events across assessments.
+    *   Administrators can manage notification recipient mailboxes and see when Sentinel_F last ran. See the [Sentinel_F documentation](wiseflow/Sentinel_F.md).
 *   **Email Notifications**:
     *   Configure SMTP server settings for sending automated emails.
-    *   Manage email templates for various notifications (e.g., assessment cancellations, warnings).
-    *   Send bulk `BCC` emails to students for important announcements. Includes a summary report sent to the manager with the list of recipients.
+    *   Manage email templates for assessment status notifications.
+    *   Send bulk announcements to students via BCC. The message goes to `dgpa@uab.pt` with a summary that lists the matched student recipients.
 *   **WISEflow File Checker**: Upload and analyze `.wf` (WISEflow exam) files to identify the student, flow, flow type, and submission timestamp.
 
 ## 2. Architecture
@@ -177,11 +191,11 @@ $aida_base  = 'your_moodle_webservice_endpoints_prefix';
 Access to features is restricted based on user roles, which can be managed by an administrator.
 
 *   **`admin`**: Full access to all features, including user management and application logs.
-*   **`flowman`**: Can manage flows and related data, including access to some SOS and Tools features.
+*   **`flowman`**: Can manage WISEflow participation statuses and use the calendar and mail settings. With `sosusr`, can also send bulk announcements.
 *   **`bioman`**: Can view and manage student biometric data.
-*   **`statsman`**: Can access the statistical dashboards and the **Queryn** AI assistant.
-*   **`toolsusr`**: Access to general utilities like the calendar uploader and WISEflow file checker.
-*   **`sosusr`**: Access to emergency tools in the "SOS" module, like extending flow times and resetting grade syncs.
+*   **`statsman`**: Can access the statistical dashboards, AIDA, and the **Queryn** AI assistant.
+*   **`toolsusr`**: Can use the calendar importer, WISEflow file checker, and mail settings.
+*   **`sosusr`**: Can use emergency tools such as extending flow times and resetting grade sync, run synchronization endpoints, and review Sentinel_F logs.
 
 ## 5. Licenses
 

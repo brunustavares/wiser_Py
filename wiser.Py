@@ -11,7 +11,7 @@
 # @copyright  Copyright (C) 2024-present Bruno Tavares
 # @license    GNU General Public License v3 or later
 #             https://www.gnu.org/licenses/gpl-3.0.html
-# @version    2026071307
+# @version    2026112501
 # @date       2024-02-20
 #
 # This program is free software: you can redistribute it and/or modify
@@ -1152,145 +1152,246 @@ def remove_flow_parts(flowid):
     return i, j
 
 
-# FIXME: carregamento do ficheiro CSV
-# 1. aceder à AIDA com pacotes de múltiplas UCs
-# 2. impedir repetição de linhas
-# 3. viabilizar actualização condicional: se template for o mesmo, actualizar datas; se for diferente, apagar anterior e inserir novo
+# carregamento do ficheiro CSV
 def fill_csv(csv_file):
     # carregamento das linhas
-    rows = csv.reader(csv_file.stream.read().decode("utf-8").splitlines(), delimiter=";")
+    content = csv_file.stream.read().decode("utf-8").splitlines()
+    rows = list(csv.reader(content, delimiter=";"))
+
+    if not rows:
+        return None, None, None, "ERRO: ficheiro CSV vazio/inválido"
 
     # verifica se o separador de campos é ";"
     if all(len(row) == 1 for row in rows):
         return None, None, None, "ERRO: ficheiro CSV sem delimitador \";\""
 
+    # ignora a linha do cabeçalho no CSV
+    if rows[0][0].strip().lower() in ["lectyear", "ano_lectivo", "ano"]:
+        rows = rows[1:]
+
+    wf_db = connect_db()
+    wf_db_cursor = wf_db.cursor(buffered=True)
+
+    # cache interna para evitar pedidos HTTP/BD repetidos para a mesma UC, ano e prova
+    flow_type_cache = {}
+
+    def resolve_flow_type(lectyear, course, evaltype):
+        evaltype_clean = str(evaltype).strip().upper()
+        course_clean = str(course).strip()
+        lectyear_clean = str(lectyear).strip()
+
+        cache_key = (lectyear_clean, course_clean, evaltype_clean)
+
+        if cache_key in flow_type_cache:
+            return flow_type_cache[cache_key]
+
+        flow_type = 'FLOWlock'
+        found_in_ws = False
+
+        # obtém o tipo de fluxo no Web Service da AIDA para a prova específica (X ou E)
+        course_b64 = base64.b64encode(course_clean.encode('utf-8')).decode('utf-8')
+
+        aida_endpoint = (
+                         mdl_ws_base_url +
+                         '?wstoken=' + aida_token +
+                         '&wsfunction=' + aida_base + 'ucs_flows_tipo' +
+                         '&moodlewsrestformat=json' +
+                         '&ano_lectivo=' + lectyear_clean +
+                         '&lista_ucs=' + course_b64
+                        )
+
+        try:
+            res = requests.get(aida_endpoint, timeout=5)
+
+            if res.status_code == 200:
+                flows = res.json()
+                if flows and isinstance(flows, list):
+                    for flow in flows:
+                        flow_code = str(flow.get('flow', '')).strip().upper()
+                        if flow_code == evaltype_clean:
+                            flow_type = flow.get('type', 'FLOWlock')
+                            found_in_ws = True
+                            break
+
+        except Exception:
+            found_in_ws = False
+
+        # se a AIDA não devolver registo, procura na BD o tipo 
+        # que foi registado para a mesma prova na Época Normal
+        if not found_in_ws:
+            query_find_db = """
+                               SELECT wftplt.flowtype_name
+                               FROM wiseflow.flows f
+                                   INNER JOIN wiseflow.flows_templates wftplt ON f.template = wftplt.id
+                               WHERE LEFT(f.subtitle, 5) = %s
+                                   AND f.lectyear = %s
+                                   AND f.evaltype = UPPER(%s)
+                               ORDER BY CASE WHEN f.season IN ('N', 'X') THEN 1 ELSE 2 END
+                               LIMIT 1;
+                            """
+            wf_db_cursor.execute(query_find_db, (course_clean, lectyear_clean, evaltype_clean))
+            record = wf_db_cursor.fetchone()
+            if record:
+                flow_type = record[0]
+
+        flow_type_cache[cache_key] = flow_type
+
+        return flow_type
+
+    def check_exists(course, lectyear, evaltype, season):
+        query_check = """
+                         SELECT id
+                         FROM wiseflow.flows
+                         WHERE LEFT(subtitle, 5) = %s
+                             AND lectyear = %s
+                             AND evaltype = UPPER(%s)
+                             AND season = UPPER(%s)
+                         LIMIT 1;
+                      """
+        wf_db_cursor.execute(query_check, (course, lectyear, evaltype, season))
+
+        return wf_db_cursor.rowcount > 0
+
     # templates das queries
     # para obtenção dos dados
     read_query_template = """
-                             SELECT *
-                             FROM (
-                                   SELECT DISTINCT {lectyear} AS lectyear,
-                                                   CONCAT(IF('{evaltype}' = 'E', 'efolioG - ', 'exame - '), ainsc.ds_discip) AS title,
-                                                   CONCAT(ainsc.cd_discip, '_', SUBSTR({lectyear}, 3, 2), '_', UPPER('{evaltype}'), UPPER('{season}')) AS subtitle,
-                                                   UPPER('{evaltype}') AS evaltype,
-                                                   UPPER('{season}') AS season,
-                                                   wftplt.flowtype_name AS template,
-                                                   '{dtfrom}' AS dtfrom,
-                                                   DATE_ADD('{dtfrom}', INTERVAL {dur} MINUTE) AS dtto,
-                                                   {dur} AS dur
-                                   FROM wiseflow.courses wfcrs
-                                       INNER JOIN lead.alunos_inscricoes ainsc ON (ainsc.cd_discip = wfcrs.course AND ainsc.cd_lectivo = wfcrs.lectyear)
-                                       INNER JOIN wiseflow.flows_templates wftplt ON LOWER(wftplt.flowtype_name) = LOWER('{type}')
-                                   WHERE wfcrs.course = '{course}'
-                                       AND wfcrs.lectyear = {lectyear}
-                                  ) AS flows
-                             ORDER BY subtitle ASC
+                             SELECT DISTINCT '{operacao}' AS operacao,
+                                             {lectyear} AS lectyear,
+                                             CONCAT(IF('{evaltype}' = 'E', 'efolioG - ', 'exame - '), ainsc.ds_discip) AS title,
+                                             CONCAT(ainsc.cd_discip, '_', SUBSTR({lectyear}, 3, 2), '_', UPPER('{evaltype}'), UPPER('{season}')) AS subtitle,
+                                             UPPER('{evaltype}') AS evaltype,
+                                             UPPER('{season}') AS season,
+                                             wftplt.flowtype_name AS template,
+                                             '{dtfrom}' AS dtfrom,
+                                             DATE_ADD('{dtfrom}', INTERVAL '{dur}' MINUTE) AS dtto,
+                                             '{dur}' AS dur,
+                                             wfcrs.id AS courseid,
+                                             wftplt.id AS template_id
+                             FROM wiseflow.courses wfcrs
+                                 INNER JOIN lead.alunos_inscricoes ainsc ON (ainsc.cd_discip = wfcrs.course AND ainsc.cd_lectivo = wfcrs.lectyear)
+                                 INNER JOIN wiseflow.flows_templates wftplt ON LOWER(wftplt.flowtype_name) = LOWER('{type}')
+                             WHERE wfcrs.course = '{course}'
+                                 AND wfcrs.lectyear = {lectyear}
                              LIMIT 1;
                           """
 
     # para inserção dos dados
     insert_query_template = """
-                               SELECT *
-                               FROM (
-                                     SELECT DISTINCT wfcrs.id AS courseid,
-                                                     {lectyear} AS lectyear,
-                                                     UPPER('{evaltype}') AS evaltype,
-                                                     UPPER('{season}') AS season,
-                                                     CONCAT(IF('{evaltype}' = 'E', 'efolioG - ', 'exame - '), ainsc.ds_discip) AS title,
-                                                     CONCAT(ainsc.cd_discip, '_', SUBSTR({lectyear}, 3, 2), '_', UPPER('{evaltype}'), UPPER('{season}')) AS subtitle,
-                                                     NULL AS flowid,
-                                                     wftplt.id AS template,
-                                                     '{dtfrom}' AS dtfrom,
-                                                     DATE_ADD('{dtfrom}', INTERVAL {dur} MINUTE) AS dtto,
-                                                     {dur} AS dur,
-                                                     '0' AS log,
-                                                     '0' AS to_eval,
-                                                     '0' AS assign,
-                                                     '1' AS author
-                                     FROM wiseflow.courses wfcrs
-                                         INNER JOIN lead.alunos_inscricoes ainsc ON (ainsc.cd_discip = wfcrs.course AND ainsc.cd_lectivo = wfcrs.lectyear)
-                                         INNER JOIN wiseflow.flows_templates wftplt ON LOWER(wftplt.flowtype_name) = LOWER('{type}')
-                                     WHERE wfcrs.course = '{course}'
-                                         AND wfcrs.lectyear = {lectyear}
-                                    ) AS flows
-                               ORDER BY subtitle ASC
-                               LIMIT 1;
+                               INSERT INTO wiseflow.flows (courseid, lectyear, evaltype, season, title, subtitle, flowid, template, dtfrom, dtto, dur, log, to_eval, assign, author)
+                               VALUES ({courseid}, {lectyear}, UPPER('{evaltype}'), UPPER('{season}'), '{title}', '{subtitle}', NULL, {template_id}, '{dtfrom}', DATE_ADD('{dtfrom}', INTERVAL '{dur}' MINUTE), '{dur}', '0', '0', '0', '1');
                             """
 
-    table_queries = []
+    # para actualização dos dados
+    update_query_template = """
+                               UPDATE wiseflow.flows
+                               SET dtfrom = '{dtfrom}',
+                                   dtto = DATE_ADD('{dtfrom}',
+                                   INTERVAL '{dur}' MINUTE),
+                                   dur = '{dur}'
+                               WHERE LEFT(subtitle, 5) = '{course}'
+                                   AND lectyear = {lectyear}
+                                   AND evaltype = UPPER('{evaltype}')
+                                   AND season = UPPER('{season}');
+                            """
+
+    # para eliminação dos dados
+    delete_query_template = """
+                               DELETE FROM wiseflow.flows
+                               WHERE LEFT(subtitle, 5) = '{course}'
+                                   AND lectyear = {lectyear}
+                                   AND evaltype = UPPER('{evaltype}')
+                                   AND season = UPPER('{season}');"""
+
+    loaded_values = []
+    loaded_fields = []
     commit_queries = []
 
     # para cada linha do ficheiro CSV
     for row in rows:
-        # carregamento das variáveis
-        lectyear, course, evaltype, season, dtfrom, dur = row
+        if len(row) < 6:
+            continue
 
-        # geração do endpoint da AIDA, para consulta do tipo de fluxo
-        aida_endpoint = mdl_ws_base_url + \
-                       '?wstoken=' + aida_token + \
-                       '&wsfunction=' + aida_base + 'ucs_flows_tipo' + \
-                       '&moodlewsrestformat=json' + \
-                       '&ano_lectivo=' + lectyear + \
-                       '&lista_ucs=' + base64.b64encode(course.encode("utf-8")).decode("utf-8")
+        lectyear, course, evaltype, season, dtfrom, dur = [x.strip() for x in row[:6]]
+        dur_clean = str(int(dur)) if dur.isdigit() else "0"
 
-        flows = requests.get(aida_endpoint).json()
+        # obtém o tipo de fluxo da prova
+        flow_type = resolve_flow_type(lectyear, course, evaltype)
 
-        if flows:
-            # para cada linha obtida
-            for flow in flows:
-                # em caso de correspondência do tipo de prova
-                if flow['flow'] == evaltype:
-                    type = flow['type']
+        # verifica se o registo já existe na BD
+        exists = check_exists(course, lectyear, evaltype, season)
 
-        else:
-            type = 'FLOWlock'
+        # verifica se é uma eliminação (01 de Janeiro às 00:00)
+        is_delete = "-01-01 00:00" in dtfrom or dtfrom.startswith("01-01") or dtfrom.endswith("01-01 00:00:00")
 
-        # preenchimento das listas de queries
-        # a executar na consulta
-        table_queries.append(
-                             read_query_template.format(
-                                                        lectyear=lectyear,
-                                                        course=course,
-                                                        evaltype=evaltype,
-                                                        season=season,
-                                                        type=type,
-                                                        dtfrom=dtfrom,
-                                                        dur=dur
-                                                       )
-                            )
+        # executa query de pré-visualização
+        read_query = read_query_template.format(
+                                                operacao='D' if is_delete else ('M' if exists else 'C'),
+                                                lectyear=lectyear,
+                                                course=course,
+                                                evaltype=evaltype,
+                                                season=season,
+                                                type=flow_type,
+                                                dtfrom=dtfrom,
+                                                dur=dur_clean
+                                               )
 
-        # a executar na inserção
-        commit_queries.append(
-                              insert_query_template.format(
-                                                           lectyear=lectyear,
-                                                           course=course,
-                                                           evaltype=evaltype,
-                                                           season=season,
-                                                           type=type,
-                                                           dtfrom=dtfrom,
-                                                           dur=dur
-                                                          )
-                             )
-
-    loaded_values = []
-
-    wf_db = connect_db()
-    wf_db_cursor = wf_db.cursor(buffered=True)
-
-    # para cada linha das listas das queries, preencher novas listas com os dados completos
-    for query in table_queries:
-        wf_db_cursor.execute(query)
-
+        wf_db_cursor.execute(read_query)
         if wf_db_cursor.rowcount > 0:
-            loaded_values.append(dict(zip(wf_db_cursor.column_names, wf_db_cursor.fetchone())))
+            row_data = dict(zip(wf_db_cursor.column_names, wf_db_cursor.fetchone()))
+            
+            courseid = row_data.pop('courseid')
+            template_id = row_data.pop('template_id')
+            
+            loaded_values.append(row_data)
 
-    loaded_fields = list(wf_db_cursor.column_names)
+            # gera a query de commit adequada (DELETE / UPDATE / INSERT)
+            if is_delete:
+                commit_queries.append(
+                                      delete_query_template.format(
+                                                                   course=course,
+                                                                   lectyear=lectyear,
+                                                                   evaltype=evaltype,
+                                                                   season=season
+                                                                  )
+                                     )
+
+            elif exists:
+                commit_queries.append(
+                                      update_query_template.format(
+                                                                   course=course,
+                                                                   lectyear=lectyear,
+                                                                   evaltype=evaltype,
+                                                                   season=season,
+                                                                   dtfrom=dtfrom,
+                                                                   dur=dur_clean
+                                                                  )
+                                     )
+
+            else:
+                title_escaped = row_data['title'].replace("'", "''")
+                subtitle_escaped = row_data['subtitle'].replace("'", "''")
+
+                commit_queries.append(
+                                      insert_query_template.format(
+                                                                   courseid=courseid,
+                                                                   lectyear=lectyear,
+                                                                   evaltype=evaltype,
+                                                                   season=season,
+                                                                   title=title_escaped,
+                                                                   subtitle=subtitle_escaped,
+                                                                   template_id=template_id,
+                                                                   dtfrom=dtfrom,
+                                                                   dur=dur_clean
+                                                                  )
+                                     )
+
+    if loaded_values:
+        loaded_fields = list(loaded_values[0].keys())
 
     wf_db_cursor.close()
     wf_db.close()
 
-    # verifica se o resultado é nulo
-    if len(loaded_values) == 0:
+    if not loaded_values and not commit_queries:
         return None, None, None, "ERRO: UCs s/ dados p/ o ano lectivo identificado"
 
     return loaded_fields, loaded_values, commit_queries, None
@@ -1548,7 +1649,7 @@ def sanitize(string):
 # configuração da aplicação
 app = Flask(__name__)
 
-BUILD = "2026071307"  # YYYYMMDDHH
+BUILD = "2026112501"  # YYYYMMDDHH
 
 # SECRET_KEY
 app.secret_key = "RaK7ng8-UCKWZnW6"
@@ -2351,10 +2452,7 @@ def calendar():
             wf_db_cursor = wf_db.cursor()
 
             for query in session["result"]:
-                insert = "INSERT INTO wiseflow.flows (courseid, lectyear, evaltype, season, title, subtitle, flowid, template, dtfrom, dtto, dur, log, to_eval, assign, author) " + \
-                          query
-
-                wf_db_cursor.execute(insert)
+                wf_db_cursor.execute(query)
                 wf_db.commit()
 
             wf_db_cursor.close()
@@ -2638,8 +2736,6 @@ def sos():
                            flowman=is_flowman(session["user_id"]))
 
 
-# TODO: criar módulo para desbloqueio unitário no SiGES
-# TODO: criar módulo para arquivamento de pautas
 # módulo reset sync BDInt->SiGES
 @app.route("/reset_sync", methods=["GET", "POST"])
 @login_required
@@ -2883,7 +2979,7 @@ def no_reply():
             password = None
 
         sender = mail_server[4]
-        manager = 'sle@uab.pt'
+        manager = 'dgpa@uab.pt'
         bcc = []
 
         # mailboxes = request.form.get("mailboxes").split(";")
@@ -3453,14 +3549,13 @@ def wf_full_report():
 
                     sender = mail_server[4]
                     dest = std_info[2]
-                    bcc_manager = 'sle@uab.pt'
+                    bcc_manager = 'dgpa@uab.pt'
+                    bcc = [row[3] for row in flow_info] + [bcc_manager]
 
-                    if "anulação" in msg_template[1]:
-                        bcc = [row[3] for row in flow_info] + [bcc_manager]
-                        subject = "anulação"
+                    if "suspensão" in msg_template[1]:
+                        subject = "suspensão"
 
                     elif "advertência" in msg_template[1]:
-                        bcc = [bcc_manager]
                         subject = "advertência"
 
                     else:
