@@ -10,7 +10,7 @@
  * @copyright  Copyright (C) 2022-present Bruno Tavares
  * @license    GNU General Public License v3 or later
  *             https://www.gnu.org/licenses/gpl-3.0.html
- * @version    2025122308
+ * @version    2026112404
  * @date       2022-10-21
  *
  * This program is free software: you can redistribute it and/or modify
@@ -145,7 +145,7 @@ function checkwftoken($start_time) {
                 LIMIT 100;";
 
     $stdts2updt = mysqli_query($conBDInt, $slctqry)
-                      or die("Ñ foi possível consultar a view 'wiseflow.vw_takestdts_fromwiseflow': " . mysqli_error($conBDInt) . $nl);
+                      or die("Ñ foi possível consultar a view 'wiseflow.vw_takestdts_fromwiseflow': " . mysqli_error($conBDInt) . $nl . $slctqry);
 
     if (mysqli_num_rows($stdts2updt) > 0) {
         // actualizar estudantes
@@ -197,7 +197,7 @@ function checkwftoken($start_time) {
                         WHERE stdid = " . $stdid . ";";
 
             mysqli_query($conBDInt, $updtqry)
-                or die("Ñ foi possível actualizar a tabela 'wiseflow.students': " . mysqli_error($conBDInt) . $nl);
+                or die("Ñ foi possível actualizar a tabela 'wiseflow.students': " . mysqli_error($conBDInt) . $nl . $updtqry);
 
         }
 
@@ -215,7 +215,7 @@ function checkwftoken($start_time) {
                 LIMIT 100;";
 
     $stdts2updt = mysqli_query($conBDInt, $slctqry)
-                      or die("Ñ foi possível consultar a view 'wiseflow.vw_renewstdts_atwiseflow': " . mysqli_error($conBDInt) . $nl);
+                      or die("Ñ foi possível consultar a view 'wiseflow.vw_renewstdts_atwiseflow': " . mysqli_error($conBDInt) . $nl . $slctqry);
 
     if (mysqli_num_rows($stdts2updt) > 0) {
         // actualizar estudantes
@@ -269,7 +269,7 @@ function checkwftoken($start_time) {
                         WHERE stdid = " . $stdid . ";";
 
             mysqli_query($conBDInt, $updtqry)
-                or die("Ñ foi possível actualizar a tabela 'wiseflow.students': " . mysqli_error($conBDInt) . $nl);
+                or die("Ñ foi possível actualizar a tabela 'wiseflow.students': " . mysqli_error($conBDInt) . $nl . $updtqry);
 
         }
 
@@ -287,7 +287,7 @@ function checkwftoken($start_time) {
                 LIMIT 100;";
 
     $newstdts = mysqli_query($conBDInt, $slctqry)
-                    or die("Ñ foi possível consultar a view 'wiseflow.vw_newstdts_2wiseflow': " . mysqli_error($conBDInt) . $nl);
+                    or die("Ñ foi possível consultar a view 'wiseflow.vw_newstdts_2wiseflow': " . mysqli_error($conBDInt) . $nl . $slctqry);
 
     if (mysqli_num_rows($newstdts) > 0) {
         // inserir novos estudantes na tabela de controlo
@@ -298,7 +298,7 @@ function checkwftoken($start_time) {
                     LIMIT 100;";
 
         mysqli_query($conBDInt, $isrtqry)
-            or die("Ñ foi possível registar os estudantes na tabela 'wiseflow.students': " . mysqli_error($conBDInt) . $nl);
+            or die("Ñ foi possível registar os estudantes na tabela 'wiseflow.students': " . mysqli_error($conBDInt) . $nl . $isrtqry);
 
         while ($row = mysqli_fetch_array($newstdts)) {
             // registar novos estudantes
@@ -370,7 +370,7 @@ function checkwftoken($start_time) {
                         WHERE std_num = " . $std_num . ";";
 
             mysqli_query($conBDInt, $updtqry)
-                or die("Ñ foi possível actualizar a tabela 'wiseflow.students': " . mysqli_error($conBDInt) . $nl);
+                or die("Ñ foi possível actualizar a tabela 'wiseflow.students': " . mysqli_error($conBDInt) . $nl . $updtqry);
 
         }
 
@@ -381,47 +381,58 @@ function checkwftoken($start_time) {
 
     }
 
-// levantamento de docentes a actualizar
-    $slctqry = "SELECT userid, username, email
+// levantamento de docentes a criar/actualizar
+    $slctqry = "SELECT firstname,
+                       lastname,
+                       username,
+                       email,
+                       CONCAT(username, '@uab.pt') AS UniAbertaID
                 FROM wiseflow.vw_teacher_2wiseflow
                 WHERE RIGHT(lectyear, 2) = CASE
                                                WHEN MONTH(CURDATE()) < 10
                                                    THEN RIGHT(YEAR(CURDATE()), 2)
                                                ELSE RIGHT(YEAR(CURDATE()) + 1, 2)
                                            END
-                    AND userid IS NOT NULL
                 GROUP BY username
-                ORDER BY username;";
+                ORDER BY RAND();";
 
     $docs2updt = mysqli_query($conBDInt, $slctqry)
-                     or die("Ñ foi possível consultar a view 'wiseflow.vw_teacher_2wiseflow': " . mysqli_error($conBDInt) . $nl);
+                     or die("Ñ foi possível consultar a view 'wiseflow.vw_teacher_2wiseflow': " . mysqli_error($conBDInt) . $nl . $slctqry);
 
     if (mysqli_num_rows($docs2updt) > 0) {
-        // actualizar perfil dos docentes
+        // criar/actualizar perfil dos docentes
         while ($row = mysqli_fetch_array($docs2updt)) {
             $httpcode = 0;
-            while ($httpcode <> 201) {
-                $userid     = $row['userid'];
-                // $username = $row['username'];
-                // $email  = $row['email'];
-
-                $url = $base_url . "users/" . $userid . "/roles";
+            while ($httpcode <> 200 && $httpcode <> 201) {
+                $firstname = $row['firstname'];
+                $lastname  = $row['lastname'];
+                $username  = $row['username'];
+                $uab_id    = $row['UniAbertaID'];
+                $email     = $row['email'];
+                        
+                $url = $base_url . "license/user";
 
                 $data = <<<DATA
-                               [
-                                {
-                                 "licenseRoleId": 5726
-                                },
-                                {
-                                 "licenseRoleId": 5727
-                                },
-                                {
-                                 "licenseRoleId": 5731
-                                },
-                                {
-                                 "licenseRoleId": 5732
-                                }
-                               ]
+                               {
+                                "firstName": "$firstname",
+                                "lastName": "$lastname",
+                                "externalIds": [
+                                                {
+                                                 "userDataTypeId": 696,
+                                                 "value": "$uab_id"
+                                                }
+                                ],
+                                "language": "pt",
+                                "roles": [
+                                          5726,
+                                          5727,
+                                          5731,
+                                          5732
+                                ],
+                                "emails": [
+                                           "$email"
+                                ]
+                               }
                         DATA;
 
                 $curlopt = array_replace($curlopt_base,
@@ -441,53 +452,150 @@ function checkwftoken($start_time) {
                 // $err = curl_error($curl);
 
                 $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-
             }
+
+            $user = json_decode($response, true);
 
             curl_close($curl);
             unset($response);
 
+            // actualizar tabela de controlo com userid e data de registo
+            $updtqry = "INSERT IGNORE INTO wiseflow.teachers(firstname, lastname, username, email, userid, UniAbertaID)
+                        VALUES (\"" . $firstname . "\", \"" . $lastname . "\", \"" . $username . "\", \"" . $email . "\", " . $user['userId'] . ", \"" . $uab_id . "\");";
+
+            mysqli_query($conBDInt, $updtqry)
+                or die("Ñ foi possível actualizar a tabela 'wiseflow.teachers': " . mysqli_error($conBDInt) . $nl . $updtqry);
         }
 
-        printf("Foram actualizados " . mysqli_num_rows($docs2updt) . " docentes no WISEflow" . $nl);
+        printf("Foram criados/actualizados " . mysqli_num_rows($docs2updt) . " docentes no WISEflow" . $nl);
+
+    } else {
+        printf("Sem docentes p/ criar/actualizar" . $nl);
 
     }
 
-// levantamento de tutores a actualizar
-    $slctqry = "SELECT userid, username, email
+// levantamento de docentes a actualizar
+    // $slctqry = "SELECT userid, username, email
+    //             FROM wiseflow.vw_teacher_2wiseflow
+    //             WHERE RIGHT(lectyear, 2) = CASE
+    //                                            WHEN MONTH(CURDATE()) < 10
+    //                                                THEN RIGHT(YEAR(CURDATE()), 2)
+    //                                            ELSE RIGHT(YEAR(CURDATE()) + 1, 2)
+    //                                        END
+    //                 AND userid IS NOT NULL
+    //             GROUP BY username
+    //             ORDER BY username;";
+
+    // $docs2updt = mysqli_query($conBDInt, $slctqry)
+    //                  or die("Ñ foi possível consultar a view 'wiseflow.vw_teacher_2wiseflow': " . mysqli_error($conBDInt) . $nl . $slctqry);
+
+    // if (mysqli_num_rows($docs2updt) > 0) {
+    //     // actualizar perfil dos docentes
+    //     while ($row = mysqli_fetch_array($docs2updt)) {
+    //         $httpcode = 0;
+    //         while ($httpcode <> 201) {
+    //             $userid     = $row['userid'];
+    //             // $username = $row['username'];
+    //             // $email  = $row['email'];
+
+    //             $url = $base_url . "users/" . $userid . "/roles";
+
+    //             $data = <<<DATA
+    //                            [
+    //                             {
+    //                              "licenseRoleId": 5726
+    //                             },
+    //                             {
+    //                              "licenseRoleId": 5727
+    //                             },
+    //                             {
+    //                              "licenseRoleId": 5731
+    //                             },
+    //                             {
+    //                              "licenseRoleId": 5732
+    //                             }
+    //                            ]
+    //                     DATA;
+
+    //             $curlopt = array_replace($curlopt_base,
+    //                                      array(
+    //                                            CURLOPT_URL => $url,
+    //                                            CURLOPT_CUSTOMREQUEST => 'POST',
+    //                                            CURLOPT_POSTFIELDS => $data,
+    //                                           )
+    //                                     );
+
+    //             $curl = curl_init();
+
+    //             curl_setopt_array($curl, $curlopt);
+
+    //             $response = curl_exec($curl);
+    //             // $errNo = curl_errno($curl);
+    //             // $err = curl_error($curl);
+
+    //             $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
+    //         }
+
+    //         curl_close($curl);
+    //         unset($response);
+
+    //     }
+
+    //     printf("Foram actualizados " . mysqli_num_rows($docs2updt) . " docentes no WISEflow" . $nl);
+
+    // }
+
+// levantamento de tutores a criar/actualizar
+    $slctqry = "SELECT firstname,
+                       lastname,
+                       username,
+                       email,
+                       CONCAT(username, '@uab.pt') AS UniAbertaID
                 FROM wiseflow.vw_tutor_2wiseflow
                 WHERE RIGHT(lectyear, 2) = CASE
                                                WHEN MONTH(CURDATE()) < 10
                                                    THEN RIGHT(YEAR(CURDATE()), 2)
                                                ELSE RIGHT(YEAR(CURDATE()) + 1, 2)
                                            END
-                    AND userid IS NOT NULL
                 GROUP BY username
-                ORDER BY username;";
+                ORDER BY RAND();";
 
     $tuts2updt = mysqli_query($conBDInt, $slctqry)
-                     or die("Ñ foi possível consultar a view 'wiseflow.vw_tutor_2wiseflow': " . mysqli_error($conBDInt) . $nl);
+                     or die("Ñ foi possível consultar a view 'wiseflow.vw_tutor_2wiseflow': " . mysqli_error($conBDInt) . $nl . $slctqry);
 
     if (mysqli_num_rows($tuts2updt) > 0) {
-        // actualizar perfil dos tutores
+        // criar/actualizar perfil dos tutores
         while ($row = mysqli_fetch_array($tuts2updt)) {
             $httpcode = 0;
-            while ($httpcode <> 201) {
-                $userid     = $row['userid'];
-                // $username = $row['username'];
-                // $email  = $row['email'];
-
-                $url = $base_url . "users/" . $userid . "/roles";
+            while ($httpcode <> 200 && $httpcode <> 201) {
+                $firstname = $row['firstname'];
+                $lastname  = $row['lastname'];
+                $username  = $row['username'];
+                $uab_id    = $row['UniAbertaID'];
+                $email     = $row['email'];
+                        
+                $url = $base_url . "license/user";
 
                 $data = <<<DATA
-                               [
-                                {
-                                 "licenseRoleId": 5726
-                                },
-                                {
-                                 "licenseRoleId": 5727
-                                }
-                               ]
+                               {
+                                "firstName": "$firstname",
+                                "lastName": "$lastname",
+                                "externalIds": [
+                                                {
+                                                 "userDataTypeId": 696,
+                                                 "value": "$uab_id"
+                                                }
+                                ],
+                                "language": "pt",
+                                "roles": [
+                                          5726,
+                                          5727
+                                ],
+                                "emails": [
+                                           "$email"
+                                ]
+                               }
                         DATA;
 
                 $curlopt = array_replace($curlopt_base,
@@ -507,16 +615,92 @@ function checkwftoken($start_time) {
                 // $err = curl_error($curl);
 
                 $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-
             }
+
+            $user = json_decode($response, true);
 
             curl_close($curl);
             unset($response);
 
+            // actualizar tabela de controlo com userid e data de registo
+            $updtqry = "INSERT IGNORE INTO wiseflow.tutors(firstname, lastname, username, email, userid)
+                        VALUES (\"" . $firstname . "\", \"" . $lastname . "\", \"" . $username . "\", \"" . $email . "\", " . $user['userId'] . ");";
+
+            mysqli_query($conBDInt, $updtqry)
+                or die("Ñ foi possível actualizar a tabela 'wiseflow.tutors': " . mysqli_error($conBDInt) . $nl . $updtqry);
         }
 
-        printf("Foram actualizados " . mysqli_num_rows($tuts2updt) . " tutores no WISEflow" . $nl);
+        printf("Foram criados/actualizados " . mysqli_num_rows($tuts2updt) . " tutores no WISEflow" . $nl);
+
+    } else {
+        printf("Sem novos tutores p/ criar/actualizar" . $nl);
 
     }
+    
+// levantamento de tutores a actualizar
+    // $slctqry = "SELECT userid, username, email
+    //             FROM wiseflow.vw_tutor_2wiseflow
+    //             WHERE RIGHT(lectyear, 2) = CASE
+    //                                            WHEN MONTH(CURDATE()) < 10
+    //                                                THEN RIGHT(YEAR(CURDATE()), 2)
+    //                                            ELSE RIGHT(YEAR(CURDATE()) + 1, 2)
+    //                                        END
+    //                 AND userid IS NOT NULL
+    //             GROUP BY username
+    //             ORDER BY username;";
+
+    // $tuts2updt = mysqli_query($conBDInt, $slctqry)
+    //                  or die("Ñ foi possível consultar a view 'wiseflow.vw_tutor_2wiseflow': " . mysqli_error($conBDInt) . $nl . $slctqry);
+
+    // if (mysqli_num_rows($tuts2updt) > 0) {
+    //     // actualizar perfil dos tutores
+    //     while ($row = mysqli_fetch_array($tuts2updt)) {
+    //         $httpcode = 0;
+    //         while ($httpcode <> 201) {
+    //             $userid     = $row['userid'];
+    //             // $username = $row['username'];
+    //             // $email  = $row['email'];
+
+    //             $url = $base_url . "users/" . $userid . "/roles";
+
+    //             $data = <<<DATA
+    //                            [
+    //                             {
+    //                              "licenseRoleId": 5726
+    //                             },
+    //                             {
+    //                              "licenseRoleId": 5727
+    //                             }
+    //                            ]
+    //                     DATA;
+
+    //             $curlopt = array_replace($curlopt_base,
+    //                                      array(
+    //                                            CURLOPT_URL => $url,
+    //                                            CURLOPT_CUSTOMREQUEST => 'POST',
+    //                                            CURLOPT_POSTFIELDS => $data,
+    //                                           )
+    //                                     );
+
+    //             $curl = curl_init();
+
+    //             curl_setopt_array($curl, $curlopt);
+
+    //             $response = curl_exec($curl);
+    //             // $errNo = curl_errno($curl);
+    //             // $err = curl_error($curl);
+
+    //             $httpcode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
+    //         }
+
+    //         curl_close($curl);
+    //         unset($response);
+
+    //     }
+
+    //     printf("Foram actualizados " . mysqli_num_rows($tuts2updt) . " tutores no WISEflow" . $nl);
+
+    // }
 
 @mysqli_close($conBDInt);
